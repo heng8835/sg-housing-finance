@@ -6,6 +6,10 @@
 
 **Can we afford this flat? Plain answers, Singapore's real rules,<br>and your numbers never leave your browser.**
 
+### 👉 [Open the app — heng8835.github.io/sg-housing-finance](https://heng8835.github.io/sg-housing-finance/)
+
+Free · no sign-up · works on desktop (phone layout being improved) · English and 中文
+
 [![Open the app](https://img.shields.io/badge/Open_the_app-heng8835.github.io-2b6cb0?style=flat-square)](https://heng8835.github.io/sg-housing-finance/)
 [![tests](https://github.com/heng8835/sg-housing-finance/actions/workflows/ci.yml/badge.svg)](https://github.com/heng8835/sg-housing-finance/actions/workflows/ci.yml)
 [![MIT licence](https://img.shields.io/badge/licence-MIT-555?style=flat-square)](LICENSE)

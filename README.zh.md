@@ -6,6 +6,10 @@
 
 **这间组屋我们买得起吗？用浅白的话、新加坡真实的规则来回答，<br>而您的数字从不离开您的浏览器。**
 
+### 👉 [打开应用 — heng8835.github.io/sg-housing-finance](https://heng8835.github.io/sg-housing-finance/)
+
+免费 · 不用注册 · 适合电脑使用（手机版正在改进）· 英文和中文
+
 [![打开应用](https://img.shields.io/badge/打开应用-heng8835.github.io-2b6cb0?style=flat-square)](https://heng8835.github.io/sg-housing-finance/)
 [![tests](https://github.com/heng8835/sg-housing-finance/actions/workflows/ci.yml/badge.svg)](https://github.com/heng8835/sg-housing-finance/actions/workflows/ci.yml)
 [![MIT](https://img.shields.io/badge/许可证-MIT-555?style=flat-square)](LICENSE)
