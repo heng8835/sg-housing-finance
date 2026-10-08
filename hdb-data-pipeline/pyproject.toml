@@ -33,7 +33,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]  # "." = dagster_project/ (top level), needed on CI
 
 [tool.ruff]
 line-length = 100
