@@ -1006,7 +1006,6 @@
   "Cash short {0}": "现金不足 {0}",
   "fits your ticks best.": "最符合您勾选的项目。",
   "tied on your ticks.": "与其他组屋同样符合您勾选的项目。",
-  "But: {0}.": "但是：{0}。",
   "meets none of your ticks — {0}.": "不符合您勾选的任何项目——{0}。",
   "What matters most to you?": "您最看重什么？",
   "pick up to {0}": "最多选 {0} 项",
@@ -1098,5 +1097,6 @@
   "near budget": "接近预算",
   "over budget": "超出预算",
   "PUB's list of flood-prone areas is not included in this version. Check the streets near the flat on PUB's list, and ask the seller or neighbours about past floods.": "此版本不包括公用事业局的易淹水地区名单。请在公用事业局的名单上查看该单位附近的街道，并向卖家或邻居询问过往的淹水情况。",
-  "Not in this version — see PUB's list of flood-prone areas (pub.gov.sg)": "此版本不包括 — 请查看公用事业局的易淹水地区名单（pub.gov.sg）"
+  "Not in this version — see PUB's list of flood-prone areas (pub.gov.sg)": "此版本不包括 — 请查看公用事业局的易淹水地区名单（pub.gov.sg）",
+  "Not the best on your list: {0}.": "在您的清单中不算最好：{0}。"
 }

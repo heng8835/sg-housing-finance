@@ -30,7 +30,7 @@ test('changing the ticks changes the order', () => {
   assert.deepEqual(b, [1, 0, 2]);
   assert.notDeepEqual(a, b);
   const s = sentences(['cash', 'size', 'clinic']);
-  assert.match(s[0], /^2\. Hougang Ave 8 512: fits your ticks best\. lowest cash you must pay \(S\$31,000\) · biggest \(104 sqm\) · polyclinic 800 m away\./);
+  assert.match(s[0], /^2\. Hougang Ave 8 512: fits your ticks best\. Lowest cash you must pay \(S\$31,000\) · biggest \(104 sqm\) · polyclinic 800 m away\./);
 });
 
 test('relative "meets" (O1): ties all meet, all-equal all meet; cash needs "not short"; no data never meets; flood is yes / no', () => {

@@ -56,7 +56,7 @@ INCLUDE = [
     # fixture generators (npm run fixtures[:check]; tests/explore/money.test.js imports one) + their README
     "tests/**/*.mjs", "tests/fixtures/gen/README.md",
     # docs: a trimmed, outward-facing set
-    "docs/MODULE_MAP.md", "docs/backtest-fair-value.md", "docs/screenshot.png",
+    "docs/MODULE_MAP.md", "docs/backtest-fair-value.md", "docs/screenshot.png", "docs/readme/*", "README.zh.md",
     # the pipeline (portfolio, go-live Q9): code + tests + outward-facing docs
     "hdb-data-pipeline/README.md", "hdb-data-pipeline/pyproject.toml", "hdb-data-pipeline/Dockerfile",
     "hdb-data-pipeline/.gitignore", "hdb-data-pipeline/.env.example", "hdb-data-pipeline/src/**/*.py", "hdb-data-pipeline/dagster_project/**/*.py",

@@ -126,10 +126,11 @@ export function sentenceHtml(r, k, res, { bandKm = 1 } = {}) {
   const missed = ph(r.missed.slice(0, MISSES_SHOWN), false);
   if (r.met.length) {
     parts.push(t('{0}.', [list(ph(r.met, true))]));
-    if (missed.length) parts.push(t('But: {0}.', [list(missed)]));
+    if (missed.length) parts.push(t('Not the best on your list: {0}.', [list(missed)])); // relative, not a flaw
   } else parts.push(t('meets none of your ticks — {0}.', [list(missed)]));
   const tag = moneyTag(r.money);
-  return `<li>${name}: ${parts.join(' ')}${tag ? ' ' + tag : ''}</li>`;
+  const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1); // a new sentence after "." starts with a capital (EN)
+  return `<li>${name}: ${parts.map((x, i) => (i ? cap(x) : x)).join(' ')}${tag ? ' ' + tag : ''}</li>`;
 }
 
 /** Chips (aria-pressed); commute only when a hub row exists (label from it); switched-off ticks left out. */
