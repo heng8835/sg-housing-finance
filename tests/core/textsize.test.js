@@ -2,7 +2,7 @@
 // "You're set" (never switched on without a tap), and every app font size in rem so one token (--fs-base) scales it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { createStore, defaults, STORE_KEY } from '../../app/core/store.js';
 import { TEXT_SIZES, textSizeOf, textSizeClasses, applyTextSize, bindTextSize, textSizeSwitch, uiStrings } from '../../app/core/textsize.js';
 import { doneHtml, textOfferHtml } from '../../app/modules/start/view.js';
@@ -87,7 +87,13 @@ test('CSS: every app font size is rem except header chrome, map markers, the swi
   assert.doesNotMatch(read('modules/shell/textsize.js') + read('core/textsize.js'), /localStorage|fetch\(/, 'the choice lives in the store only');
 });
 
-test('中文: the text-size strings are translated', () => {
-  const dict = Object.assign({}, ...['zh-guide', 'zh', 'zh-explore', 'zh-engine'].map((n) => JSON.parse(read(`i18n/${n}.json`))));
-  for (const s of [...uiStrings(), 'Bigger text?', 'Easier to read and tap. Change it any time with the text size switch at the top (in Learn on a phone).']) assert.ok(dict[s], `missing 中文: ${s}`);
+// phone overhaul: on phones the text size lives in the top bar's Aa button (and the Menu), no longer in Learn
+const OFFER_LINE = 'Easier to read and tap. Change it any time with the text size switch at the top (Aa on a phone).';
+test('中文: the text-size strings are translated (strings staged by parallel agents count until merged)', () => {
+  const staging = new URL('i18n/staging/', APP);
+  const staged = existsSync(staging) ? readdirSync(staging).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(read(`i18n/staging/${f}`))) : [];
+  const dict = Object.assign({}, ...['zh-guide', 'zh', 'zh-explore', 'zh-engine'].map((n) => JSON.parse(read(`i18n/${n}.json`))), ...staged);
+  for (const s of [...uiStrings(), 'Bigger text?', OFFER_LINE]) assert.ok(dict[s], `missing 中文: ${s}`);
+  assert.ok(textOfferHtml('normal').includes(OFFER_LINE), 'the offer names the Aa button, not Learn');
+  assert.doesNotMatch(textOfferHtml('normal'), /in Learn on a phone/);
 });

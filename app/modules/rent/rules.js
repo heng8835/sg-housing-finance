@@ -5,6 +5,7 @@ import { pathways } from '../../engine/eligibility.js';
 import { rentOutCheck, tenancyStampDuty, rentalYield } from '../../engine/landlord.js';
 import { esc, money, pct } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
+import { moneyInput } from '../../core/moneyinput.js';
 import { missingFields, needPrompt } from '../../core/missing.js';
 
 // status tag carries a word, not just an icon
@@ -67,7 +68,7 @@ export function landlordSection(f, lo, policy, folds) {
         <label class="f"><span>${t('Tenants')}</span>${sel('tenants', [['sc', 'Singaporeans / PRs'], ['my', 'Malaysians'], ['other', 'Other foreigners'], ['wpm', 'Work Permit (manufacturing)']], lo.tenants)}</label>
         <label class="f"><span>${t('People living there (incl. you)')}</span><input type="number" data-lo="occupants" min="1" max="12" value="${lo.occupants}"></label>
         <label class="f"><span>${t('Months')}</span><input type="number" data-lo="months" min="1" max="60" value="${lo.months}"></label>
-        <label class="f"><span>${t('Monthly rent (S$)')}</span><input type="number" data-lo="rent" min="0" step="50" value="${lo.rent ?? ''}"></label>
+        <label class="f"><span>${t('Monthly rent (S$)')}</span>${moneyInput({ value: lo.rent ?? null, attrs: 'data-lo="rent"' })}</label>
       </div>
       <p class="verdict"><span class="tag ${chk.ok ? 'good' : 'critical'}">${chk.ok ? '✓ ' + t('Allowed, with the checks below') : '✕ ' + t('Not allowed as planned')}</span>${badge(chk.status)}</p>
       ${chk.issues.map((i) => `<p class="hint">${i.level === 'block' ? '✕' : '•'} ${esc(t(i.msg))}${badge(i.status)}</p>`).join('')}

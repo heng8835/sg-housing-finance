@@ -140,13 +140,15 @@ function itemHtml(s, editing) {
 /**
  * The card's body.
  * @param {{ list:object[], results:(object|null)[], canSave:boolean, why:string, editing:string|null, max:number,
- *   sale?:{ price:number|null, mode:string }|null }} x  sale = saleOf(the current plan) → "Saves your sale too" (B14)
+ *   sale?:{ price:number|null, mode:string }|null, phone?:boolean, layout?:Function|null }} x  sale = saleOf(the current
+ *   plan) → "Saves your sale too" (B14); phone = the phone wording; layout(list, results) = the compare markup
+ *   (default: the table; phones with 3–4 scenarios pass cards.js cardsHtml)
  */
-export function cardHtml({ list, results, canSave, why, editing, max, sale = null }) {
-  const compare = list.length ? `${compareHtml(list, results)}${list.length === 1 ? `<p class="hint">${t('Save another scenario to compare side by side.')}</p>` : ''}` : '';
+export function cardHtml({ list, results, canSave, why, editing, max, sale = null, phone = false, layout = null }) {
+  const compare = list.length ? `${(layout || compareHtml)(list, results)}${list.length === 1 ? `<p class="hint">${t('Save another scenario to compare side by side.')}</p>` : ''}` : '';
   return `<h3>${t('Scenarios')}</h3>
     <p class="sec-sub">${t('Save this flat, household and loan as A to D and compare them side by side. Kept in this browser only.')}</p>
-    <div class="actions"><button type="button" class="btn sm primary" id="scSave"${canSave ? '' : ' disabled aria-describedby="scWhy"'}>${t('Save current as scenario')}</button>
+    <div class="actions"><button type="button" class="btn sm primary" id="scSave"${canSave ? '' : ' disabled aria-describedby="scWhy"'}>${phone ? t('Save this flat as a scenario') : t('Save current as scenario')}</button>
       <span class="sc-count">${esc(t('{0} of {1} saved', [list.length, max]))}</span></div>
     ${why ? `<p class="hint" id="scWhy">${esc(why)}</p>` : ''}
     ${sale && sale.price != null && canSave ? `<p class="hint">${esc(t('Saves your sale too ({0}, {1}).', [kilo(sale.price), t(ORDER_SHORT[sale.mode] || sale.mode)]))}</p>` : ''}

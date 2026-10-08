@@ -258,11 +258,11 @@ export function defaultNote(tf) {
     <button type="button" class="link" data-act="pick-map">${t('Pick on the map →')}</button></p>`;
 }
 
-/** Wire "Pick on the map →" buttons inside root: go to Explore (phone: half-height sheet). */
+/** Wire "Pick on the map →" buttons inside root: go to Explore (phone: the Map tab with the sheet at peek). */
 export function bindPickMap(root) {
   root.addEventListener('click', (e) => {
     if (!e.target.closest('[data-act="pick-map"]')) return;
     bus.emit('nav:goto', { tab: 'explore' });
-    if (typeof matchMedia === 'function' && matchMedia('(max-width: 767px)').matches) bus.emit('sheet:size', 'half');
+    bus.emit('phone:show-map', {}); // no-op on desktop
   });
 }

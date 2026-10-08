@@ -1,0 +1,101 @@
+/* Phone pages: Afford, Rent & Buy, Plan, Scenarios + money fields (phone overhaul §3.5–§3.7, slice D; audit P-38 to
+   P-47, P-64). Loaded after phone.css. EVERY rule is inside @media screen and (max-width: 767px), so tablet and desktop do not
+   change (tests/phone/pages-css.test.js); rem font sizes only, nothing under .875rem; tokens from base.css only. */
+@media screen and (max-width: 767px) {
+  /* ---------------------------------------------------------------- sticky card headers stick to the real top (R-08)
+     the page's 16 px top padding moves from .tab (it inset the sticky area, so a strip of the rows above showed over
+     the header) to the title row; an open fold's sub-line is not repeated in its sticky header (the content is below) */
+  #panel .tab { padding-top: 0; }
+  #panel .tab > .page-head { padding-top: 16px; }
+  #tab-afford .section > h3:first-child, #tab-rent .section > h3:first-child, #tab-plan .section > h3:first-child { padding: 12px var(--card-pad) 8px; }
+  #tab-plan .fold[open] > summary .fold-s, #tab-afford .fold[open] > summary .fold-s, #tab-rent .fold[open] > summary .fold-s { display: none; }
+
+  /* ---------------------------------------------------------------- money fields: "S$" inside the box (Q10, P-38) */
+  .money-in { display: block; position: relative; }
+  .money-in::before { content: 'S$'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-3);
+    font-size: 1rem; line-height: 1; pointer-events: none; }
+  .money-in > input { padding-left: 2.5rem; font-variant-numeric: tabular-nums; }
+  input[data-money][aria-invalid="true"] { border-color: var(--critical); }
+  .f-help.rt-median { display: block; margin: 6px 0 0; }
+
+  /* ---------------------------------------------------------------- KPI tiles: 2 columns from 360 px at Normal, else 1
+     (8.75rem tiles: 2 fit a 296 px card at 16 px; at A+ on 360 px and at A++ they stack, so "S$135,800" never wraps;
+     auto-fit: a single tile takes the full width, P-46) */
+  #panel .kpis { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.75rem), 1fr)); gap: 8px; }
+  :root.ts-larger #panel .kpis { grid-template-columns: minmax(0, 1fr); }
+  #panel .kpis > .kpi:only-child, #panel .kpis > .need:only-child { grid-column: 1 / -1; }
+  #panel .kpi { min-width: 0; padding: 10px 12px; overflow-wrap: anywhere; }
+  #panel .kpi > b { display: block; font-size: 1.25rem; line-height: 1.25; } /* R-18: key numbers 20 / 22.5 / 25 px */
+  #panel .kpi > b small { font-size: .875rem; font-weight: 400; }
+
+  /* ---------------------------------------------------------------- main actions: full width, 48 px (P-40, AC8) */
+  #afBudget, #scSave { width: 100%; min-height: 48px; font-size: 1rem; }
+  #affordVerdict .actions, #affordScenarios .actions { display: block; }
+
+  /* ---------------------------------------------------------------- Scenarios (P-40, P-64) */
+  /* the title sat under an empty ~40 px band (h3 default margin; it is not the card's first child): same sticky
+     title as the other cards (phone.css) */
+  #affordScenarios .sc-body > h3:first-child { position: sticky; top: 0; z-index: 2; margin: -8px calc(-1 * var(--card-pad)) 12px;
+    padding: 8px var(--card-pad); background: var(--surface); border-bottom: 1px solid var(--border-subtle); }
+  #affordScenarios .sc-count { display: block; margin-top: 8px; }
+  #affordScenarios .sc-msg:empty { display: none; }
+  .sc-item { display: block; padding: 12px 0; }
+  .sc-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  .sc-acts .btn { min-height: 44px; font-size: .9375rem; }
+  /* Delete on its own row at the end, away from Load / Rename */
+  .sc-acts [data-act="sc-delete"] { grid-column: 2; margin-top: 12px; color: var(--critical); }
+  .sc-item.editing .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  table.sc-table th, table.sc-table td { min-width: 0; }
+  table.sc-table tbody th { max-width: 7.5rem; overflow-wrap: anywhere; }
+  table.sc-table td { overflow-wrap: anywhere; }
+  /* 3–4 scenarios: one card per scenario in a swipe row (scenarios/cards.js) */
+  .sc-cards { margin-top: 12px; }
+  .sc-cnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .sc-cnav .btn { min-width: 48px; font-size: 1.125rem; }
+  .sc-pos { font-size: .9375rem; color: var(--text-2); }
+  .sc-track { display: flex; gap: 12px; margin: 0; padding: 0 0 4px; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .sc-card { flex: 0 0 88%; min-width: 0; scroll-snap-align: start; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); }
+  .sc-card h4 { margin: 0 0 8px; font-size: 1rem; overflow-wrap: anywhere; }
+  .sc-card dl { margin: 0; }
+  .sc-cr { padding: 8px 0; border-top: 1px solid var(--border-subtle); font-variant-numeric: tabular-nums; }
+  .sc-cr dt { font-size: .875rem; color: var(--text-2); }
+  .sc-cr dd { margin: 2px 0 0; font-size: 1rem; overflow-wrap: anywhere; }
+  .sc-cr dd small { display: block; font-size: .875rem; color: var(--text-3); }
+  .sc-cr.best dd { font-weight: 600; }
+  @media (prefers-reduced-motion: reduce) { .sc-track { scroll-behavior: auto; } }
+
+  /* ---------------------------------------------------------------- tables that must fit 360 px at Larger (AC1) */
+  /* 14 px figures, tight padding: the 4-column repayment table is 280 px wide at A++ (card: 294 px at 360 px) */
+  #panel table.mini { font-size: .875rem; font-variant-numeric: tabular-nums; }
+  #panel table.mini th, #panel table.mini td { padding: 4px 3px; }
+  table.rb-ph th, table.rb-ph td, table.rb-ph th:first-child, table.rb-ph td:first-child { text-align: right; }
+  table.rb-ph tr.rb-yr th { padding-top: 8px; text-align: left; color: var(--text-2); font-weight: 600; border-bottom: 0; }
+  #affordRoot table.mini td small { display: block; }
+
+  /* ---------------------------------------------------------------- Rent: "Based on" as a vertical radio list (P-43) */
+  .rb-ctx .seg { display: flex; flex-direction: column; width: 100%; }
+  .rb-ctx .seg button { max-width: none; min-height: 48px; padding: 10px 12px; font-size: 1rem; text-align: left; white-space: normal;
+    overflow: visible; text-overflow: clip; }
+  .rb-ctx .seg button + button { border-left: 0; border-top: 1px solid var(--border); }
+  /* stand-alone links become 44 px rows (spec §2.5): Change place, Pick on the map, Use the estimate, remove a child */
+  #panel [data-act="rent-place"], #panel .default-note .link, #panel .mc-back .link, #panel .actions > .link, #panel .f.kid > .link,
+  #panel [data-act="pick-map"], #panel small > .link:only-child, #panel .f-help > button.link { display: inline-flex; align-items: center; min-height: 44px; font-size: .9375rem; }
+
+  /* ---------------------------------------------------------------- Plan: jump row + flatter CPF (P-45 to P-47) */
+  .pl-jump { display: flex; gap: 8px; margin: 0 -16px 12px; padding: 0 16px 4px; overflow-x: auto; scrollbar-width: none; }
+  .pl-jump::-webkit-scrollbar { display: none; }
+  .pl-jump .chip { flex: none; min-height: 44px; padding: 0 14px; font-size: .9375rem; }
+  #planRoot > details.fold { scroll-margin-top: 8px; }
+  #planRoot fieldset.buyer { padding: 0; background: none; overflow-x: visible; }
+  #planRoot fieldset.buyer > legend { font-size: 1rem; }
+  .cpf-rows { margin: 8px 0; }
+  .cpf-age { padding: 8px 0; border-top: 1px solid var(--border-subtle); }
+  .cpf-age h5 { margin: 0 0 4px; font-size: .9375rem; color: var(--text-2); }
+  .cpf-age dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: 4px 12px; margin: 0;
+    font-variant-numeric: tabular-nums; }
+  .cpf-age dt { font-size: .875rem; color: var(--text-3); }
+  .cpf-age dd { margin: 0; font-size: 1rem; }
+  .cpf-sums { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 6px; }
+}

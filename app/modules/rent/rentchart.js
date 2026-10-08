@@ -1,6 +1,7 @@
 // Rent & Buy → "Is this rent fair?" trend: HDB quarterly median rent for one town + flat type on a continuous
 // quarter axis (year labels, last quarter labelled), range 5 y / 10 y / All, optional asking-rent line, and a
-// pointer / touch / keyboard tooltip. Inline SVG at the measured width (ResizeObserver, like chart.js).
+// pointer / touch / keyboard tooltip. Inline SVG at the measured width (ResizeObserver, like chart.js). Phones draw
+// the labels at the 14 px floor: `fs` widens the left margin and spaces the year labels for it (review R-09).
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { niceTicks, sgdShort, quarterTicks, parseQuarter } from '../../core/axis.js';
@@ -23,7 +24,10 @@ export const qLabel = (q) => { const p = parseQuarter(q); return p ? t('Q{0} {1}
  * The window ends at the last quarter with a figure and spans the range (All = from the first figure).
  * @returns {null | { W, H, x0, x1, y0, y1, first, last, pts:{i, q, v, x, y}[], segs:number[][][], yTicks, ticks, ask }}
  */
-export function rentChartModel({ q, quarters, range = DEFAULT_RANGE, width = 320, phone = false, asking = null }) {
+/** Rough label width in px (CJK ≈ 1 em, Latin / digits ≈ 0.6 em). */
+const labelW = (s, fs) => { let w = 0; for (const ch of String(s)) w += /[⺀-鿿＀-￯]/.test(ch) ? fs : fs * 0.6; return w; };
+
+export function rentChartModel({ q, quarters, range = DEFAULT_RANGE, width = 320, phone = false, asking = null, fs = 11 }) {
   const n = Math.min((q || []).length, (quarters || []).length);
   let end = n - 1;
   while (end >= 0 && !(q[end] > 0)) end--;
@@ -36,9 +40,10 @@ export function rentChartModel({ q, quarters, range = DEFAULT_RANGE, width = 320
   for (let i = start; i <= end; i++) if (q[i] > 0) vals.push(q[i]);
   if (vals.length < 2) return null;
   const W = Math.max(220, Math.round(width)), H = phone ? 160 : 180;
-  const x0 = M.left, x1 = W - M.right, y0 = M.top, y1 = H - M.bottom, count = end - start + 1;
-  const ask = asking > 0 ? asking : null;
+  const ask = asking > 0 ? asking : null, big = fs > 11;
   const axis = niceTicks(Math.min(...vals, ask ?? Infinity), Math.max(...vals, ask ?? -Infinity), 4);
+  const left = big ? Math.max(M.left, Math.ceil(Math.max(...axis.ticks.map((v) => labelW(sgdShort(v), fs))) + 12)) : M.left;
+  const x0 = left, x1 = W - M.right, y0 = M.top, y1 = H - (big ? Math.round(fs + 15) : M.bottom), count = end - start + 1;
   const x = (k) => x0 + (count > 1 ? k / (count - 1) : 0) * (x1 - x0);
   const y = (v) => y1 - ((v - axis.lo) / (axis.hi - axis.lo || 1)) * (y1 - y0);
   const pts = [], segs = [];
@@ -52,7 +57,8 @@ export function rentChartModel({ q, quarters, range = DEFAULT_RANGE, width = 320
     cur.push([p.x, p.y]);
   }
   return { W, H, x0, x1, y0, y1, first: quarters[start], last: quarters[end], pts, segs,
-    yTicks: axis.ticks.map((v) => ({ v, y: y(v), text: sgdShort(v) })), ticks: quarterTicks(quarters[start], quarters[end], x1 - x0),
+    yTicks: axis.ticks.map((v) => ({ v, y: y(v), text: sgdShort(v) })), fs,
+    ticks: quarterTicks(quarters[start], quarters[end], x1 - x0, big ? { yearPx: Math.ceil(labelW('2026', fs) + 12), endPx: Math.ceil(labelW(qLabel(quarters[end]), fs) + labelW('2026', fs) / 2 + 10) } : undefined),
     ask: ask == null ? null : { v: ask, y: y(ask) } };
 }
 
@@ -98,11 +104,12 @@ export function rentChartSvg(m, aria) {
   const grid = m.yTicks.map((k) => `<line x1="${m.x0}" x2="${m.x1}" y1="${k.y.toFixed(1)}" y2="${k.y.toFixed(1)}" style="stroke:var(--border-subtle)" stroke-width="1"/>
     <text x="${m.x0 - 6}" y="${(k.y + 4).toFixed(1)}" text-anchor="end" style="fill:var(--text-2)">${esc(k.text)}</text>`).join('');
   // ticks come from the quarter labels; a gap in HDB's quarter list can put one past the last point — skip it (7b)
+  const ly = Math.round((m.fs || 11) + 5); // x-label baseline below the axis (16 at 11 px)
   const X = (i) => m.pts[i].x.toFixed(1), tk = m.ticks && { minor: m.ticks.minor.filter((i) => m.pts[i]), major: m.ticks.major.filter((j) => m.pts[j.i]) };
   const minor = tk ? tk.minor.map((i) => `<line x1="${X(i)}" x2="${X(i)}" y1="${m.y1}" y2="${m.y1 + 2}" style="stroke:var(--border-input)"/>`).join('') : '';
   const major = tk ? tk.major.map((j) => `<line x1="${X(j.i)}" x2="${X(j.i)}" y1="${m.y1}" y2="${m.y1 + 4}" style="stroke:var(--border-input)"/>${j.label
-    ? `<text x="${X(j.i)}" y="${m.y1 + 16}" text-anchor="middle" style="fill:var(--text-2)">${j.year}</text>` : ''}`).join('') : '';
-  const endLbl = `<text x="${m.x1}" y="${m.y1 + 16}" text-anchor="end" style="fill:var(--text-2)">${esc(qLabel(m.last))}</text>`;
+    ? `<text x="${X(j.i)}" y="${m.y1 + ly}" text-anchor="middle" style="fill:var(--text-2)">${j.year}</text>` : ''}`).join('') : '';
+  const endLbl = `<text x="${m.x1}" y="${m.y1 + ly}" text-anchor="end" style="fill:var(--text-2)">${esc(qLabel(m.last))}</text>`;
   const lines = m.segs.map((s) => (s.length > 1 ? `<polyline fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${poly(s)}"/>`
     : `<circle cx="${s[0][0].toFixed(1)}" cy="${s[0][1].toFixed(1)}" r="1.5" style="fill:var(--accent)"/>`)).join('');
   const lastPt = [...m.pts].reverse().find((p) => p.v != null);
@@ -139,7 +146,9 @@ export function drawRentChart(box, spec) {
     const w = plot()?.clientWidth || box.clientWidth;
     if (!w || (!force && w === lastW)) return;
     lastW = w;
-    m = rentChartModel({ ...spec, range: st.range, width: w, phone: typeof matchMedia === 'function' && matchMedia(PHONE).matches });
+    const phone = typeof matchMedia === 'function' && matchMedia(PHONE).matches;
+    const fs = phone ? 0.875 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) : 11; // phone.css label floor
+    m = rentChartModel({ ...spec, range: st.range, width: w, phone, fs });
     plot().innerHTML = m ? `${rentChartSvg(m, rentAria(m))}<div class="rt-tip" aria-live="polite" hidden></div>` : `<p class="hint">${t('Not enough quarterly figures for a chart.')}</p>`;
     idx = null;
     if (m) wire();

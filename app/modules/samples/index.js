@@ -11,6 +11,7 @@ import { requestSample, requestSampleExit, userSnapshot } from '../../core/store
 import { summarise } from '../../engine/household.js';
 import { SAMPLES, sampleById } from './data.js';
 import { buildSample, samplePayload } from './build.js';
+import { isPhone } from '../../core/spotlight.js';
 
 const CITIZEN = { SC: 'Singapore Citizen', PR: 'Permanent Resident', F: 'Foreigner' };
 
@@ -23,8 +24,11 @@ export function mountSamples({ store, policy, bus, storage = window.localStorage
     const s = activeSample(); if (!s) return;
     const el = document.createElement('div');
     el.id = 'sampleBanner'; el.className = 'sample-banner'; el.setAttribute('role', 'status');
+    // desktop: the full sentence + two buttons; phones (R-01): one ≤ 48 px line "Sample: X" + [Exit] (CSS picks;
+    // "Other samples" and the "not saved" line live in the Menu / household page there)
     el.innerHTML = `<p class="sb-text">${t("You're exploring a sample: {0} — changes are not saved to your own household.", [`<b>${esc(t(s.name))}</b>`])}</p>
-      <div class="sb-actions"><button type="button" class="btn sm" data-smp="open">${t('Other samples')}</button><button type="button" class="btn sm primary" data-smp="exit">${t('Exit sample')}</button></div>`;
+      <span class="sb-short">${t('Sample: {0}', [esc(t(s.name))])}</span>
+      <div class="sb-actions"><button type="button" class="btn sm sb-other" data-smp="open">${t('Other samples')}</button><button type="button" class="btn sm primary sb-exit-long" data-smp="exit">${t('Exit sample')}</button><button type="button" class="btn sb-exit-short" data-smp="exit" aria-label="${esc(t('Exit sample'))}">${t('Exit')}</button></div>`;
     el.addEventListener('click', onClick);
     document.body.prepend(el);
     document.body.classList.add('in-sample');
@@ -32,7 +36,7 @@ export function mountSamples({ store, policy, bus, storage = window.localStorage
 
   // ---- picker
   const dlg = document.createElement('dialog');
-  dlg.id = 'smpDialog'; dlg.className = 'drawer'; dlg.setAttribute('aria-labelledby', 'smpTitle');
+  dlg.id = 'smpDialog'; dlg.className = 'drawer phone-full'; dlg.setAttribute('aria-labelledby', 'smpTitle'); // phones: full-screen page (§3.9)
   document.body.appendChild(dlg);
 
   function facts(s) {
@@ -62,7 +66,9 @@ export function mountSamples({ store, policy, bus, storage = window.localStorage
   function renderPicker() {
     const cur = active(), waiting = !data.hdb;
     dlg.innerHTML = `<div class="drawer-body">
-      <div class="drawer-head"><h2 id="smpTitle">${t('Try a sample household')}</h2><button type="button" class="btn sm" data-smp="close" aria-label="${esc(t('Close'))}">✕</button></div>
+      <div class="drawer-head"><h2 id="smpTitle">${t('Try a sample household')}</h2>${isPhone()
+    ? `<button type="button" class="btn sm" data-smp="close">${t('Close')}</button>`
+    : `<button type="button" class="btn sm" data-smp="close" aria-label="${esc(t('Close'))}">✕</button>`}</div>
       <p class="hint">${t('Explore every tab with a made-up household — no real person, round numbers.')} <b>${t('Your own household, shortlist and settings are kept safe')}</b> ${t('and come back exactly as they were when you exit the sample. Changes you make inside a sample are not kept.')}</p>
       ${SAMPLES.map((s) => card(s, cur, waiting)).join('')}
       <p class="hint" id="smpMsg" aria-live="polite"></p>

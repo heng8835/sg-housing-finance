@@ -23,6 +23,7 @@ import { bindBlockSearch, blockName } from '../../core/blocksearch.js';
 import { questionsFor, isFirstVisit, answersFrom, householdFrom, touchesHousehold, routeFor, startRecord, clearedHousehold, planPatches, cleanDraft, SENIOR_HINT_AGE } from './answers.js';
 import { questionHtml, doneHtml, pickedHint } from './view.js';
 import { BLOCK_CLS, BLOCK_LIST } from './screens.js';
+import { isPhone } from '../../core/spotlight.js';
 
 const SHOW_DELAY_MS = 300; // after the map data has loaded (the guide's own offer waits 800 ms and for 'start:closed')
 const TAP_GUARD_MS = 400;  // after a tap moves on, a second tap within this time is ignored (no double step)
@@ -38,11 +39,11 @@ async function loadGuideList() {
 export function mountStart({ store, bus, policy = null, storage = globalThis.localStorage }) {
   if (document.getElementById('startDlg')) return null;
   const dlg = document.createElement('dialog');
-  dlg.id = 'startDlg'; dlg.className = 'start-dlg';
+  dlg.id = 'startDlg'; dlg.className = 'start-dlg phone-full'; // phones: a full-screen page (styles/phone.css + start.css)
   dlg.setAttribute('aria-labelledby', 'startTitle');
   document.body.append(dlg);
 
-  let i = 0, a = null, route = null, saved = null, finished = false, returnTo = null, guides = [], tapUntil = 0;
+  let i = 0, a = null, route = null, saved = null, finished = false, returnTo = null, guides = [], tapUntil = 0, paintedAt = null;
   loadGuideList().then((g) => { guides = g; });
   const towns = () => (data.hdb ? data.hdb.towns.slice().sort() : []);
   const hubs = () => (data.commute && Array.isArray(data.commute.hubs) ? data.commute.hubs.map((h) => ({ id: h.id, name: h.name })) : []);
@@ -51,8 +52,11 @@ export function mountStart({ store, bus, policy = null, storage = globalThis.loc
   const qs = () => questionsFor(a);
 
   function paint(focusSel) {
-    dlg.innerHTML = route ? doneHtml(a, saved, route, { tourTitle: TOUR_TITLES[route.tour] || '', textSize: store.get('ui.textSize') })
-      : questionHtml(i, a, { towns: towns(), hdb: data.hdb, hubs: hubs(), payoutAge: payoutAge(), lang: currentLang() });
+    const phone = isPhone();
+    dlg.innerHTML = route ? doneHtml(a, saved, route, { tourTitle: TOUR_TITLES[route.tour] || '', textSize: store.get('ui.textSize'), phone })
+      : questionHtml(i, a, { towns: towns(), hdb: data.hdb, hubs: hubs(), payoutAge: payoutAge(), lang: currentLang(), phone });
+    const at = route ? 'done' : i;
+    if (at !== paintedAt) { dlg.scrollTop = 0; paintedAt = at; } // a new screen starts at the top (phone: a scrolling page)
     // no text field by default (a phone keyboard would cover the choices); the chosen option, else the first one
     const f = (focusSel && dlg.querySelector(focusSel)) || dlg.querySelector('.st-opt.on') || dlg.querySelector('.st-body .seg .on')
       || dlg.querySelector('.st-opt') || dlg.querySelector('[data-st="next"]');
@@ -66,6 +70,7 @@ export function mountStart({ store, bus, policy = null, storage = globalThis.loc
     a = draft ? draft.a : answersFrom(store.get('household'), fresh ? {} : { goal: store.get('ui.start')?.goal }, store.get('plan'));
     i = draft ? draft.i : 0; route = null; saved = null; finished = false;
     if (draft) store.set('ui.startDraft', null);
+    paintedAt = null;
     dlg.showModal();
     paint(); // after showModal, so the chosen / first option gets the focus (not the ✕)
   }

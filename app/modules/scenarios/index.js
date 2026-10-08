@@ -10,6 +10,10 @@ import { effectiveFlat, marketRentFor, townOfFlat, onTypicalChange } from '../..
 import { saveView } from '../../core/fold.js';
 import { t } from '../../core/i18n.js';
 import { cardHtml, defaultName, saleOf, RENT_BUY_YEARS } from './view.js';
+import { cardsHtml, bindCards, CARDS_FROM } from './cards.js';
+
+const phoneMq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null; // phone overhaul §3.5
+const isPhone = () => !!(phoneMq && phoneMq.matches);
 
 const MEMO_MAX = 16;
 const copy = (v) => JSON.parse(JSON.stringify(v ?? {}));
@@ -60,7 +64,8 @@ export function mountScenarios({ store, policy, bus, root }) {
     const full = items.length >= MAX_SCENARIOS;
     const why = full ? t('All four scenarios are used — delete one to save another.') : !tf ? t('Enter a price or pick a flat first.') : '';
     const restore = saveView(node);
-    body.innerHTML = cardHtml({ list: items, results: items.map(resultsFor), canSave: !full && !!tf, why, editing, max: MAX_SCENARIOS, sale: saleOf(store.get('plan')) });
+    const phone = isPhone(), layout = phone && items.length >= CARDS_FROM ? cardsHtml : null; // phone: 3–4 → swipe cards
+    body.innerHTML = cardHtml({ list: items, results: items.map(resultsFor), canSave: !full && !!tf, why, editing, max: MAX_SCENARIOS, sale: saleOf(store.get('plan')), phone, layout });
     restore();
     bus.emit('learn:decorate', { root: node });
   }
@@ -125,7 +130,9 @@ export function mountScenarios({ store, policy, bus, root }) {
     else if (e.key === 'Escape') { e.preventDefault(); finishRename(editing, false); }
   });
 
+  bindCards(node);
   bus.on('afford:painted', ({ root: r }) => place(r));
+  phoneMq?.addEventListener?.('change', render);
   for (const k of ['scenarios', 'household', 'focus', 'plan.current']) store.subscribe(k, render);
   bus.on('data:ready', render);
   onTypicalChange(render);

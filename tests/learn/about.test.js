@@ -22,7 +22,7 @@ test('About lists every source with its licence, the rules date, the version and
   for (const name of Object.values(LICENCES)) assert.ok(html.includes(name), name);
   assert.ok(html.includes(`App abc1234 · data up to ${monthText('2026-09')}`), 'version + resale data month');
   assert.match(html, /Rules as of 2026-10-07 · next review 2027-01-01 · rules version 2026\.10\./);
-  assert.ok(sourcesTable({ months: dataMonths({ hdb: HDB, rents: RENTS }), reviewed: META.reviewed }).includes(`<td>${monthText('2026-08')}</td>`), 'rents have their own month');
+  assert.ok(sourcesTable({ months: dataMonths({ hdb: HDB, rents: RENTS }), reviewed: META.reviewed }).includes(`>${monthText('2026-08')}</td>`), 'rents have their own month');
   assert.match(html, /not affiliated with HDB, CPF Board, IRAS, MAS or any government agency/);
   assert.match(html, /not financial advice/);
   assert.ok(html.includes(`href="${ISSUES_URL}"`));
@@ -81,7 +81,7 @@ test('disclaimer line: panel footer + the end of every tab + the Compare drawer,
   assert.equal((html.match(/data-about data-i18n>About</g) || []).length, 7, '5 tabs + footer + Compare drawer');
   const css = read('app/styles/modules.css');
   assert.match(css, /\.disc-line\.tab-end, \.disc-line\.learn-disc \{ display: none; \}/, 'desktop: footer only');
-  assert.match(css, /@media \(max-width: 767px\) \{\s*#discLine \{ display: none; \}\s*\.disc-line\.tab-end, \.disc-line\.learn-disc \{ display: block; \}/, 'phone: end of each tab');
+  assert.match(css, /@media (screen and )?\(max-width: 767px\) \{\s*#discLine \{ display: none; \}\s*\.disc-line\.tab-end, \.disc-line\.learn-disc \{ display: block; \}/, 'phone: end of each tab');
   const learn = read('app/modules/learn/index.js');
   assert.match(learn, /closest\('\[data-about\]'\)\) openSheet\(ABOUT_ID\)/, 'any [data-about] opens the About view');
   assert.match(learn, /About this app, sources and privacy →/, 'Learn index entry');

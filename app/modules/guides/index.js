@@ -13,6 +13,7 @@ import { saleInput } from '../../engine/salefunds.js';
 import { listHtml, stepHtml, quizHtml } from './render.js';
 import { logHtml } from './log.js';
 import { createShowMe } from './showme.js';
+import { isPhone } from '../../core/spotlight.js';
 
 /** Guides for a language (falls back to English when the translation file is missing). */
 export async function loadGuides(lang, fetchFn = fetch) {
@@ -34,7 +35,7 @@ export async function mountGuides({ store, policy, bus }) {
   const done = () => store.get('ui.guides') || {};
 
   const sheet = document.createElement('dialog');
-  sheet.className = 'sheet g-sheet'; sheet.id = 'guideSheet';
+  sheet.className = 'sheet g-sheet phone-full'; sheet.id = 'guideSheet'; // phones: full-screen page (§3.9)
   sheet.setAttribute('aria-labelledby', 'gSheetTitle');
   document.body.append(sheet);
   const showMe = createShowMe({ bus, onBack: () => open(view) });
@@ -72,7 +73,8 @@ export async function mountGuides({ store, policy, bus }) {
     sheet.innerHTML = `<div class="drawer-body"><div class="drawer-head">
         <button type="button" class="link g-back" data-g-learn>${esc(t('← Learn'))}</button>
         <h2 id="gSheetTitle">${title}</h2>
-        <button type="button" class="btn sm" data-close aria-label="${esc(t('Close'))}">✕</button></div>
+        ${isPhone() ? `<button type="button" class="btn sm" data-close>${esc(t('Close'))}</button>`
+    : `<button type="button" class="btn sm" data-close aria-label="${esc(t('Close'))}">✕</button>`}</div>
       ${body()}</div>`;
     sheet.querySelector('.drawer-body').scrollTop = top;
     bus.emit('learn:decorate', { root: sheet });

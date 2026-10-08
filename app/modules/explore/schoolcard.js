@@ -4,7 +4,8 @@
 // have sold one of the user's flat types, nearest first (or cheapest), with the median of those types in the
 // calculation window, and a budget tag only when "Most you can pay" is known (S.budgetMax from Afford — the same
 // within / near / over rule as the map's "Within my budget" colour). Tapping a row opens that block's card: a school
-// search → a block is two taps. Plan → Primary schools is unchanged.
+// search → a block is two taps. Plan → Primary schools is unchanged. Phones: the card is a map-sheet view stacked on the
+// block card (./dock.js 'school' view; "‹ Back to …"), and "Show the 1 km ring" lowers the sheet to peek.
 // Sev-1: display only — medians are the block's sales of the selected flat types in S.mFrom…S.mTo (no More filters).
 // Pure parts are exported for node tests (tests/explore/schoolcard.test.js); createSchoolCard() is browser-only.
 import { t } from '../../core/i18n.js';
@@ -88,7 +89,7 @@ export const schoolStrings = () => ['within budget', 'near budget', 'over budget
 // ------------------------------------------------------------------ browser
 /**
  * ctx: { D, TX, blockTx, getS, median, bandsKm, schools() (legacy's P1 list), period() → { calc }, budget() → { max, stretch } | null,
- *        types() → "4-room, 5-room", bus, openBlock(bi), wireSeg }.
+ *        types() → "4-room, 5-room", bus, openBlock(bi), wireSeg, phone?() → true on phones }.
  * → { content(si) → dock content { title, exec, body, mount }, at(si) → { lat, lon, label } }
  */
 export function createSchoolCard(ctx) {
@@ -115,6 +116,7 @@ export function createSchoolCard(ctx) {
           ring = ring === si ? null : si;
           ctx.bus.emit('explore:rings', ring === si ? { lat: school.lat, lon: school.lon, radiiKm: [m.km], label: m.name } : null);
           rerender();
+          if (ring === si && ctx.phone?.()) ctx.bus.emit('sheet:size', 'peek'); // phone: lower the sheet so the ring shows
         });
         return () => {};
       },

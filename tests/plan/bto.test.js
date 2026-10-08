@@ -90,7 +90,7 @@ test('rent override used: "Your rent now" replaces the nearby median for the ren
   const p = plan({ btoId: 'Alpha Grove', btoFt: '4 ROOM', btoPrices: { 'Alpha Grove|4 ROOM': 450000 } });
   const median = on(COUPLE, p); // 32 months to Jun 2029 × S$2,500 town median
   assert.match(median, /<b>S\$80,000<\/b><small>S\$2,500\/month nearby median<\/small>/);
-  assert.match(median, /placeholder="2500"/);
+  assert.match(median, /placeholder="2,500"/); // money fields show separators (core/moneyinput.js, Q10)
   const mine = on(COUPLE, { ...p, rentNow: 1200 });
   assert.match(mine, /<b>S\$38,400<\/b><small>your rent now: S\$1,200\/month<\/small>/);
   assert.match(mine, /BTO route costs about S\$131,600 less/, '620,000 − (450,000 + 38,400)');
@@ -100,11 +100,11 @@ test('rent override used: "Your rent now" replaces the nearby median for the ren
 
 test('typed price kept per project + flat type; the all-types launch midpoint is never a KPI', () => {
   const p = plan({ btoId: 'Alpha Grove', btoFt: '4 ROOM', btoPrices: { 'Alpha Grove|4 ROOM': 500000 }, rentNow: 1000 });
-  assert.match(on(COUPLE, p), /data-bto-key="Alpha Grove\|4 ROOM" value="500000"/);
+  assert.match(on(COUPLE, p), /value="500,000" data-bto-key="Alpha Grove\|4 ROOM"/);
   // other project or other flat type: no price, no BTO total, no verdict — and no S$450,000 midpoint anywhere
   for (const q of [{ ...p, btoId: 'Beta Vista' }, { ...p, btoFt: '2 ROOM' }]) {
     const html = on(COUPLE, q);
-    assert.match(html, /data-bto-key="[^"]+" value=""/);
+    assert.match(html, /value="" data-bto-key="[^"]+"/);
     assert.match(html, /<small>BTO: price \+ rent<\/small><b>—<\/b>/);
     assert.doesNotMatch(html, /S\$450,000|S\$465,000/, 'no launch-range midpoint');
     assert.doesNotMatch(html, /costs about/);

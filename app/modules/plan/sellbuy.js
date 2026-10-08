@@ -3,7 +3,7 @@
 import { sellThenBuy, defaultMode } from '../../engine/sellbuy.js';
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
-import { field, numIn, selIn, notesFold, todayIso } from './ui.js';
+import { field, numIn, moneyIn, selIn, notesFold, todayIso } from './ui.js';
 import { defaultNote } from '../../core/typical.js';
 import { moveTimelineBlock } from './contra.js';
 import { blockFields, rangeFor } from './salerange.js';
@@ -20,11 +20,11 @@ function inputs(c, year, mode = 'pro') {
     ${field(t('Home you own now'), selIn('plan.current.propertyType', [['hdb', 'HDB flat'], ['private', 'Private property']], c.propertyType))}
     ${hdb ? field(t('Flat type'), selIn('plan.current.flatType', FLAT_TYPES, c.flatType)) : ''}
     ${hdb ? blockFields(c) : ''}
-    ${field(t('Expected sale price (S$)'), numIn('plan.current.salePrice', c.salePrice, 'min="0" step="5000"'))}
+    ${field(t('Expected sale price (S$)'), moneyIn('plan.current.salePrice', c.salePrice))}
     ${hdb ? rangeFor(c, mode) : ''}
-    ${field(t('Outstanding loan (S$)'), numIn('plan.current.outstandingLoan', c.outstandingLoan, 'min="0" step="1000"'))}
-    ${field(t('CPF used for it (S$)'), numIn('plan.current.cpfUsed', c.cpfUsed, 'min="0" step="1000"'))}
-    ${field(t('Accrued interest on that CPF (S$)'), numIn('plan.current.accruedInterest', c.accruedInterest, `min="0" step="500" placeholder="${esc(t('blank = estimate'))}"`))}
+    ${field(t('Outstanding loan (S$)'), moneyIn('plan.current.outstandingLoan', c.outstandingLoan))}
+    ${field(t('CPF used for it (S$)'), moneyIn('plan.current.cpfUsed', c.cpfUsed))}
+    ${field(t('Accrued interest on that CPF (S$)'), moneyIn('plan.current.accruedInterest', c.accruedInterest, t('blank = estimate')))}
     ${field(t('Year you bought'), numIn('plan.current.boughtYear', c.boughtYear, `min="1960" max="${year}" step="1"`))}
     ${hdb ? field(t('Bought with a housing subsidy?'), selIn('plan.current.subsidised', [['', 'Not sure'], ['true', 'Yes'], ['false', 'No']], c.subsidised == null ? '' : String(c.subsidised), 'bool')) : field(t('Years held'), numIn('plan.current.yearsHeld', c.yearsHeld, 'min="0" step="1"'))}
     ${field(t('Order'), selIn('plan.current.mode', MODES, c.mode || ''), 'wide')}

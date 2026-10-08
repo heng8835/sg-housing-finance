@@ -60,8 +60,9 @@ export function parseQuarter(s) {
  *   minor = every quarter (only when ≥ 6 px apart); major = each year's Q1 inside the range;
  *   label = that year is labelled (year step 1/2/5/10, the smallest giving ≥ 34 px, clear of the end label);
  *   end = the last quarter, always labelled ("Q2 2026") by the caller.
+ * room (optional, phones with bigger labels): { yearPx, endPx } replace the 34 / 52 px rules.
  */
-export function quarterTicks(firstQ, lastQ, plotW) {
+export function quarterTicks(firstQ, lastQ, plotW, { yearPx: yearRoom = YEAR_LABEL_PX, endPx = END_LABEL_PX } = {}) {
   const a = parseQuarter(firstQ), b = parseQuarter(lastQ);
   if (!a || !b) return null;
   const idx = (y, q) => (y - a.year) * 4 + (q - 1) - (a.q - 1);
@@ -69,13 +70,13 @@ export function quarterTicks(firstQ, lastQ, plotW) {
   if (count < 1) return null;
   const px = count > 1 ? plotW / (count - 1) : plotW;
   const yearPx = px * 4;
-  const step = [1, 2, 5, 10].find((s) => s * yearPx >= YEAR_LABEL_PX) || 10;
+  const step = [1, 2, 5, 10].find((s) => s * yearPx >= yearRoom) || 10;
   const minor = px >= MINOR_PX ? Array.from({ length: count }, (_, i) => i) : [];
   const major = [];
   for (let y = a.q === 1 ? a.year : a.year + 1; y <= b.year; y++) {
     const i = idx(y, 1);
     if (i < 0 || i >= count) continue;
-    major.push({ i, year: y, label: y % step === 0 && (count - 1 - i) * px >= END_LABEL_PX });
+    major.push({ i, year: y, label: y % step === 0 && (count - 1 - i) * px >= endPx });
   }
   return { count, px, step, minor, major, end: { i: count - 1, year: b.year, q: b.q } };
 }

@@ -9,5 +9,5 @@
 #secViews .vw-form { flex: 1 1 100%; }
 #secViews .vw-form .f { display: flex; flex-direction: column; gap: var(--sp-1); margin-bottom: var(--sp-2); }
 #secViews .hint:empty { display: none; }
-@media (max-width: 767px) { #secViews .vw-acts .btn, #secViews .vw-acts .link { min-height: 44px; } }
+@media screen and (max-width: 767px) { #secViews .vw-acts .btn, #secViews .vw-acts .link { min-height: 44px; } }
 @media print { #secViews { display: none !important; } }

@@ -126,30 +126,7 @@ ul.notes { padding-left: 18px; font-size: .857rem; color: var(--text-2); line-he
 /* simple mode hides power-user controls */
 body.simple .pro-only { display: none !important; }
 
-/* mobile: map full screen, panel becomes a bottom sheet */
-.sheet-handle { display: none; }
-@media (max-width: 767px) {
-  .hh-chip { padding: 6px 10px; font-size: 12px; flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .hh-chip .hh-more { display: none; }   /* phone: "1 buyer ▾" only; income/age are in the drawer */
-  header h1, header .sub, header .stat { display: none; }
-  #app { grid-template-columns: 1fr !important; grid-template-rows: 52px 1fr !important; }
-  #panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1050; height: 45vh; border-right: 0; border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; box-shadow: 0 -6px 24px rgba(0, 0, 0, .15); transition: height .2s; }
-  #panel[data-size="peek"] { height: 112px; }
-  #panel[data-size="full"] { height: calc(100vh - 52px); }
-  .sheet-handle { display: block; width: 100%; min-height: 28px; border: 0; background: none; cursor: pointer; }
-  .sheet-handle::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto; }
-  .tabs button { min-height: 44px; padding: 12px 10px; font-size: .929rem; }
-  dialog.drawer, dialog.sheet { width: 100vw; border-left: 0; }
-  #mapwrap { grid-row: 2; }
-  header { gap: 6px; padding: 0 8px; min-width: 0; }
-  #learnBtn .lbl, #panelToggle { display: none; }
-  .mode-switch button { padding: 6px 8px; }
-  #panel { padding-bottom: 56px; box-sizing: border-box; }
-  #drawerHint { display: none; }
-  .mapbar { flex-wrap: wrap; }
-  .msearch { flex: 1 1 100%; }
-  .areabox { top: 102px; max-width: calc(100vw - 66px); }
-}
+/* phone (≤ 767 px): top bar, bottom tab bar, map sheet, full-screen pages — styles/phone.css (phone overhaul §2) */
 
 /* learn: compare-row info buttons (were title-only spans), index list, examples */
 button.info { border: 0; padding: 0; font: inherit; font-size: .714rem; cursor: pointer; }
@@ -159,7 +136,7 @@ button.info:focus-visible, .term:focus-visible { outline: 2px solid var(--accent
 .sheet .eg { font-weight: 600; white-space: nowrap; }
 .sheet h3 { font-size: .857rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); margin: 16px 0 6px; }
 #learnBtn { min-height: 32px; }
-@media (max-width: 767px) { .learn-index { columns: 1; } }
+@media screen and (max-width: 767px) { .learn-index { columns: 1; } }
 
 /* segmented choice inside forms (§4.2): roomier buttons; an unavailable option stays focusable (aria-disabled) but muted */
 .tab .seg button, .drawer-body .seg button { min-height: 32px; padding: 6px 14px; }
@@ -191,7 +168,7 @@ button.info:focus-visible, .term:focus-visible { outline: 2px solid var(--accent
 .kpis .need { margin: 0; }
 .need.compact { padding: 8px 10px; }
 .verdict + .need, .hint + .need { margin-top: var(--sp-2); }
-@media (max-width: 767px) { .need-act .btn, .need-act .link { min-height: 44px; } }
+@media screen and (max-width: 767px) { .need-act .btn, .need-act .link { min-height: 44px; } }
 
 /* quick-fill popover (core/quickfill.js): appended to body, under its button (phone: card at the bottom) */
 .qf { position: fixed; z-index: 1400; width: 280px; max-width: calc(100vw - 24px); box-sizing: border-box; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-pop); padding: 14px; }
@@ -199,7 +176,7 @@ button.info:focus-visible, .term:focus-visible { outline: 2px solid var(--accent
 .qf .fields { grid-template-columns: 1fr; margin-bottom: var(--sp-3); }
 .qf .actions { display: flex; gap: var(--sp-2); }
 .qf-foot { margin: var(--sp-2) 0 0; font-size: .857rem; color: var(--text-3); }
-@media (max-width: 767px) {
+@media screen and (max-width: 767px) {
   .qf { left: 12px !important; right: 12px; top: auto !important; bottom: 12px; width: auto; max-width: none; }
   .qf input, .qf .btn { min-height: 44px; }
 }
@@ -313,7 +290,7 @@ table.sc-table td.best { background: var(--best-bg); font-weight: 600; }
 
 /* print: comparison table + the open tab's summary, no map or controls */
 @media print {
-  #panelResizer, header .seg, #hhChip, #learnBtn, .tabs, #map, .leaflet-control-container, #panelToggle, .sheet-handle, #boot, #drawerBar button, .term, button.info { display: none !important; }
+  #panelResizer, header .seg, #hhChip, #learnBtn, .tabs, #map, .leaflet-control-container, #panelToggle, .tabbar, #mapSheet, .tb-btn, #boot, #drawerBar button, .term, button.info { display: none !important; }
   html, body, #app { height: auto !important; overflow: visible !important; display: block !important; background: #fff; }
   #panel { position: static !important; width: auto !important; height: auto !important; border: 0 !important; box-shadow: none !important; }
   .tab:not(.active), #tab-explore, #tab-choices { display: none !important; }
@@ -350,7 +327,7 @@ span.ac { display: block; }
 .sb-range small { color: var(--text-3); }
 
 /* phone: the Compare bar's buttons scroll sideways; the ▲ open/close toggle stays pinned on screen (persona P3/P5, Larger text) */
-@media (max-width: 767px) {
+@media screen and (max-width: 767px) {
   #drawer #drawerBar { overflow-x: auto; scrollbar-width: none; gap: 8px; padding-right: 0; }
   #drawerBar::-webkit-scrollbar { display: none; }
   #drawerToggle { position: sticky; right: 0; z-index: 1; background: var(--surface); box-shadow: -10px 0 8px var(--surface), 10px 0 0 var(--surface); margin-right: 8px; }
@@ -379,7 +356,7 @@ ul.dates li.past .fade { opacity: .55; }
 #drawer .cmp-disc { flex: none; padding: var(--sp-1) 14px var(--sp-2); }
 #drawer .bar { flex: none; }              /* the bar keeps its 44 / 52 px; only the table body scrolls */
 #drawer .body { flex: 1 1 auto; min-height: 0; }
-@media (max-width: 767px) {
+@media screen and (max-width: 767px) {
   #discLine { display: none; }
   .disc-line.tab-end, .disc-line.learn-disc { display: block; }
 }

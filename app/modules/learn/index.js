@@ -8,6 +8,7 @@ import { data } from '../../core/data.js';
 import { feature } from '../../core/features.js';
 import { appVersion, donateUrl } from '../../core/version.js';
 import { ABOUT_ID, aboutHtml, discLineHtml, rulesStatus, stampRules } from './about.js'; // 7b: About / Sources view + disclaimer line
+import { isPhone } from '../../core/spotlight.js';
 
 export async function mountLearn({ policy, bus }) {
   let terms = {};
@@ -51,7 +52,7 @@ export async function mountLearn({ policy, bus }) {
 
   // ---- side sheet
   const sheet = document.createElement('dialog');
-  sheet.className = 'sheet'; sheet.setAttribute('aria-label', t('Learn'));
+  sheet.className = 'sheet phone-full'; sheet.setAttribute('aria-label', t('Learn')); // phones: full-screen page (§3.9)
   document.body.appendChild(sheet);
   const ids = Object.keys(terms).sort((a, b) => terms[a].term.localeCompare(terms[b].term));
   function sources(term) {
@@ -64,10 +65,13 @@ export async function mountLearn({ policy, bus }) {
     return `<label class="f"><span>${t('Search the glossary')}</span><input type="search" id="learnQ" value="${esc(q)}" placeholder="${esc(t('e.g. MSR, grant, lease'))}"></label>
       <ul class="learn-index">${list.map((id) => `<li><button type="button" class="link" data-learn="${id}">${esc(terms[id].term)}</button> <small class="muted">${esc(t(terms[id].level))}</small></li>`).join('') || `<li class="muted">${t('No match.')}</li>`}</ul>`;
   }
+  // phones: the close button says "Close" (44 px, like the Menu); wider screens keep the ✕
+  const closeBtn = () => (isPhone() ? `<button type="button" class="btn sm" data-close>${t('Close')}</button>`
+    : `<button type="button" class="btn sm" data-close aria-label="${esc(t('Close'))}">✕</button>`);
   function openSheet(id) {
     if (id === ABOUT_ID) return openAbout();
     const term = id && terms[id];
-    sheet.innerHTML = `<div class="drawer-body"><div class="drawer-head"><h2>${term ? esc(term.term) : t('Learn: housing & money terms')}</h2><button type="button" class="btn sm" data-close aria-label="${esc(t('Close'))}">✕</button></div>
+    sheet.innerHTML = `<div class="drawer-body"><div class="drawer-head"><h2>${term ? esc(term.term) : t('Learn: housing & money terms')}</h2>${closeBtn()}</div>
       ${term ? `<p>${fill(term.short)}</p>${term.formula ? `<p class="formula">${esc(term.formula)}</p>` : ''}<div class="md">${fill(term.body)}</div>
         ${term.related.length ? `<h3>${t('Related')}</h3><p>${term.related.map((r) => `<button type="button" class="chip" data-learn="${esc(r)}">${esc(terms[r]?.term || r)}</button>`).join(' ')}</p>` : ''}
         ${sources(term)}${term.source ? `<p class="hint">${t('Official page')}: <a href="${esc(term.source)}" target="_blank" rel="noopener">${esc(term.source.replace(/^https?:..(www\.)?/, '').split('/')[0])}</a></p>` : ''}
@@ -82,7 +86,7 @@ export async function mountLearn({ policy, bus }) {
   // ---- About / Sources view (7b, O15): version, data month, rules meta, licences, privacy, feedback
   function openAbout() {
     const body = aboutHtml({ policy: { version: policy.version, reviewed: policy.reviewed, reviewDue: policy.reviewDue }, hdb: data.hdb, rents: data.rents, version: appVersion(), btoOn: feature('btoData'), floodOn: feature('floodData'), today, donate: donateUrl() });
-    sheet.innerHTML = `<div class="drawer-body"><div class="drawer-head"><h2>${t('About this app')}</h2><button type="button" class="btn sm" data-close aria-label="${esc(t('Close'))}">✕</button></div>${body}</div>`;
+    sheet.innerHTML = `<div class="drawer-body"><div class="drawer-head"><h2>${t('About this app')}</h2>${closeBtn()}</div>${body}</div>`;
     if (!sheet.open) sheet.showModal();
     sheet.querySelector('.drawer-body').scrollTop = 0;
     bus.emit('learn:painted', { root: sheet, id: ABOUT_ID });

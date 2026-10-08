@@ -34,13 +34,38 @@ dialog.start-dlg::backdrop { background: var(--veil); }
 .st-head:has(.st-lang) .st-step { min-height: 30px; padding-right: 130px; }
 .st-extra { margin: var(--sp-3) 0 0; }
 .st-body .seg-field + .seg-field, .st-body .fields + .seg-field, .st-body .seg-field + .fields { margin-top: var(--sp-3); }
-.ts-big .st-lang button { min-height: 44px; }
-.ts-big .st-head:has(.st-lang) .st-step { min-height: 42px; }
-@media (max-width: 767px) {
-  .st-inner { padding: var(--sp-4); }
-  .st-foot .btn, .st-alt .link { min-height: 44px; }
-  .st-towns { max-height: 40vh; }
-  .st-lang button { min-height: 44px; }
-  .st-head:has(.st-lang) .st-step { min-height: 42px; }
+.ts-big .st-lang button { min-height: 44px; }.ts-big .st-head:has(.st-lang) .st-step { min-height: 42px; }
+/* phone (phone overhaul §3.1, P-53): a full-screen page (dialog.phone-full, styles/phone.css) that scrolls on its own.
+   Sticky head: "Start here · question n of N" · EN | 中文 · Close, then the 22 px question. Sticky foot above the
+   keyboard (the dialog is 100dvh − --kb): Back · Skip … Next (48 px). "Try a sample household instead" is a 44 px
+   button after the choices, the privacy line under it. */
+@media screen and (max-width: 767px) {
+  #startDlg .st-inner { display: flex; flex-direction: column; min-height: 100%; padding: 0; }
+  #startDlg .st-head { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center;
+    gap: 4px 8px; padding: 6px 16px 10px; background: var(--surface); border-bottom: 1px solid var(--border-subtle); }
+  #startDlg .st-head .st-step, #startDlg .st-head:has(.st-lang) .st-step { grid-row: 1; grid-column: 1; min-height: 0; margin: 0; padding: 0; }
+  #startDlg .st-lang { position: static; grid-row: 1; grid-column: 2; }
+  #startDlg .st-lang button { min-height: 44px; min-width: 48px; font-size: .9375rem; }
+  #startDlg .st-head .st-x { grid-row: 1; grid-column: 3; min-width: 64px; }
+  #startDlg .st-head .gp-x { position: static; grid-row: 1; grid-column: 3; width: 44px; height: 44px; }
+  #startDlg .st-head h2 { grid-row: 2; grid-column: 1 / -1; margin: 4px 0 0; font-size: 1.375rem; line-height: 1.25; }
+  #startDlg .st-inner > .st-help, #startDlg .st-inner > .st-next, #startDlg .st-inner > .st-body, #startDlg .st-inner > .st-list, #startDlg .st-inner > .st-ts { margin-left: 16px; margin-right: 16px; }
+  #startDlg .st-inner > .st-help:first-of-type { margin-top: 12px; }
+  #startDlg .st-help { font-size: 1rem; }
+  #startDlg .st-opt { min-height: 64px; padding: 10px 14px; justify-content: center; }
+  #startDlg .st-t { font-size: 1.0625rem; }
+  #startDlg .st-d { font-size: .9375rem; }
+  #startDlg .st-body .seg button { min-height: 48px; font-size: 1rem; }
+  #startDlg .st-body .link, #startDlg .st-extra .link { display: inline-flex; align-items: center; min-height: 44px; font-size: 1rem; text-align: left; }
+  #startDlg .st-towns { max-height: none; overflow: visible; }
+  #startDlg .st-ts .btn { min-height: 48px; }
+  #startDlg .st-alt { order: 1; margin: 0 16px 16px; padding-top: 12px; font-size: .875rem; }
+  #startDlg .st-alt > span[aria-hidden] { display: none; }
+  #startDlg .st-alt .link { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; margin: 0 0 8px; padding: 0 16px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 1rem; text-decoration: none; }
+  #startDlg .st-foot { order: 2; position: sticky; bottom: 0; z-index: 2; margin-top: auto; flex-wrap: nowrap; gap: 8px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--border); }
+  #startDlg .st-foot .btn { min-height: 48px; padding: 0 16px; font-size: 1rem; }
+  #startDlg .st-foot .btn.primary { min-width: 120px; }
 }
 @media print { dialog.start-dlg { display: none !important; } }

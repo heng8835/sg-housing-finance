@@ -6,7 +6,8 @@ import { btoFlatTypes } from '../../engine/eligibility.js';
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { ftWord } from '../../core/typical.js';
-import { field, numIn, badge } from './ui.js';
+import { field, moneyIn, badge } from './ui.js';
+import { moneyInput, parseMoney, formatMoney } from '../../core/moneyinput.js';
 
 // UI assumption (not a rule): the wait prefilled for a future launch — no verdict until the user confirms or edits it
 export const FUTURE_WAIT_GUESS_YEARS = 4;
@@ -26,7 +27,7 @@ export function typedPrice(p, key) {
   return p.btoPrice > 0 ? p.btoPrice : null;
 }
 
-export const priceInput = (key, price) => `<input type="number" inputmode="decimal" data-bto-key="${esc(key)}" value="${price ?? ''}" min="0" step="5000">`;
+export const priceInput = (key, price) => moneyInput({ value: price ?? null, attrs: `data-bto-key="${esc(key)}"` });
 
 /**
  * Flat type for a new flat. wanted = the stored choice or the map flat's type; explicit = the user picked it here.
@@ -103,7 +104,7 @@ export const rentNowOf = (p, median) => (p.rentNow != null && p.rentNow !== '' &
 
 export function rentField(p, median, ft) {
   const help = median != null ? t('Blank = the nearby median for a whole {0} flat, {1}/month.', [ftWord(ft), money(median)]) : t('No rent data nearby — type your rent (0 if you pay none).');
-  return field(t('Your rent now (S$/month)'), `${numIn('plan.rentNow', p.rentNow, `min="0" step="50" placeholder="${median != null ? Math.round(median) : ''}"`)}<small class="f-help">${help}</small>`);
+  return field(t('Your rent now (S$/month)'), `${moneyIn('plan.rentNow', p.rentNow, median != null ? formatMoney(Math.round(median)) : '')}<small class="f-help">${help}</small>`);
 }
 
 /** Small line under "Rent while waiting": whose figure it is. */
@@ -129,7 +130,8 @@ export function bindBto(el, { store }) {
     const x = e.target;
     if (x.dataset && x.dataset.btoKey != null) {
       if (store.get('plan.btoPrice') != null) store.set('plan.btoPrice', null);
-      file(x.dataset.btoKey, x.value === '' || !(+x.value > 0) ? null : +x.value);
+      const v = parseMoney(x.value); // separators allowed; not valid → nothing changes
+      if (!Number.isNaN(v)) file(x.dataset.btoKey, v > 0 ? v : null);
       return;
     }
     if ((x.dataset?.p === 'plan.btoFt' || x.dataset?.p === 'plan.btoId') && store.get('plan.btoPrice') != null) {

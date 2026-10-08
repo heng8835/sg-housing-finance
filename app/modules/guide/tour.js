@@ -6,9 +6,10 @@
 import { t } from '../../core/i18n.js';
 import { stepsFor } from './steps.js';
 import { holeRect, placePop, dockSide, isoDay } from '../../core/place.js';
-import { SETTLE_MS, isPhone, isDesktop, frame, wait, query, shown, visibleRect, revealInPanel } from '../../core/spotlight.js';
+import { isPhone, isDesktop, shown, visibleRect, locate, phoneSheetFor } from '../../core/spotlight.js';
 
-export { isPhone, isDesktop }; // DOM helpers live in core/spotlight.js (shared with modules/guides)
+// DOM helpers live in core/spotlight.js (shared with modules/guides); phoneSheetFor = where the phone map sheet goes
+export { isPhone, isDesktop, phoneSheetFor };
 
 export function createTour({ store, bus }) {
   let state = null;   // { uc, steps, i, seq, target, returnTo }
@@ -77,22 +78,10 @@ export function createTour({ store, bus }) {
     const seq = ++state.seq, step = state.steps[i];
     const stale = () => !state || state.seq !== seq;
     state.i = i;
-    const app = document.getElementById('app');
-    const wasHidden = app?.classList.contains('panel-hidden');
-    if (step.tab) bus?.emit('nav:goto', { tab: step.tab }); // also un-hides the side panel
-    await frame(); await frame();
-    if (stale()) return;
-    let el = query(step.target);
-    const missing = !shown(el);
-    if (missing) el = (step.fallback || []).map(query).find(shown) || null;
-    let settle = step.tab && wasHidden && !app?.classList.contains('panel-hidden') ? SETTLE_MS : 0;
-    const inPanel = !!(el && el.closest('#panel')) || !!step.tab;
-    if (inPanel && isPhone() && panel()?.dataset.size !== 'half') { bus?.emit('sheet:size', 'half'); settle = SETTLE_MS; }
-    if (settle) { await wait(settle); if (stale()) return; }
-    if (el && !shown(el)) el = null; // e.g. clipped after the sheet resized
-    if (el && el.closest('#panel')) revealInPanel(el);
-    await frame();
-    if (stale()) return;
+    // nav:goto the tab, target or fallback; phones: open its fold / view, size the map sheet for Map steps only
+    const r = await locate(step, { bus, stale });
+    if (!r || stale()) return;
+    const { el, missing } = r;
     ro?.disconnect();
     state.target = el;
     if (el) ro?.observe(el);
@@ -118,7 +107,7 @@ export function createTour({ store, bus }) {
       const prev = store.get('ui.guide.done') || {};
       store.set('ui.guide.done', { ...prev, [uc.id]: isoDay(new Date()) });
     }
-    const to = returnTo && returnTo.isConnected && shown(returnTo) ? returnTo : document.getElementById('guideBtn');
+    const to = returnTo && returnTo.isConnected && shown(returnTo) ? returnTo : document.getElementById(isPhone() ? 'phoneMenu' : 'guideBtn');
     to?.focus();
   }
 

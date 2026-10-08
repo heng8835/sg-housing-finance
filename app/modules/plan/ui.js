@@ -2,9 +2,12 @@
 // (kind: num | pct | date | bool | text); index.js turns a change into store.set(path, value).
 import { esc } from '../../core/dom.js';
 import { t, currentLang } from '../../core/i18n.js';
+import { moneyInput, parseMoney } from '../../core/moneyinput.js';
 
 export const field = (label, inner, cls = '') => `<label class="f${cls ? ` ${cls}` : ''}"><span>${label}</span>${inner}</label>`;
 export const numIn = (path, val, attrs = '') => `<input type="number" inputmode="decimal" data-p="${path}" data-k="num" value="${val ?? ''}" ${attrs}>`;
+/** Whole S$ with thousands separators (core/moneyinput.js; Q10) — the store still gets a plain number. */
+export const moneyIn = (path, val, placeholder = '') => moneyInput({ value: val ?? null, placeholder, attrs: `data-p="${path}" data-k="money"` });
 export const pctIn = (path, val, placeholder) => `<input type="number" inputmode="decimal" step="0.5" data-p="${path}" data-k="pct" value="${val == null ? '' : +(val * 100).toFixed(2)}" placeholder="${placeholder}">`;
 export const dateIn = (path, val) => `<input type="date" data-p="${path}" data-k="date" value="${val ?? ''}">`;
 /** translate=false for names (e.g. BTO projects) that must not go through t(). */
@@ -29,11 +32,12 @@ export function fmtDate(iso) {
   return new Intl.DateTimeFormat(currentLang() === 'zh' ? 'zh-SG' : 'en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
-/** Parse an input's value by kind; '' → null. */
+/** Parse an input's value by kind; '' → null; undefined = not a valid value (leave the store as it is). */
 export function readInput(el) {
   const v = el.value;
   switch (el.dataset.k) {
     case 'num': return v === '' ? null : +v;
+    case 'money': { const n = parseMoney(v); return Number.isNaN(n) ? undefined : n; }
     case 'pct': return v === '' ? null : +v / 100;
     case 'bool': return v === '' ? null : v === 'true';
     case 'date': return v || null;

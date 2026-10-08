@@ -16,12 +16,7 @@ header .ts-switch button { min-height: 32px; } /* as tall as the Simple / Pro sw
 .ts-switch .ts-0 span { font-size: 12px; }
 .ts-switch .ts-1 span { font-size: 15px; }
 .ts-switch .ts-2 span { font-size: 18px; }
-.ts-learn { display: none; }
-@media (max-width: 767px) {
-  header .ts-switch { display: none; } /* phone: in the Learn sheet instead (modules/shell/textsize.js) */
-  .ts-learn { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin: 0 0 var(--sp-4); padding: var(--sp-3); background: var(--surface-2); border-radius: var(--radius-sm); }
-  .ts-learn .f-label { margin: 0; }
-}
+/* phone (≤ 767 px): sizes 16 / 18 / 20 px, the header switch hidden, Aa + Menu instead — styles/phone.css */
 /* tablet: room for the switch — the block count and the "Learn" word give way (the 📘 stays, with its aria-label) */
 @media (min-width: 768px) and (max-width: 1023px) { header .stat, #learnBtn .lbl { display: none; } }
 
@@ -53,7 +48,6 @@ header .ts-switch button { min-height: 32px; } /* as tall as the Simple / Pro sw
 .ts-big #drawer .bar { height: 52px; }
 .ts-big #drawer:not(.open) { transform: translateY(calc(100% - 52px)); }
 .ts-big .leaflet-bottom { bottom: 52px; }
-@media (max-width: 767px) { .ts-big #panel { padding-bottom: 64px; } }
 /* header: same px text, bigger targets; below 1180 px the block count and the Learn word give way, the title may shorten */
 @media (max-width: 1179px) {
   .ts-big header .stat, .ts-big #learnBtn .lbl { display: none; }
@@ -64,4 +58,4 @@ header .ts-switch button { min-height: 32px; } /* as tall as the Simple / Pro sw
 .ts-larger svg[font-size="11"] { font-size: 13px; }
 /* segs in tabs and drawers may wrap at Larger instead of being cut off on a phone */
 .ts-big .tab .seg, .ts-big .drawer-body .seg { flex-wrap: wrap; max-width: 100%; }
-@media print { header .ts-switch, .ts-learn { display: none !important; } }
+@media print { header .ts-switch { display: none !important; } }

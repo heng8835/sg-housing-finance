@@ -38,7 +38,7 @@
 .g-nav { display: flex; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-3); }
 .g-gap { flex: 1; }
 .g-nav .btn { min-height: 36px; padding: 6px 14px; }
-@media (max-width: 767px) { .g-nav .btn, .g-step .actions .btn { min-height: 44px; } }
+@media screen and (max-width: 767px) { .g-nav .btn, .g-step .actions .btn { min-height: 44px; } }
 
 /* ---------------------------------------------------------------- quiz */
 .g-qs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-4); }
@@ -58,7 +58,7 @@
   font-size: .893rem; line-height: 1.5; color: var(--text-2); }
 .g-fb .link { margin-left: 4px; font-size: .893rem; }
 .g-score { margin: var(--sp-4) 0 0; padding: var(--sp-3); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-ink); font-size: .929rem; }
-@media (max-width: 767px) { .g-opt { min-height: 44px; } }
+@media screen and (max-width: 767px) { .g-opt { min-height: 44px; } }
 
 /* ---------------------------------------------------------------- "Show me" (reuses the tour's .coach styles) */
 .g-return { position: fixed; z-index: 1300; left: calc(var(--cover, 0px) + var(--sp-4)); bottom: 60px; display: flex; align-items: center; gap: 4px;
@@ -66,7 +66,11 @@
 .g-return .btn { min-height: 32px; border-radius: var(--radius-pill); }
 .g-return-x { width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: var(--text-3); }
 .g-return-x:hover { background: var(--surface-2); color: var(--text); }
-@media (max-width: 767px) { .g-return { left: 12px; top: 64px; bottom: auto; } .g-return .btn, .g-return-x { min-height: 44px; height: 44px; } .g-return-x { width: 44px; } }
+/* phone (§3.11): at the bottom just above the 56 px tab bar (+ safe area), never over the top bar */
+@media screen and (max-width: 767px) {
+  .g-return { left: 8px; right: auto; top: auto; bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px); max-width: calc(100vw - 16px); }
+  .g-return .btn, .g-return-x { min-height: 44px; height: 44px; } .g-return-x { width: 44px; }
+}
 
 /* ---------------------------------------------------------------- policy-change log */
 .pl-banner { margin: 0 0 var(--sp-3); padding: var(--sp-3); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text-2); font-size: .893rem; line-height: 1.5; }
@@ -88,4 +92,35 @@
 .pl-json { margin: var(--sp-1) 0 0; padding: var(--sp-2); border-radius: var(--radius-sm); background: var(--surface-2); font-size: .821rem;
   white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow: auto; }
 
+/* ---------------------------------------------------------------- phone: Learn sheet, About, guide reader, change log
+   (phone overhaul §3.9, P-55, P-56). The sheets are full-screen pages (dialog.phone-full, styles/phone.css) with the
+   sticky .drawer-head (title + "Close"). The Learn sheet's own rules live in modules.css; these only add phone sizes. */
+@media screen and (max-width: 767px) {
+  .sheet .drawer-head { gap: 8px; }
+  .sheet .drawer-head h2 { flex: 1; min-width: 0; }
+  .sheet .drawer-head [data-close] { flex: none; min-width: 64px; }
+  .sheet .md p, .sheet .md li, .sheet .drawer-body > p:not(.hint):not(.disc-line), .about p:not(.hint) { font-size: 1rem; }
+  #learnQ { min-height: 48px; font-size: 1rem; }
+  .learn-index li { margin: 0; border-bottom: 1px solid var(--border-subtle); }
+  .learn-index li .link { display: inline-flex; align-items: center; min-height: 48px; min-width: 44px; font-size: 1rem; text-align: left; }
+  .sheet .disc-line .link { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; justify-content: center; }
+  .learn-index li small { margin-left: 4px; }
+  /* stand-alone links become 44 px rows */
+  .learn-tour, .learn-about, .g-log-link { margin: 0 0 4px; }
+  .learn-tour .link, .learn-about .link, .g-log-link .link, .sheet .drawer-body > p > .link[data-learn], .about p > .link,
+  .g-back { display: inline-flex; align-items: center; min-height: 44px; font-size: 1rem; text-align: left; }
+  .sheet .chip { min-height: 44px; }
+  .smp-learn .btn { min-height: 44px; }
+  .g-card { min-height: 64px; }
+  .g-step .md p, .g-step .md li { font-size: 1rem; }
+  .pl-filter .chip { min-height: 44px; }
+  .g-opt { font-size: 1rem; }
+  /* About: the sources table stacks — the data on one line, then "From · Licence · Up to" as labelled lines (P-56) */
+  .about table.about-src, .about table.about-src tbody, .about table.about-src tr, .about table.about-src td { display: block; width: auto; }
+  .about table.about-src thead { display: none; }
+  .about table.about-src tr { padding: 10px 0; border-bottom: 1px solid var(--border-subtle); }
+  .about table.about-src td { padding: 0; border: 0; font-size: .9375rem; overflow-wrap: anywhere; }
+  .about table.about-src td:first-child { font-size: 1rem; font-weight: 600; }
+  .about table.about-src td[data-l]::before { content: attr(data-l) ': '; color: var(--text-3); }
+}
 @media print { dialog.g-sheet, dialog.g-coach, .g-return { display: none !important; } }

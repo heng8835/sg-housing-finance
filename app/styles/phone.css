@@ -1,0 +1,188 @@
+/* Phone layout (≤ 767 px), phone overhaul §2 (hdb-data-pipeline/docs/specs/phone-overhaul.md). Loaded last; EVERY rule
+   is inside @media screen and (max-width: 767px), so tablet and desktop do not change (tests/phone/css-floor.test.js checks it,
+   plus: no px font sizes, no font size under .875rem, ≥ 44 px targets). Tokens from base.css only — no new colours.
+   Screens: the Map tab = map + map sheet (#mapSheet, peek / half / full); Afford / Rent / Plan / Choices = full-screen
+   pages (#panel). Top bar = the header (household chip · Aa · Menu); bottom tab bar = #tabbar (modules/shell/phone.js
+   moves the .tabs strip into it). Type: root 16 / 18 / 20 px (A / A+ / A++); notes 14, secondary 15, body 16. */
+@media screen and (max-width: 767px) {
+  /* ---------------------------------------------------------------- root sizes (textsize.css: 14 / 16 / 18) */
+  :root { --fs-base: 16px; --sheet-peek: 8rem; }
+  :root.ts-large { --fs-base: 18px; }
+  :root.ts-larger { --fs-base: 20px; }
+
+  /* ---------------------------------------------------------------- frame: top bar · screen · tab bar */
+  body {
+    height: calc(100% - var(--kb, 0px)); height: calc(100dvh - var(--kb, 0px));
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
+    background: var(--surface);
+  }
+  #app, #app.panel-hidden { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
+
+  /* top bar: the household chip takes the free space; Aa and Menu on the right; the rest lives in the Menu */
+  header { grid-row: 1; min-height: 56px; padding: 6px 16px; gap: 8px; font-size: 1rem; min-width: 0; }
+  header h1, header .sub, header .stat, header .spacer, header .seg, #learnBtn, #guideBtn { display: none; }
+  #hhChip { order: 0; flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 14px; font-size: .9375rem; overflow: hidden; white-space: nowrap; }
+  #hhChip .hh-more { display: none; }
+  /* P-03: the chip's text is never cut — a little less side padding than 14 px fits "设置您的家庭资料" at 360 px Larger */
+  header #hhChip { padding: 0 10px; text-overflow: ellipsis; }
+  .tb-btn { order: 1; display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 44px; min-height: 44px; padding: 0 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: .9375rem; font-weight: 600; }
+  #phoneMenu { order: 2; min-width: 64px; }
+  #phoneAa[aria-expanded="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+
+  /* bottom tab bar: always visible (hidden only while the on-screen keyboard is up); short labels */
+  nav.tabbar { display: block; grid-row: 3; grid-column: 1 / -1; position: relative; z-index: 1100; background: var(--surface);
+    border-top: 1px solid var(--border); padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  html.kb-open nav.tabbar { display: none; }
+  .tabbar .tabs { display: flex; border: 0; overflow: hidden; }
+  .tabbar .tabs button { flex: 1 1 auto; min-width: 0; min-height: 56px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    margin-top: -1px; padding: 0 4px; border: 0; border-top: 3px solid transparent; font-size: .9375rem; white-space: nowrap; }
+  .tabbar .tabs button.active { color: var(--accent-ink); border-top-color: var(--accent); font-weight: 600; }
+  .tabs .tl-long { display: none; }
+  .tabs .tl-short { display: inline; }
+  .tabbar .tabs button .badge { margin-left: 0; min-width: 1.375rem; padding: 0 .375rem; line-height: 1.375rem; font-size: .875rem; text-align: center; }
+
+  /* the screen: map (with its sheet) or one full-screen page over it; both in row 2 so the map never resizes */
+  #mapwrap { grid-row: 2; grid-column: 1; }
+  #panel { display: none; grid-row: 2; grid-column: 1; position: relative; z-index: 2; width: auto; height: auto; min-height: 0; padding: 0;
+    border: 0; border-radius: 0; box-shadow: none; transition: none; background: var(--surface-2); }
+  #app[data-phone-view="page"] #panel, #app.panel-hidden[data-phone-view="page"] #panel { display: flex; }
+  #app[data-phone-view="page"] #mapwrap { visibility: hidden; }
+  #panelToggle, #panelResizer, #discLine, #drawer { display: none; } /* no Compare drawer on phones: Compare is in Choices */
+  /* banners ("Link copied" …) live in #mapwrap: on a page they show just above the tab bar */
+  #app[data-phone-view="page"] #mapwrap .banner { visibility: visible; position: fixed; top: auto; left: 16px; right: 16px; z-index: 1150;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 12px); transform: none; text-align: center; }
+  html.kb-open #app[data-phone-view="page"] #mapwrap .banner { bottom: calc(var(--kb, 0px) + 12px); }
+  /* phone / desktop wording pairs in the markup ("tap" vs "click") */
+  .on-desk { display: none; }
+  .on-phone[hidden] { display: inline; }
+
+  /* pages: title row (title + Tour) first, then the tour line's place, then content */
+  .tab.active { display: flex; flex-direction: column; }
+  .tab > .page-head { display: block; order: -2; margin: 0 0 8px; }
+  .page-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .page-t { margin: 0; font-size: 1.25rem; font-weight: 650; line-height: 1.3; }
+  .page-tour { flex: none; min-width: 64px; }
+  .tab:not(:has(.tour-link)) .page-tour { display: none; }
+  #panel .tab > .tour-link { display: none; } /* the Tour button proxies it; "All tours" is in the Menu */
+  .tab > #choicesView { order: -1; }
+  #choicesView[data-ready] { display: flex; margin: 0 0 12px; }
+  #choicesView[data-ready] button { flex: 1; min-height: 48px; font-size: 1rem; }
+
+  /* ---------------------------------------------------------------- map sheet (modules/shell/phone.js) */
+  #mapSheet { display: flex; flex-direction: column; position: absolute; left: 0; right: 0; bottom: 0; z-index: 1050; overflow: hidden;
+    height: var(--sheet-peek); max-height: 100%; background: var(--surface); border-top: 1px solid var(--border);
+    border-radius: 14px 14px 0 0; box-shadow: 0 -6px 24px rgba(0, 0, 0, .15); transition: height .2s ease; }
+  #mapSheet[data-size="half"] { height: 55%; height: var(--sheet-half, 55%); } /* R-03: 55 % of the map area (#mapwrap), not of the viewport */
+  #mapSheet[data-size="full"] { height: 100%; border-radius: 0; }
+  #mapSheet.dragging { transition: none; }
+  .ms-handle { flex: none; display: block; width: 100%; height: 48px; min-height: 48px; padding: 0; border: 0; background: none; cursor: grab; touch-action: none; }
+  .ms-handle::before { content: ''; display: block; width: 44px; height: 5px; margin: 0 auto; border-radius: 3px; background: var(--border-input); }
+  .ms-back { flex: none; display: flex; align-items: center; min-height: 44px; margin: 0 16px; padding: 0; border: 0; background: none;
+    color: var(--accent-ink); font-size: 1rem; font-weight: 500; text-align: left; }
+  .ms-back[hidden] { display: none; }
+  /* R-14: a view opened from the map closes back to the map: "Close" in the handle row's right end (no row of its own) */
+  .ms-back.ms-close { position: absolute; top: 2px; right: 12px; z-index: 2; justify-content: center; min-width: 64px; min-height: 44px; margin: 0;
+    padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text);
+    font-size: .9375rem; font-weight: 600; }
+  #mapSheet:has(.ms-circ) .ms-back { display: none; } /* circling: the peek row has its own Cancel (R-13) */
+  .ms-body, .ms-views { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .ms-peek { flex: none; }
+  .ms-peek:empty { display: none; }
+  .ms-view { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  #mapSheet [data-under] { display: none; }
+  #mapSheet .tab { padding-top: 0; }
+
+  /* map overlays above the sheet: styles/base.css (slice A) */
+
+  /* ---------------------------------------------------------------- type: header px → rem, phone floor */
+  .ts-switch .ts-0 span { font-size: .875rem; }
+  .ts-switch .ts-1 span { font-size: 1.0625rem; }
+  .ts-switch .ts-2 span { font-size: 1.25rem; }
+  /* notes, hints, legends, tags, footnotes → 14 px at Normal (the existing small classes, same selectors so they win) */
+  .foot-note, .group-label, .hint, .link, .chip, .seg button, .fields + .hint, .f-help, .legend, .legend .ticks, .btn.sm,
+  .card .m, .card .k, .pop .sub, .pop .stat small, .pop table, .poi-tip, .msearch .ac-list .kind, .ac-list .kind, .banner,
+  .cmp tr.sec td, .cmp tr.sec th, .tag, .tag.info, .xs, .wcard .ic, .picking-banner, .areabox, .ab-grid .st small, .ab-note,
+  .svc, .section.collapsible > h3 .tog, .areabox .tog, .ab-mini, .dchip, .muted, small,
+  .bc-num, .bc-facts li, .bc-tile small, .bc-scope, .bc-cap, .bc-tip, .bc table, .yr-ends, .mk-legend,
+  .gp-meta, .gp-foot, .coach-count, .g-card-m, .g-count, .g-src, .pl-id, .pl-meta, .pl-json,
+  .kpi small, .legend-row, .mc-head, .mc-list small, .chart text, .sources, .legend .ticks5, .chipkey, ol.tl .tl-when,
+  #planRoot table.mini, .kpi .tag, ul.notes, .sheet h3, .default-note small, .qf-foot, .rt-tip, .mc-tag, .rb-tip,
+  .rb-tip small, .cc-sub, .cc-note, .cc-table table, .sc-count, .sc-name small, table.sc-table small, .cmp-fv-how h5,
+  .cmp-fv-how p, .cmp-fv-how ul, .ret-lines small, .disc-line, .st-step, .st-alt, .st-alt .link, .st-lang button,
+  #secViews .vw-text small { font-size: .875rem; }
+  /* secondary: labels, card sub-lines, fold summaries → 15 px */
+  .section > h3 .muted, .sec-sub, .fold-s, details.fold-inline > summary, label.f, label.f > span:first-child, .f-label,
+  .zone .towns .check, .bc .bc-head .bc-sub, .bc-commute, .tour-link, .tour-link .link, .gp-d, .coach-note, .coach-foot .link,
+  .g-card-d, .g-back, .g-fb, .g-fb .link, .pl-banner, .pl-item, fieldset.buyer > legend, .notice, table.mini,
+  #planRoot details:not(.fold):not(.fold-inline) > summary, .sheet .formula, .default-note, .need, .bc-fv, .smp-facts, .st-d,
+  .pw-why, .sample-banner { font-size: .9375rem; }
+  /* list rows and option rows are body text → 16 px */
+  .check, .radios label, .ac-list div, .ac-list [role="option"], ul.dates, ol.steps, ol.tl, .mc-list, .prio-list li, .ret-lines,
+  .empty, .wcard, .g-opt, .g-intro { font-size: 1rem; }
+  .fold-t, .section > h3:first-child, .section > summary { font-size: 1.125rem; }
+  .ts-switch button { line-height: 1; }
+  /* charts drawn at font-size="11" / text at 12: 14 px, growing with A+ / A++ */
+  html svg[font-size="11"], html.ts-large svg[font-size="11"], html.ts-larger svg[font-size="11"],
+  #panel svg text[font-size="12"], #mapSheet svg text[font-size="12"], #cardDock svg text[font-size="12"] { font-size: .875rem; }
+
+  /* ---------------------------------------------------------------- targets ≥ 44 px (main actions 48) */
+  /* :where() keeps these at element specificity, so a component's own taller min-height still wins */
+  button:where(:not(.link, .info, .term)), .btn, summary, select,
+  input:where(:not([type="checkbox"], [type="radio"], [type="range"], [type="hidden"])),
+  [role="tab"], [role="option"], label.check, .check, .chip, .seg button, .svc, .dchip, .ac-list div,
+  .section > h3 .link, .tour-link .link, .drawer-head .link { min-height: 44px; }
+  .btn.primary, .radios label, label.check { min-height: 48px; }
+  .radios { gap: 0; }
+  .radios label, .check { align-items: center; }
+  /* components that set their own shorter min-height (32 px) */
+  .tab .seg button, .drawer-body .seg button, details.fold-inline > summary, .cmp-fv-how > summary, .tour-link .link { min-height: 44px; }
+  .section.collapsible > h3 .tog, .drawer-head button, .drawer-head .btn, .chip, .section > h3 .link { min-width: 44px; }
+  .section > h3 .link { justify-content: center; }
+  input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; flex: none; }
+  /* ⓘ: an invisible 44 px hit area at every size (textsize.css does it for A+ / A++ only) */
+  button.info, .term { position: relative; }
+  button.info::after, .term::after { content: ''; position: absolute; inset: -14px; }
+
+  /* ---------------------------------------------------------------- gutters, cards, sticky card titles */
+  .tab { padding: 16px 16px 32px; }
+  .tab .section, dialog.drawer .drawer-body .section { --card-pad: 16px; margin-bottom: 12px; }
+  #tab-afford .section > h3:first-child, #tab-rent .section > h3:first-child, #tab-plan .section > h3:first-child {
+    position: sticky; top: 0; z-index: 2; margin: -8px calc(-1 * var(--card-pad)) 12px; padding: 8px var(--card-pad);
+    background: var(--surface); border-bottom: 1px solid var(--border-subtle); }
+  #tab-afford .fold[open] > summary, #tab-rent .fold[open] > summary, #tab-plan .fold[open] > summary {
+    position: sticky; top: 0; z-index: 2; background: var(--surface); border-bottom: 1px solid var(--border-subtle); border-radius: var(--radius) var(--radius) 0 0; }
+
+  /* ---------------------------------------------------------------- dialogs: full-screen pages */
+  dialog.drawer, dialog.sheet, dialog.phone-full { width: 100%; max-width: 100%; height: 100%; height: calc(100dvh - var(--kb, 0px));
+    max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  dialog.phone-full { color: var(--text); background: var(--surface); }
+  dialog.phone-full::backdrop { background: var(--veil); }
+  .drawer-head { min-height: 56px; padding: 6px 16px; }
+  .drawer-head h2 { font-size: 1.125rem; }
+
+  /* Menu sheet (modules/shell/menu.js) */
+  .phone-menu .pm-list { list-style: none; margin: 0; padding: 0; }
+  .phone-menu .pm-list > li { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px;
+    min-height: 56px; border-bottom: 1px solid var(--border-subtle); }
+  .phone-menu .pm-row { padding: 6px 0; }
+  .phone-menu .pm-l { font-size: 1rem; }
+  .phone-menu .pm-l small { display: block; font-size: .875rem; color: var(--text-3); }
+  .phone-menu .seg button { min-height: 48px; min-width: 56px; font-size: 1rem; }
+  .phone-menu .pm-go { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 56px; padding: 0;
+    border: 0; background: none; color: var(--text); font-size: 1rem; text-align: left; }
+  .phone-menu .pm-go::after { content: '›'; color: var(--text-3); font-size: 1.25rem; }
+  .phone-menu .pm-disc { margin: 16px 0; font-size: .875rem; color: var(--text-3); }
+
+  /* Aa popover */
+  .ts-pop { position: fixed; z-index: 1300; top: calc(env(safe-area-inset-top, 0px) + 60px); right: 16px; width: min(18rem, calc(100vw - 32px));
+    padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-pop); }
+  .ts-pop-l { margin: 0 0 10px; font-size: .9375rem; color: var(--text-2); }
+  .ts-pop .ts-switch { display: flex; gap: 8px; width: 100%; border: 0; overflow: visible; }
+  .ts-pop .ts-switch button, .ts-pop .ts-switch button + button { flex: 1; min-height: 48px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+  .ts-pop .ts-switch button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+
+  @media (prefers-reduced-motion: reduce) { #mapSheet { transition: none; } }
+}

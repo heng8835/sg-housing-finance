@@ -7,6 +7,8 @@ import { t } from '../../core/i18n.js';
 import { saveView } from '../../core/fold.js';
 import { loanChoice, loanSeg } from './loan.js';
 import { grantNotesFor } from '../../core/grantnotes.js';
+import { isPhone } from '../../core/spotlight.js';
+import { moneyInput, parseMoney, bindMoneyInputs } from '../../core/moneyinput.js';
 
 const CITIZEN = [['SC', 'Singapore Citizen'], ['PR', 'Permanent Resident'], ['F', 'Foreigner']];
 const PARENTS = [['none', 'No'], ['near', ['Within {0} km of parents / child', 'grant.phg.near_km']], ['with', 'Living with parents / child']];
@@ -25,7 +27,7 @@ export function mountHousehold({ store, policy, bus }) {
   document.querySelector('header .spacer').after(chip);
 
   const dlg = document.createElement('dialog');
-  dlg.id = 'hhDialog'; dlg.className = 'drawer'; dlg.setAttribute('aria-labelledby', 'hhTitle');
+  dlg.id = 'hhDialog'; dlg.className = 'drawer phone-full'; dlg.setAttribute('aria-labelledby', 'hhTitle'); // phones: full-screen page, sticky head + Done (styles/samples.css)
   document.body.appendChild(dlg);
 
   const h = () => store.get('household');
@@ -41,16 +43,19 @@ export function mountHousehold({ store, policy, bus }) {
 
   const opt = (list, cur) => list.map(([v, l]) => `<option value="${esc(String(v))}"${String(v) === String(cur) ? ' selected' : ''}>${esc(Array.isArray(l) ? t(l[0], [policy.get(l[1])]) : t(l))}</option>`).join('');
   const num = (path, val, label, attrs = '', cls = '') => `<label class="f${cls ? ` ${cls}` : ''}"><span>${t(label)}</span><input type="number" inputmode="numeric" data-path="${path}" value="${val ?? ''}" ${attrs}></label>`;
+  // money: a text field with thousands separators (core/moneyinput.js, phone overhaul §3.8 / owner Q10); the store
+  // still gets whole dollars — parse() below reads it with parseMoney, and a value that cannot be read is not saved
+  const amt = (path, val, label, cls = '') => `<label class="f${cls ? ` ${cls}` : ''}"><span>${t(label)}</span>${moneyInput({ value: val, attrs: `data-path="${path}"` })}</label>`;
   const sel = (path, label, list, cur, extra = '') => `<label class="f"><span>${t(label)}</span><select data-path="${path}" ${extra}>${opt(list, cur)}</select></label>`;
 
   function buyerRow(b, i, n) {
     return `<fieldset class="buyer"><legend>${t('Buyer {0}', [i + 1])}${n > 1 ? ` <button type="button" class="link" data-act="remove-buyer" data-i="${i}">${t('remove')}</button>` : ''}</legend>
       <div class="fields">
-        ${num(`buyers.${i}.age`, b.age, 'Age', 'min="21" max="99"')}${num(`buyers.${i}.income`, b.income, 'Gross monthly income (S$)', 'step="100" min="0"')}
+        ${num(`buyers.${i}.age`, b.age, 'Age', 'min="21" max="99"')}${amt(`buyers.${i}.income`, b.income, 'Gross monthly income (S$)')}
         ${sel(`buyers.${i}.citizenship`, 'Residency', CITIZEN, b.citizenship, 'data-restructure')}
-        ${b.citizenship === 'F' ? '' : num(`buyers.${i}.cpfOa`, b.cpfOa, 'CPF Ordinary Account (S$)', 'step="1000" min="0"')}
-        ${b.citizenship === 'F' ? '' : `${num(`buyers.${i}.cpfSa`, b.cpfSa, 'Special Account (S$)', 'step="1000" min="0"', 'pro-only')}${num(`buyers.${i}.cpfMa`, b.cpfMa, 'MediSave (S$)', 'step="1000" min="0"', 'pro-only')}${num(`buyers.${i}.cpfRa`, b.cpfRa, 'Retirement Account (S$)', 'step="1000" min="0"', 'pro-only')}`}
-        ${b.citizenship !== 'F' && +b.age >= policy.get('cpf.age.life_payout') ? num(`buyers.${i}.cpfLifeMonthly`, b.cpfLifeMonthly, 'CPF LIFE payout you receive (S$ a month, optional)', 'step="10" min="0"') : ''}
+        ${b.citizenship === 'F' ? '' : amt(`buyers.${i}.cpfOa`, b.cpfOa, 'CPF Ordinary Account (S$)')}
+        ${b.citizenship === 'F' ? '' : `${amt(`buyers.${i}.cpfSa`, b.cpfSa, 'Special Account (S$)', 'pro-only')}${amt(`buyers.${i}.cpfMa`, b.cpfMa, 'MediSave (S$)', 'pro-only')}${amt(`buyers.${i}.cpfRa`, b.cpfRa, 'Retirement Account (S$)', 'pro-only')}`}
+        ${b.citizenship !== 'F' && +b.age >= policy.get('cpf.age.life_payout') ? amt(`buyers.${i}.cpfLifeMonthly`, b.cpfLifeMonthly, 'CPF LIFE payout you receive (S$ a month, optional)') : ''}
         ${b.citizenship === 'PR' ? sel(`buyers.${i}.prYears3Plus`, 'PR for 3 years or more?', [['', '—'], ...YESNO], b.prYears3Plus == null ? '' : String(b.prYears3Plus), 'data-type="bool"') : ''}
         ${b.citizenship !== 'SC' ? sel(`buyers.${i}.nationality`, 'Nationality', [['', '—'], ...NATIONALITY], b.nationality || '') : ''}
         ${b.citizenship === 'F' ? sel(`buyers.${i}.pass`, 'Pass', [['', '—'], ...PASS], b.pass || '', 'data-restructure') : ''}
@@ -75,12 +80,14 @@ export function mountHousehold({ store, policy, bus }) {
   }
 
   function paintForm() {
-    const x = h(), single = x.scheme === 'single', sample = store.inSample();
+    const x = h(), single = x.scheme === 'single', sample = store.inSample(), phone = isPhone();
+    // phone overhaul §3.8: on a phone the close button says "Close" and a sticky Done ends the page (values save as you type)
+    const close = phone ? `<button class="btn sm" value="close">${t('Close')}</button>` : `<button class="btn sm" value="close" aria-label="${esc(t('Close'))}">✕</button>`;
     dlg.innerHTML = `<form method="dialog" class="drawer-body" autocomplete="off">
-      <div class="drawer-head"><h2 id="hhTitle">${t('Your household')}</h2><button class="btn sm" value="close" aria-label="${esc(t('Close'))}">✕</button></div>
+      <div class="drawer-head"><h2 id="hhTitle">${t('Your household')}</h2>${close}</div>
       <p class="hint">${t('Used by every number in the app.')} <b>${t('Stays in this browser')}</b> — ${t('nothing is sent anywhere.')}</p>
       ${sample ? `<div class="notice" role="note">${t('This is a sample household. You can change anything here — the changes are discarded when you exit the sample.')} <button type="button" class="link" data-act="sample-exit">${t('Exit sample')}</button></div>`
-    : `<p class="hint"><button type="button" class="link" data-act="samples">${t('Try a sample household →')}</button> · <button type="button" class="link" data-act="edit-answers">${t('Edit answers')}</button> · <button type="button" class="link" data-act="start">${t('Start over with a few quick questions')}</button></p>`}
+    : `<p class="hint hh-links"><button type="button" class="link" data-act="samples">${t('Try a sample household →')}</button> <span class="hh-sep">·</span> <button type="button" class="link" data-act="edit-answers">${t('Edit answers')}</button> <span class="hh-sep">·</span> <button type="button" class="link" data-act="start">${t('Start over with a few quick questions')}</button></p>`}
       ${x.needsReview ? `<div class="notice" role="note">${t('Your old “Cash + CPF” figure was put into Cash. Move your CPF OA balance into the buyer rows so the cash checks are right.')} <button type="button" class="link" data-act="reviewed">${t('Done')}</button></div>` : ''}
       <div class="section"><h3>${t('Buying as')}</h3>
         ${seg('Scheme', 'scheme', [['family', 'Family / couple'], ['single', 'Single']], x.scheme === 'single' ? 'single' : 'family')}
@@ -89,8 +96,8 @@ export function mountHousehold({ store, policy, bus }) {
       </div>
       <div class="section"><h3>${t('Money for the purchase')}</h3>
         <div class="fields">
-          ${num('cash', x.cash, 'Cash savings you can put in (S$)', 'step="1000" min="0"')}
-          ${num('otherDebts', x.otherDebts, 'Other monthly loan repayments (car, study…) (S$)', 'step="50" min="0"')}
+          ${amt('cash', x.cash, 'Cash savings you can put in (S$)')}
+          ${amt('otherDebts', x.otherDebts, 'Other monthly loan repayments (car, study…) (S$)')}
         </div>
       </div>
       <div class="section"><h3>${t('Situation')}</h3>
@@ -108,9 +115,9 @@ export function mountHousehold({ store, policy, bus }) {
       </div>
       <div class="section"><h3>${t('Grants')}</h3>
         <div id="hhGrants">${grantsPreview()}</div>
-        <div class="fields">${num('grantsOverride', x.grantsOverride, 'Override with your HFE letter amount (S$, optional)', 'step="1000" min="0"', 'wide')}</div>
+        <div class="fields">${amt('grantsOverride', x.grantsOverride, 'Override with your HFE letter amount (S$, optional)', 'wide')}</div>
       </div>
-      <div class="section"><h3>${t('Your data')}</h3>
+      <div class="section hh-data"><h3>${t('Your data')}</h3>
         <div class="actions">
           <button type="button" class="btn sm" data-act="export">${t('Export (.json)')}</button>
           <label class="btn sm file">${t('Import')}<input type="file" accept="application/json,.json" data-act="import" hidden></label>
@@ -118,6 +125,7 @@ export function mountHousehold({ store, policy, bus }) {
         </div>
         <p class="hint" id="hhDataMsg" aria-live="polite"></p>
       </div>
+      ${phone ? `<div class="drawer-foot"><button class="btn primary" value="close">${t('Done')}</button></div>` : ''}
     </form>`;
   }
 
@@ -125,13 +133,16 @@ export function mountHousehold({ store, policy, bus }) {
     if (el.dataset.type === 'timer') return el.value === 'true' ? true : el.value === 'false' ? false : 'mixed';
     if (el.dataset.type === 'int') return +el.value;
     if (el.dataset.type === 'bool') return el.value === '' ? null : el.value === 'true';
+    if ('money' in el.dataset) return parseMoney(el.value); // NaN = cannot be read yet (the input handler skips it)
     if (el.type === 'number') return el.value === '' ? null : +el.value;
     return el.value;
   };
 
   dlg.addEventListener('input', (e) => {
     const el = e.target.closest('[data-path]'); if (!el) return;
-    set(el.dataset.path, parse(el));
+    const v = parse(el);
+    if (Number.isNaN(v)) return; // e.g. "12.5" or "-3" in a money field: marked aria-invalid, the saved value stays
+    set(el.dataset.path, v);
     if (el.hasAttribute('data-restructure')) { renderForm(); return; } // renderForm restores focus + scroll
     dlg.querySelector('#hhGrants').innerHTML = grantsPreview();
     const loan = dlg.querySelector('#hhLoan'); // B11: income above the ceiling greys the HDB loan as you type
@@ -175,6 +186,7 @@ export function mountHousehold({ store, policy, bus }) {
     catch (err) { dlg.querySelector('#hhDataMsg').textContent = t('Not imported: {0}. Nothing was changed.', [err.message]); }
   });
 
+  bindMoneyInputs(dlg); // after the listener above: it saves first, then the field is re-grouped (same digits)
   chip.addEventListener('click', () => { renderForm(); dlg.showModal(); });
   // { field: 'buyers.0.income' } (from a "Set in household →" prompt) → open, then focus and flash that input
   bus.on('household:open', ({ field } = {}) => {

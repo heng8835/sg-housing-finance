@@ -15,7 +15,8 @@ import { mountPlan } from '@modules/plan/index.js';
 import { mountLearn } from '@modules/learn/index.js';
 import { mountModeSwitch } from '@modules/shell/mode.js';
 import { mountLangSwitch } from '@modules/shell/lang.js';
-import { mountMobileSheet } from '@modules/shell/mobile.js';
+import { mountPhone } from '@modules/shell/phone.js';
+import { mountMenu } from '@modules/shell/menu.js';
 import { mountPanelResize } from '@modules/shell/resize.js';
 import { mountTextSize } from '@modules/shell/textsize.js';
 import { bindTextSize } from '@core/textsize.js';
@@ -36,10 +37,12 @@ async function main() {
     bindTextSize(store); // Normal / Large / Larger classes on <html> (B10) before anything paints
     await initI18n(store.get('ui.lang'));
     applyStatic();
+    // phone (≤ 767 px): top bar, bottom tab bar, map sheet, full-screen pages; Aa + Menu (phone overhaul §2)
+    mountPhone({ bus });
+    mountMenu({ store, bus });
     // the household / Afford / Rent / Learn views need only the small policy file — they work while map data loads
     const dataLoaded = loadScripts(DATA_FILES, (done, total) => say(t('Loading HDB data… {0} of {1} files', [done, total])));
     const policy = await loadPolicy('policy/sg-policy.json');
-    mountMobileSheet({ bus });
     mountPanelResize({ store, bus });
     mountHousehold({ store, policy, bus });
     mountSamples({ store, policy, bus }); // banner while a sample is on; picker; card at the top of the Learn sheet

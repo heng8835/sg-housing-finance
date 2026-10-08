@@ -2,12 +2,13 @@
 // card after the data has loaded, and the use-case picker (native modal <dialog>). The coach marks are in tour.js,
 // the content in steps.js. Memory lives only in the store: ui.guide = { offered, done: { [useCaseId]: 'YYYY-MM-DD' } }.
 // Reachability (H9): a "Take a tour of this tab" line at the top of each tab pane, bus 'guide:open' { useCase? }
-// (Learn sheet), and on phones the header button reads "? Tour".
+// (Learn sheet). Phones (phone overhaul §3.9 / §3.11): the header button is hidden (Menu → "Guides and tours" and each
+// page's Tour button open the picker), the picker is a full-screen page, and the offer sits above the tab bar.
 
 import { t } from '../../core/i18n.js';
 import { esc } from '../../core/dom.js';
 import { USE_CASES, stepsFor } from './steps.js';
-import { createTour, isDesktop } from './tour.js';
+import { createTour, isDesktop, isPhone } from './tour.js';
 
 const OFFER_DELAY_MS = 800;
 // the tour that explains each side-panel tab
@@ -30,13 +31,13 @@ export function mountGuide({ store, bus, ready } = {}) {
 
   // ---------------------------------------------------------------- use-case picker
   const picker = document.createElement('dialog');
-  picker.className = 'guide-picker'; picker.id = 'guidePicker';
+  picker.className = 'guide-picker phone-full'; picker.id = 'guidePicker';
   picker.setAttribute('aria-labelledby', 'guidePickerTitle');
   document.body.append(picker);
   let returnTo = null;
 
   function renderPicker() {
-    const done = store.get('ui.guide.done') || {}, desktop = isDesktop();
+    const done = store.get('ui.guide.done') || {}, desktop = isDesktop(), phone = isPhone();
     const rows = USE_CASES.map((u) => {
       const when = done[u.id];
       const meta = when
@@ -48,9 +49,10 @@ export function mountGuide({ store, bus, ready } = {}) {
     }).join('');
     picker.innerHTML = `<div class="gp-inner">
       <div class="gp-head"><h2 id="guidePickerTitle">${esc(t('What would you like to do?'))}</h2>
-        <button type="button" class="gp-x" data-a="close" aria-label="${esc(t('Close'))}">✕</button></div>
+        ${phone ? `<button type="button" class="btn sm gp-close" data-a="close">${esc(t('Close'))}</button>`
+    : `<button type="button" class="gp-x" data-a="close" aria-label="${esc(t('Close'))}">✕</button>`}</div>
       <div class="gp-list">${rows}</div>
-      <p class="gp-foot">${esc(t('Open this again any time from Guide at the top.'))}</p>
+      <p class="gp-foot">${esc(phone ? t('Open this again any time from Menu → Guides and tours.') : t('Open this again any time from Guide at the top.'))}</p>
     </div>`;
   }
 
@@ -92,6 +94,7 @@ export function mountGuide({ store, bus, ready } = {}) {
   }
   function showOffer() {
     if (store.get('ui.guide.offered') || offer || picker.open || tour.active()) return;
+    if (store.inSample?.()) return; // P-07: not again after every sample load (a sample's ui is thrown away on exit)
     // first visit: "Start here" (modules/start) comes first; offer the tour once it closes (finishing it marks offered)
     if (document.querySelector('dialog#startDlg[open]')) { const off = bus?.on('start:closed', () => { off(); setTimeout(showOffer, OFFER_DELAY_MS); }); return; }
     offer = document.createElement('div');

@@ -1,20 +1,13 @@
 /* Guided tour (modules/guide/*, spec phase5-feedback-design.md §6). Tokens from base.css; one calm hue (the app blue). */
 
-/* header button — sits after #learnBtn; label hidden on phones like Learn */
+/* header button — sits after #learnBtn. Phones hide it (styles/phone.css): Menu → "Guides and tours" and each page's
+   Tour button open the tours instead (phone overhaul §2.2) */
 #guideBtn { min-height: 32px; flex-shrink: 0; white-space: nowrap; }
 #guideBtn .lbl-q, #guideBtn .lbl-s { display: none; }
-/* phone: a 44 × 44 stacked "? / Tour" button (the compass alone was not found as the way to the tours) */
-@media (max-width: 767px) {
-  #guideBtn { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 44px; height: 44px; min-height: 44px; padding: 0; gap: 1px; line-height: 1; }
-  #guideBtn .lbl, #guideBtn .ic { display: none; }
-  #guideBtn .lbl-q { display: block; font-size: 16px; font-weight: 700; }
-  #guideBtn .lbl-s { display: block; font-size: 10px; }
-}
 
 /* "🧭 Take a tour of this tab · All tours" — first line of each side-panel tab (H9) */
 .tour-link { margin: 0 4px 12px; font-size: .893rem; line-height: 1.5; color: var(--text-3); }
 .tour-link .link { font-size: .893rem; }
-@media (max-width: 767px) { .tour-link .link { min-height: 32px; } }
 .learn-tour { margin: 0 0 var(--sp-3); }
 .learn-tour .link { font-size: .929rem; }
 
@@ -28,9 +21,15 @@
 .go-x, .gp-x { position: absolute; top: var(--sp-2); right: var(--sp-2); width: 32px; height: 32px; border: 0; border-radius: var(--radius-sm);
   background: none; color: var(--text-3); font-size: 1rem; line-height: 1; }
 .go-x:hover, .gp-x:hover { background: var(--surface-2); color: var(--text); }
-@media (max-width: 767px) {
-  .guide-offer { left: 12px; right: 12px; top: 64px; bottom: auto; width: auto; max-width: none; }
-  .go-actions .btn { min-height: 44px; }
+/* phone (P-07): never over the top bar or the search box — a compact card at the bottom, just above the 56 px tab bar
+   (+ safe area). On the Map tab it sits over the sheet's peek row until "Show me around" / "Not now" (one bottom
+   layer at a time); "Not now" is the way out, so the ✕ is not repeated */
+@media screen and (max-width: 767px) {
+  .guide-offer { left: 8px; right: 8px; top: auto; bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px); width: auto; max-width: none; padding: 12px 16px; }
+  .guide-offer p { margin: 0 0 8px; font-size: 1rem; }
+  .go-actions { flex-wrap: nowrap; }
+  .go-actions .btn { flex: 1 1 auto; min-height: 44px; font-size: 1rem; }
+  .go-x { display: none; }
 }
 
 /* ---------------------------------------------------------------- use-case picker (native modal dialog) */
@@ -50,7 +49,19 @@ dialog.guide-picker::backdrop { background: var(--veil); }
 .gp-d { font-size: .893rem; color: var(--text-3); line-height: 1.4; }
 .gp-meta { flex-shrink: 0; font-size: .857rem; color: var(--text-3); white-space: nowrap; }
 .gp-foot { margin: var(--sp-4) 0 0; font-size: .857rem; color: var(--text-3); }
-@media (max-width: 767px) { .gp-inner { padding: var(--sp-4); } }
+/* phone (§3.9): a full-screen page (dialog.phone-full) with a sticky title row and a word "Close" */
+@media screen and (max-width: 767px) {
+  .gp-inner { padding: 0 0 16px; }
+  .gp-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 6px 16px;
+    background: var(--surface); border-bottom: 1px solid var(--border); }
+  .gp-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 1.125rem; }
+  .gp-head .gp-close { flex: none; min-width: 64px; }
+  .gp-head .gp-x { position: static; width: 44px; height: 44px; }
+  .gp-list { padding: 16px 16px 0; }
+  .gp-opt { min-height: 64px; }
+  .gp-t { font-size: 1.0625rem; }
+  .gp-foot { margin: 16px 16px 0; }
+}
 
 /* ---------------------------------------------------------------- coach marks (fullscreen modal dialog, top layer) */
 dialog.coach { position: fixed; inset: 0; width: 100%; height: 100%; max-width: 100%; max-height: 100%; margin: 0; padding: 0;
@@ -83,12 +94,19 @@ dialog.coach.no-hole { background: var(--veil); }
 .coach-pop[data-side="below"] .coach-arrow { display: block; top: -5px; left: calc(var(--arrow, 24px) - 5px); }
 .coach-pop[data-side="above"] .coach-arrow { display: block; bottom: -5px; left: calc(var(--arrow, 24px) - 5px); }
 
-/* phone: docked card, at the bottom — or at the top (below the 52 px header) when the target is in the lower half */
+/* phone: docked card, at the bottom — or at the top (below the 56 px top bar) when the target is in the lower half.
+   Phone overhaul §3.11 / P-57: 44 px buttons, 16 px text */
 .coach.phone .coach-pop { left: 12px; right: 12px; width: auto; max-width: none; }
 .coach.phone .coach-pop[data-side="dock-bottom"] { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
-.coach.phone .coach-pop[data-side="dock-top"] { top: 64px; bottom: auto; }
+.coach.phone .coach-pop[data-side="dock-top"] { top: calc(64px + env(safe-area-inset-top, 0px)); bottom: auto; }
 .coach.phone .coach-arrow { display: none !important; }
 .coach.phone .coach-foot .btn, .coach.phone .coach-foot .link { min-height: 44px; }
+@media screen and (max-width: 767px) {
+  .coach.phone .coach-title { font-size: 1.125rem; }
+  .coach.phone .coach-body { font-size: 1rem; }
+  .coach.phone .coach-foot .btn { padding: 0 16px; font-size: 1rem; }
+  .coach.phone .coach-foot .link { font-size: 1rem; }
+}
 
 @media (prefers-reduced-motion: reduce) { .coach-hole { transition: none; } }
 @media print { #guideBtn, #guideOffer, dialog.coach, dialog.guide-picker, .tour-link { display: none !important; } }

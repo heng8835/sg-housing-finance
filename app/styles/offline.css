@@ -6,9 +6,12 @@
 .sw-toast .btn { min-height: 32px; border-radius: var(--radius-pill); white-space: nowrap; }
 .sw-toast-x { width: 32px; height: 32px; flex: none; border: 0; border-radius: 50%; background: none; color: var(--text-3); }
 .sw-toast-x:hover { background: var(--surface-2); color: var(--text); }
-@media (max-width: 767px) {
-  .sw-toast { left: 12px; right: 12px; top: 64px; bottom: auto; max-width: none; border-radius: var(--radius); }
+/* phone (phone overhaul §3.11, P-58): at the bottom just above the 56 px tab bar (+ safe area), never over the top bar
+   or the search box (on the Map tab it sits over the sheet's peek row until Reload / ✕) */
+@media screen and (max-width: 767px) {
+  .sw-toast { left: 8px; right: 8px; top: auto; bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px); max-width: none; border-radius: var(--radius); font-size: 1rem; }
   .sw-toast .btn, .sw-toast-x { min-height: 44px; height: 44px; } .sw-toast-x { width: 44px; }
+  .offline-line [data-offline-reset] { display: flex; align-items: center; min-height: 44px; }
 }
 .offline-line { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--border-subtle); }
 @media print { .sw-toast { display: none !important; } }

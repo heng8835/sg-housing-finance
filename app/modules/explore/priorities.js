@@ -9,6 +9,7 @@
 // Pure parts are exported for node tests.
 import { t, currentLang } from '../../core/i18n.js';
 import { esc, money } from '../../core/dom.js';
+import { keepFolds } from '../../core/fold.js';
 import { VERDICT } from './money.js';
 import { FLOOD_NEAR_M, floodOn } from './family.js';
 
@@ -170,7 +171,20 @@ export function blockHtml(s) {
     body = `<ol class="prio-list">${res.order.map((r, k) => sentenceHtml(r, k, res, { bandKm: s.bandKm })).join('')}</ol>`;
   }
   const foot = ticks.length && n > 1 ? `<p class="foot-note">${t(FOOT)}</p>` : '';
+  if (s.phone) return phoneBlockHtml(s, ticks, { chips, over, hub, body, foot });
   return `<section class="prio" aria-label="${esc(t('Your priorities'))}">${head}${picker}${body}${foot}</section>`;
+}
+
+/** Phones (Compare cards, phone overhaul §3.4 / P-33): one fold, closed unless opened, whose summary names the picks;
+ *  open, the same chips, sentences and footnote as the desktop block (no inner "Change what matters" fold). */
+function phoneBlockHtml(s, ticks, p) {
+  const names = ticks.map((id) => (id === 'commute' ? s.commuteLabel : esc(t(TICK[id].label))));
+  // review R-15a: one line when closed ("Sort: none picked" / "Sort: Walk to MRT · …"); "pick up to 5" only when open
+  const sum = ticks.length ? t('Sort: {0}', [list(names)]) : t('Sort: none picked');
+  const clear = ticks.length ? `<button type="button" class="link prio-clear" data-prio-clear>${t('Clear')}</button>` : '';
+  return `<details class="prio prio-phone" data-fold="prio"${s.open ? ' open' : ''} aria-label="${esc(t('Your priorities'))}">`
+    + `<summary><span class="prio-t">${sum}</span><small class="prio-s">${t('pick up to {0}', [MAX_TICKS])}</small></summary>`
+    + `<div class="prio-in">${p.chips}${clear}${p.over}${p.hub}${p.body}${p.foot}</div></details>`;
 }
 
 /**
@@ -180,6 +194,7 @@ export function blockHtml(s) {
  */
 export function createPriorities(ctx) {
   let overflow = false, foldOpen = null, last = null;
+  const phoneFolds = ctx.body ? keepFolds(ctx.body) : null; // the phone fold (data-fold="prio")
   const ticks = () => cleanTicks(ctx.store.get(STORE_PATH));
   const commuteRow = (rows) => rows.find((r) => r.k === COMMUTE_BOTH && r.v) || rows.find((r) => typeof r.k === 'string' && r.k.startsWith(COMMUTE_PREFIX) && r.v) || null;
   const commuteLabel = (r) => (!r ? null : r.k === COMMUTE_BOTH ? esc(t('Commute (the longer trip)')) : esc(t('Commute to {0}', [t(r.k.slice(COMMUTE_PREFIX.length))])));
@@ -200,12 +215,14 @@ export function createPriorities(ctx) {
     });
   }
 
-  function html(ms) {
+  /** opts.phone: the phone fold (cmpcards.js); its open state survives re-renders (core/fold.js keepFolds, F6). */
+  function html(ms, opts = {}) {
     const rows = ctx.rows(), cr = commuteRow(rows), tk = ticks();
     if (foldOpen == null) foldOpen = !tk.length;
     const f = facts(ms, rows), live = tk.filter((id) => id !== 'commute' || cr);
     last = ms.length > 1 && live.length ? { res: rankFlats(f, live), n: live.length } : null;
     const out = blockHtml({ ticks: tk, facts: f, commuteLabel: commuteLabel(cr), overflow, foldOpen, bandKm: ctx.bandKm,
+      ...(opts.phone ? { phone: true, open: !!phoneFolds?.isOpen('prio', false) } : {}),
       hubHint: ctx.goCommute ? `<button type="button" class="link" data-prio-hub>${t('Set a place under Colour by → Commute to sort by travel time')}</button>` : '' });
     overflow = false;
     return out;

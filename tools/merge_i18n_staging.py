@@ -19,6 +19,8 @@ TARGETS = {"zh", "zh-explore", "zh-guide", "zh-engine"}
 
 
 def main(argv):
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")  # 中文 keys on a Windows console
     dry, keep = "--dry-run" in argv, "--keep" in argv
     files = sorted(STAGING.glob("*.json")) if STAGING.exists() else []
     if not files:

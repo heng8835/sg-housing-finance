@@ -7,10 +7,16 @@ body.in-sample #app { flex: 1 1 0; min-height: 0; height: auto; }
 .sample-banner { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--accent-soft); border-bottom: 1px solid var(--border); color: var(--text); font-size: .929rem; line-height: 1.45; }
 .sample-banner .sb-text { flex: 1 1 320px; margin: 0; }
 .sample-banner .sb-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
-@media (max-width: 767px) {
-  .sample-banner { padding: var(--sp-2) var(--sp-3); font-size: .893rem; }
-  .sample-banner .sb-text { flex-basis: 100%; }
-  .sample-banner .btn { min-height: 36px; }
+.sample-banner .sb-short, .sample-banner .sb-exit-short { display: none; }
+/* phones (R-01): one line ≤ 48 px — "Sample: Young couple" + a 44 px [Exit]; 2 lines max (72 px) only at Larger */
+@media screen and (max-width: 767px) {
+  .sample-banner { flex-wrap: nowrap; gap: 8px; min-height: 48px; max-height: 4.5rem; padding: 0 16px; font-size: .9375rem; }
+  .sample-banner .sb-text, .sample-banner .sb-other, .sample-banner .sb-exit-long { display: none; }
+  .sample-banner .sb-short { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  :root.ts-large .sample-banner .sb-short, :root.ts-larger .sample-banner .sb-short { display: -webkit-box; -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2; white-space: normal; line-height: 1.3; padding: 4px 0; }
+  .sample-banner .sb-actions { flex: none; flex-wrap: nowrap; }
+  .sample-banner .sb-exit-short { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 64px; }
 }
 @media print { .sample-banner { display: none !important; } }
 
@@ -27,3 +33,30 @@ body.in-sample #app { flex: 1 1 0; min-height: 0; height: auto; }
 .smp-learn p { margin: 0; }
 .smp-learn .hint { margin-top: var(--sp-1); }
 .smp-learn .actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-2); }
+
+/* ---------------------------------------------------------------- phone: sample picker + household drawer
+   (phone overhaul §3.8, §3.9; P-51, P-52, P-54). Both are full-screen pages (dialog.drawer.phone-full, styles/phone.css)
+   with the sticky .drawer-head (title + "Close"). The household drawer's own rules live in modules.css; it sits here
+   because the picker and the drawer open from the same household chip. Sample banner: unchanged (owner F2 pending). */
+@media screen and (max-width: 767px) {
+  .drawer-head .btn[value="close"], .drawer-head [data-smp="close"] { flex: none; min-width: 64px; }
+  #smpDialog .smp-card h3 { font-size: 1.125rem; }
+  #smpDialog .sec-sub, #smpDialog .smp-card > .hint { font-size: 1rem; }
+  #smpDialog .actions .btn { flex: 1 1 auto; min-height: 48px; font-size: 1rem; }
+
+  /* household: stand-alone links → 44 px rows / buttons; "Forget my data" on its own row; sticky Done above the keyboard */
+  #hhDialog .drawer-body { padding-bottom: 0; }
+  #hhDialog .hh-links { display: flex; flex-direction: column; align-items: flex-start; }
+  #hhDialog .hh-links .hh-sep { display: none; }
+  #hhDialog .hh-links .link, #hhDialog .notice .link { display: inline-flex; align-items: center; min-height: 44px; font-size: 1rem; text-align: left; }
+  #hhDialog .notice .link { display: flex; }
+  #hhDialog fieldset.buyer > legend { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 1rem; }
+  #hhDialog fieldset.buyer > legend .link { min-height: 44px; min-width: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--accent-ink); font-size: .9375rem; }
+  #hhDialog .hh-data .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #hhDialog .hh-data .actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; }
+  #hhDialog .hh-data .actions [data-act="forget"] { grid-column: 1 / -1; justify-self: start; margin-top: 8px; }
+  #hhDialog .drawer-foot { position: sticky; bottom: 0; z-index: 2; display: flex; margin: var(--sp-4) calc(-1 * var(--sp-4)) 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--border); }
+  #hhDialog .drawer-foot .btn { flex: 1; min-height: 48px; font-size: 1rem; }
+}

@@ -127,7 +127,7 @@ const G = {
 };
 const SLATE = G.flood.color;
 
-export function mountFamily({ L, map, canvas, t, esc, fam = familyData(), flood = floodOn() }) {
+export function mountFamily({ L, map, canvas, t, esc, fam = familyData(), flood = floodOn(), phone = () => false }) {
   const has = (k) => !!fam && Array.isArray(fam[k]) && fam[k].length > 0;
   const missing = missingLayers(fam).filter((k) => flood || k !== 'flood'); // switched off: hidden, not "missing"
   const ecda = has('childcare');
@@ -151,7 +151,9 @@ export function mountFamily({ L, map, canvas, t, esc, fam = familyData(), flood 
       },
     });
   }
+  // phones: no popup — a tap shows the tooltip as the map sheet's one-line row with [Close] (explore/mapsheet.js tapRows)
   const FamMarker = L.CircleMarker.extend({
+    _openPopup(e) { if (!phone()) L.CircleMarker.prototype._openPopup.call(this, e); },
     _project() { this._radius = this.options.radius * glyphScale(this._map.getZoom()); L.CircleMarker.prototype._project.call(this); }, // bigger when zoomed in
     _updatePath() { this._renderer._updateFamGlyph(this); },
   });

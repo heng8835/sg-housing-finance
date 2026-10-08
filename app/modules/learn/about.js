@@ -59,11 +59,12 @@ const link = (href, text) => `<a href="${esc(href)}" target="_blank" rel="noopen
 /** Source rows shipped with these switches (the PUB flood row only while floodData is on). */
 export const sourcesFor = ({ floodOn = true } = {}) => SOURCES.filter((r) => r.feature !== 'flood' || floodOn);
 
-/** The licence table rows (exported for the test). */
+/** The licence table rows (exported for the test). data-l = the column name, shown before each value when a phone
+ *  stacks the rows (phone overhaul §3.9, P-56: source over link, no sideways scroll; styles/guides.css). */
 export function sourcesTable({ months = {}, reviewed = null, floodOn = true } = {}) {
   const upTo = (row) => (row.upTo === 'rules' ? reviewed || '—' : row.upTo && months[row.upTo] ? monthText(months[row.upTo]) : '—');
   return `<table class="mini about-src"><thead><tr><th>${t('Data')}</th><th>${t('From')}</th><th>${t('Licence')}</th><th>${t('Up to')}</th></tr></thead><tbody>${
-    sourcesFor({ floodOn }).map((r) => `<tr><td>${esc(t(r.data))}</td><td>${esc(t(r.from))}</td><td>${esc(t(LICENCES[r.licence]))}</td><td>${esc(upTo(r))}</td></tr>`).join('')}</tbody></table>`;
+    sourcesFor({ floodOn }).map((r) => `<tr><td>${esc(t(r.data))}</td><td data-l="${esc(t('From'))}">${esc(t(r.from))}</td><td data-l="${esc(t('Licence'))}">${esc(t(LICENCES[r.licence]))}</td><td data-l="${esc(t('Up to'))}">${esc(upTo(r))}</td></tr>`).join('')}</tbody></table>`;
 }
 
 /**

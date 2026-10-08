@@ -5,7 +5,7 @@ import { lifePayoutDelta } from '../../engine/cpfpayout.js';
 import { planPurchase } from '../../engine/plan.js';
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
-import { field, pctIn, numIn, selIn } from './ui.js';
+import { field, pctIn, numIn, moneyIn, selIn } from './ui.js';
 import { defaultNote, ftWord } from '../../core/typical.js';
 import { missingFields, needPrompt } from '../../core/missing.js';
 import { DEFAULT_WAGE_GROWTH, DEFAULT_BONUS_MONTHS, CPF_DEFAULTS } from '../../core/cpf-defaults.js';
@@ -17,9 +17,14 @@ const PR_YEARS = [['PR1', '1st year as PR'], ['PR2', '2nd year as PR'], ['PR3+',
 
 const metTag = (ok, label) => `<span class="tag ${ok ? 'good' : 'neutral'}">${ok ? '✓' : '✕'} ${label}</span>`;
 
-function rowsTable(a, b) {
+function rowsTable(a, b, phone = false) {
   const pick = (rows) => rows.filter((r, i) => r.age % 5 === 0 || i === rows.length - 1);
   const byAge = new Map(b ? b.rows.map((r) => [r.age, r]) : []);
+  // phone (AC1): five money columns do not fit 360 px — one block per age, the same figures as label / value pairs
+  if (phone) {
+    const pair = (label, v) => `<div><dt>${label}</dt><dd>${v}</dd></div>`;
+    return `<div class="cpf-rows pro-only">${pick(a.rows).map((r) => `<div class="cpf-age"><h5>${t('Age {0}', [r.age])}</h5><dl>${pair('OA', money(r.oa))}${pair('SA / RA', money(r.sa + r.ra))}${pair(t('Total'), money(r.total))}${b ? pair(t('Total if you buy'), byAge.has(r.age) ? money(byAge.get(r.age).total) : '—') : ''}</dl></div>`).join('')}</div>`;
+  }
   return `<table class="mini pro-only"><thead><tr><th>${t('Age')}</th><th>OA</th><th>SA / RA</th><th>${t('Total')}</th>${b ? `<th>${t('Total if you buy')}</th>` : ''}</tr></thead><tbody>
     ${pick(a.rows).map((r) => `<tr><td>${r.age}</td><td>${money(r.oa)}</td><td>${money(r.sa + r.ra)}</td><td>${money(r.total)}</td>${b ? `<td>${byAge.has(r.age) ? money(byAge.get(r.age).total) : '—'}</td>` : ''}</tr>`).join('')}
   </tbody></table>`;
@@ -35,7 +40,7 @@ function payoutCard(b, i, { buyers, plan, mode = 'pro' }) {
   const shown = v == null ? '—' : money(v);
   return `<fieldset class="buyer"><legend>${name} · ${t('age {0}', [+b.age])}</legend>
     <p class="hint">${t('You may already receive CPF LIFE — enter your monthly payout (optional).')}</p>
-    <div class="fields">${field(t('CPF LIFE payout you receive (S$ a month, optional)'), numIn(`household.buyers.${i}.cpfLifeMonthly`, b.cpfLifeMonthly, 'min="0" step="10"'))}</div>
+    <div class="fields">${field(t('CPF LIFE payout you receive (S$ a month, optional)'), moneyIn(`household.buyers.${i}.cpfLifeMonthly`, b.cpfLifeMonthly))}</div>
     <div class="kpis">
       <div class="kpi"><small>${t('CPF LIFE you receive, per month')}</small><b>${shown}</b><small>${v == null ? t('not entered') : t('as you entered')}</small></div>
       ${share ? `<div class="kpi"><small>${t('CPF LIFE if you buy this flat')}</small><b>${shown}</b><small>${t('no change: payouts have started')}</small></div>` : ''}
@@ -44,7 +49,7 @@ function payoutCard(b, i, { buyers, plan, mode = 'pro' }) {
   </fieldset>`;
 }
 
-function buyerCard(b, i, { buyers, plan, settings, policy, year, mcOn, mode = 'pro' }) {
+function buyerCard(b, i, { buyers, plan, settings, policy, year, mcOn, mode = 'pro', phone = false }) {
   if (started(b, policy)) return payoutCard(b, i, { buyers, plan, mode });
   const simple = mode === 'simple'; // B10: Retirement Account / Ordinary Account spelled out in Simple
   const age = +b.age;
@@ -60,7 +65,9 @@ function buyerCard(b, i, { buyers, plan, settings, policy, year, mcOn, mode = 'p
   const short = withBuy ? withBuy.rows.reduce((s, r) => s + r.cashShortfall, 0) : 0;
   const k55 = (r) => r.at55;
   const lifeTxt = (r) => (!r.life ? '—' : r.life.monthlyLow === r.life.monthlyHigh ? money(r.life.monthly) : `${money(r.life.monthlyLow)}–${money(r.life.monthlyHigh)}`);
-  const at55 = (r) => (k55(r) ? `${money(r.at55.raFormed)}<small>${metTag(r.at55.metBRS, 'BRS')} ${metTag(r.at55.metFRS, 'FRS')} ${metTag(r.at55.metERS, 'ERS')}${r.at55.projectedSums ? ` · ${t('sums projected')}` : ''}</small>` : `<small>${t('already past 55')}</small>`);
+  // phone (P-47): the sums spelled out — "✓ Basic (BRS)" — on their own lines; desktop keeps the short tags
+  const [brs, frs, ers] = phone ? [t('Basic (BRS)'), t('Full (FRS)'), t('Enhanced (ERS)')] : ['BRS', 'FRS', 'ERS'];
+  const at55 = (r) => (k55(r) ? `${money(r.at55.raFormed)}<small${phone ? ' class="cpf-sums"' : ''}>${metTag(r.at55.metBRS, brs)} ${metTag(r.at55.metFRS, frs)} ${metTag(r.at55.metERS, ers)}${r.at55.projectedSums ? ` · ${t('sums projected')}` : ''}</small>` : `<small>${t('already past 55')}</small>`);
   // Monte-Carlo range lines (Pro switch; '' when off — the KPIs above them are unchanged)
   const mc = cpfRangeSlots(mcOn, { buyers, i, plan, settings, defaults: CPF_DEFAULTS, year }, policy);
   const rng = (r, k) => (r && (k.startsWith('ra') ? k55(r) : r.life) ? mc.slot(k) : '');
@@ -73,7 +80,7 @@ function buyerCard(b, i, { buyers, plan, settings, policy, year, mcOn, mode = 'p
       <div class="kpi"><small>${t('CPF LIFE if you buy this flat')}</small><b>${lifeTxt(withBuy)}</b>${rng(withBuy, 'lifeBuy')}</div>` : ''}
     </div>
     ${share ? `<p class="hint">${t(simple ? "This flat uses about {0} of this buyer's CPF Ordinary Account upfront and {1} a month for {2} years." : 'This flat uses about {0} of OA upfront and {1} a month for {2} years from this buyer.', [money(share.oaUpfront), money(share.monthlyFromOa), share.tenure])}${short > 0 ? ` <b>${t(simple ? 'The CPF Ordinary Account runs short by {0} in total — that part is paid in cash.' : 'OA runs short by {0} in total — that part is paid in cash.', [money(short)])}</b>` : ''}</p>` : ''}
-    ${rowsTable(without, withBuy)}
+    ${rowsTable(without, withBuy, phone)}
   </fieldset>`;
 }
 
@@ -93,7 +100,7 @@ function payoutDelta({ h, plan, settings, policy, year }) {
 }
 
 /** @param {{ h:object, f:object|null, tf:object|null, plan:object, policy:object, today:string }} ctx  tf = focus or typical flat */
-export function cpfSection({ h, tf: f, plan: p, policy, today, mode = 'pro' }) {
+export function cpfSection({ h, tf: f, plan: p, policy, today, mode = 'pro', phone = false }) {
   const head = `<div class="section" id="planCpf"><h3>${t('CPF & retirement')}</h3>`;
   const buyers = projectedBuyers(h);
   if (!buyers.length) return `${head}${needPrompt(missingFields(h, ['age', 'income', 'cpfOa']), 'planCpf')}</div>`;
@@ -118,7 +125,7 @@ export function cpfSection({ h, tf: f, plan: p, policy, today, mode = 'pro' }) {
     ${payoutDelta({ h, plan, settings, policy, year })}
     ${working.length ? `<div class="fields pro-only">${field(t('Pay rise per year (%)'), pctIn('plan.cpf.wageGrowth', settings.wageGrowth, DEFAULT_WAGE_GROWTH * 100))}${field(t('Bonus (months of pay)'), numIn('plan.cpf.bonusMonths', settings.bonusMonths, `min="0" max="6" step="0.5" placeholder="${DEFAULT_BONUS_MONTHS}"`))}</div>
     ${cpfRangeToggle(mcOn)}` : ''}
-    ${buyers.map(({ b, i }) => buyerCard(b, i, { buyers: all, plan, settings, policy, year, mcOn, mode })).join('')}
+    ${buyers.map(({ b, i }) => buyerCard(b, i, { buyers: all, plan, settings, policy, year, mcOn, mode, phone })).join('')}
     ${working.length ? cpfRangeNote(mcOn) : ''}
     <p class="hint">${foot}</p>
   </div>`;

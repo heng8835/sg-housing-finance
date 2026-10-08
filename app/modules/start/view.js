@@ -40,6 +40,10 @@ export const TAP_SCREENS = ['goal', 'firstTimer'];
 export const titleCase = (s) => String(s).toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 export const titleOf = (q, a) => (q === 'who' && WHO_TITLE[a && a.goal]) || TITLES[q];
 
+// phone overhaul §3.1: on a phone the dialog is a full-screen page and its close button says "Close" (44 px, sticky head)
+const closeBtn = (act, label, phone) => (phone
+  ? `<button type="button" class="btn sm st-x" data-st="${act}">${esc(t('Close'))}</button>`
+  : `<button type="button" class="gp-x" data-st="${act}" aria-label="${esc(t(label))}">✕</button>`);
 const pressed = (on) => `aria-pressed="${on ? 'true' : 'false'}"${on ? ' class="st-opt on"' : ' class="st-opt"'}`;
 const opt = (v, cur) => `${String(v) === String(cur) ? ' selected' : ''}`;
 
@@ -93,7 +97,7 @@ export function langSeg(lang = 'en') {
  * One question screen. i = index in questionsFor(a). opts = { towns, hdb, hubs, payoutAge, lang }.
  * The step counter uses the goal's own number of screens; before a goal is chosen it shows only the number.
  */
-export function questionHtml(i, a, { towns = [], lang = 'en', ...opts } = {}) {
+export function questionHtml(i, a, { towns = [], lang = 'en', phone = false, ...opts } = {}) {
   const qs = questionsFor(a), q = qs[i], last = i === qs.length - 1;
   const step = a.goal ? t('Start here · question {0} of {1}', [i + 1, qs.length]) : t('Start here · question {0}', [i + 1]);
   const next = TAP_SCREENS.includes(q) ? '' : `<button type="button" class="btn sm primary" data-st="next">${esc(last ? t('Finish') : t('Next'))}</button>`;
@@ -101,7 +105,7 @@ export function questionHtml(i, a, { towns = [], lang = 'en', ...opts } = {}) {
     <div class="st-head"><p class="st-step">${esc(step)}</p>
       <h2 id="startTitle">${esc(t(titleOf(q, a)))}</h2>
       ${langSeg(lang)}
-      <button type="button" class="gp-x" data-st="close" aria-label="${esc(t('Skip for now'))}">✕</button></div>
+      ${closeBtn('close', 'Skip for now', phone)}</div>
     <p class="st-help">${esc(t(HELP[q]))}</p>
     <div class="st-body" data-q="${q}">${body(q, a, towns, opts)}</div>
     <div class="st-foot">
@@ -143,21 +147,22 @@ export function summaryLines(a, h, route) {
 
 /** "Bigger text?" (B10, DEC-016 Q5): offered, never switched on without a tap. textSize = the current ui.textSize. */
 export const TEXT_OFFER = ['large', 'larger'];
+const AGAIN_PHONE = 'Open these questions again from Your household or the Menu.'; // phones: Learn lives in the Menu
 const TEXT_WORDS = { large: 'Large', larger: 'Larger' };
 export function textOfferHtml(textSize = 'normal') {
   const btn = (v) => `<button type="button" class="btn sm st-ts-${v}" data-st-ts="${v}" aria-pressed="${textSize === v}">${esc(t(TEXT_WORDS[v]))}</button>`;
   return `<div class="st-ts"><p class="st-next" id="stTsLbl">${esc(t('Bigger text?'))}</p>
-      <p class="st-d">${esc(t('Easier to read and tap. Change it any time with the text size switch at the top (in Learn on a phone).'))}</p>
+      <p class="st-d">${esc(t('Easier to read and tap. Change it any time with the text size switch at the top (Aa on a phone).'))}</p>
       <div class="st-ts-opts" role="group" aria-labelledby="stTsLbl">${TEXT_OFFER.map(btn).join('')}</div></div>`;
 }
 
 /** The last screen: summary + the matching tour and guide + the text-size offer. */
-export function doneHtml(a, h, route, { tourTitle = '', textSize = 'normal' } = {}) {
+export function doneHtml(a, h, route, { tourTitle = '', textSize = 'normal', phone = false } = {}) {
   const g = goalById(route.goal);
   const lines = summaryLines(a, h, route);
   return `<div class="st-inner">
     <div class="st-head"><p class="st-step">${esc(t('Start here'))}</p><h2 id="startTitle">${esc(t("You're set"))}</h2>
-      <button type="button" class="gp-x" data-st="done" aria-label="${esc(t('Close'))}">✕</button></div>
+      ${closeBtn('done', 'Close', phone)}</div>
     ${lines.map((l) => `<p class="st-help">${esc(l)}</p>`).join('') || `<p class="st-help">${esc(t('Nothing was changed. You can fill in your household any time.'))}</p>`}
     <p class="st-next">${esc(t('Next for “{0}”:', [t(g.label)]))}</p>
     <div class="st-list">
@@ -170,7 +175,7 @@ export function doneHtml(a, h, route, { tourTitle = '', textSize = 'normal' } = 
       <span class="st-gap"></span>
       <button type="button" class="btn sm primary" data-st="done">${esc(t('Done'))}</button>
     </div>
-    <p class="st-alt">${esc(t('Open these questions again from Your household or Learn.'))}</p>
+    <p class="st-alt">${esc(t(phone ? AGAIN_PHONE : 'Open these questions again from Your household or Learn.'))}</p>
   </div>`;
 }
 
@@ -192,8 +197,8 @@ export const uiStrings = () => [
   '1 buyer', '{0} buyers', '{0} a month', 'Saved in this browser: {0}.', 'all flat types', 'The map now shows {0} in {1}.',
   'The map now shows {0}.', 'Start here', "You're set", 'Close', 'Nothing was changed. You can fill in your household any time.',
   'Next for “{0}”:', 'Take the short tour', 'Read the guide', 'Check Your household', 'Done',
-  'Open these questions again from Your household or Learn.',
-  'Bigger text?', 'Easier to read and tap. Change it any time with the text size switch at the top (in Learn on a phone).', ...Object.values(TEXT_WORDS),
+  'Open these questions again from Your household or Learn.', AGAIN_PHONE,
+  'Bigger text?', 'Easier to read and tap. Change it any time with the text size switch at the top (Aa on a phone).', ...Object.values(TEXT_WORDS),
   'Picked for you ({0}): {1}. Change any time.', ...Object.values(PICKED),
   ...screenStrings(),
 ];

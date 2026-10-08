@@ -2,7 +2,8 @@
 // hdb-data-pipeline/docs/specs/phase5-block-card-design.md §2). One calm blue series that follows the
 // colour mode and the selected flat types (owner: the chart must tally with the filters); x-domain = the
 // sales-history slider years, the calculation window is shaded (phase5-accept1-design.md §5.3). Presentation only: medians use the same function as legacy.js, nothing feeds back.
-// Inline SVG at the measured width (text stays 11 px). Pure parts are exported for node tests;
+// Inline SVG at the measured width (text 11 px; phones draw it at the 14 px floor and the layout makes room for it,
+// review R-09: wider left margin, fewer year labels, taller x-axis row). Pure parts are exported for node tests;
 // drawTrend() wires pointer / keyboard / resize in the browser.
 import { t } from '../../core/i18n.js';
 import { esc, money } from '../../core/dom.js';
@@ -48,12 +49,15 @@ export function rentYearly(q, quarters) {
   return [...by.values()].sort((a, b) => (a.y < b.y ? -1 : a.y > b.y ? 1 : 0));
 }
 
-/** Year labels: step 1, 2 or 5 (smallest giving ≥ 34 px each); the last year is always labelled. */
-export function yearTicks(first, last, plotW) {
+/** Rough label width in px (CJK ≈ 1 em, Latin / digits ≈ 0.6 em) — only to make room for axis labels. */
+export const labelW = (s, fs) => { let w = 0; for (const ch of String(s)) w += /[⺀-鿿＀-￯]/.test(ch) ? fs : fs * 0.6; return w; };
+
+/** Year labels: step 1, 2 or 5 (smallest giving ≥ labelPx each, default 34 px); the last year is always labelled. */
+export function yearTicks(first, last, plotW, labelPx = LABEL_PX) {
   const px = plotW / (last - first + 1);
-  const step = [1, 2, 5, 10].find((s) => s * px >= LABEL_PX) || 10;
+  const step = [1, 2, 5, 10].find((s) => s * px >= labelPx) || 10;
   const out = [];
-  for (let y = first; y < last; y++) if (y % step === 0 && (last - y) * px >= LABEL_PX) out.push(y);
+  for (let y = first; y < last; y++) if (y % step === 0 && (last - y) * px >= labelPx) out.push(y);
   out.push(last);
   return out;
 }
@@ -64,15 +68,16 @@ const ymFloat = (ym) => { const [y, m] = String(ym).split('-'); return +y + (+m 
 /**
  * Geometry for a series. opts: { width, height, mode, period: { from:'YYYY-MM', to:'YYYY-MM' },
  * partial: { year, label } | null (the data's last, incomplete year), firstYear, lastYear } — first / last year of the x-domain.
+ * fs = the px size the labels are drawn at (11; phones 14+ — the margins and year step grow with it, 11 is unchanged).
  */
-export function trendModel(series, { width, height, mode, period, partial, firstYear, lastYear } = {}) {
-  const W = width, H = height, x0 = M.left, x1 = W - M.right, y0 = M.top, y1 = H - M.bottom;
+export function trendModel(series, { width, height, mode, period, partial, firstYear, lastYear, fs = 11 } = {}) {
+  const big = fs > 11, val = (p) => (mode === 'count' ? p.n : p.v), vs = series.map(val);
+  const axis = mode === 'count' ? niceTicks(0, Math.max(...vs), 4) : niceTicks(Math.min(...vs), Math.max(...vs), 4);
+  const left = big ? Math.max(M.left, Math.ceil(Math.max(...axis.ticks.map((v) => labelW(yLabel(mode, v), fs))) + 12)) : M.left;
+  const W = width, H = height, x0 = left, x1 = W - M.right, y0 = M.top, y1 = H - (big ? Math.round(fs + 12) : M.bottom);
   const first = Math.min(+series[0].y, Number.isFinite(firstYear) ? firstYear : Infinity), last = Math.max(+series.at(-1).y, Number.isFinite(lastYear) ? lastYear : -Infinity);
   const px = (x1 - x0) / (last + 1 - first);
   const X = (yf) => x0 + (yf - first) * px;
-  const val = (p) => (mode === 'count' ? p.n : p.v);
-  const vs = series.map(val);
-  const axis = mode === 'count' ? niceTicks(0, Math.max(...vs), 4) : niceTicks(Math.min(...vs), Math.max(...vs), 4);
   const Y = (v) => y1 - ((v - axis.lo) / (axis.hi - axis.lo || 1)) * (y1 - y0);
   const points = series.map((p) => {
     const year = +p.y, value = val(p);
@@ -89,9 +94,9 @@ export function trendModel(series, { width, height, mode, period, partial, first
     const a = Math.max(x0, X(ymFloat(period.from))), b = Math.min(x1, X(ymFloat(period.to) + 1 / 12));
     if (b > a) band = { x: a, w: b - a };
   }
-  const xTicks = yearTicks(first, last, x1 - x0).map((y) => ({ y, x: X(y + 0.5), text: String(y) }));
+  const xTicks = yearTicks(first, last, x1 - x0, big ? Math.ceil(labelW('2026', fs) + 10) : LABEL_PX).map((y) => ({ y, x: X(y + 0.5), text: String(y) }));
   const yTicks = axis.ticks.map((v) => ({ v, y: Y(v), text: yLabel(mode, v) }));
-  return { W, H, x0, x1, y0, y1, first, last, px, mode, axis, points, segments, bars, band, xTicks, yTicks };
+  return { W, H, x0, x1, y0, y1, fs, first, last, px, mode, axis, points, segments, bars, band, xTicks, yTicks };
 }
 
 const f1 = (n) => n.toFixed(1);
@@ -102,8 +107,8 @@ const barPath = (b) => { const r = Math.min(4, b.w / 2, Math.max(0, b.h)), x = b
 export function trendSvg(m, aria) {
   const band = m.band ? `<rect x="${f1(m.band.x)}" y="${m.y0}" width="${f1(m.band.w)}" height="${m.y1 - m.y0}" style="fill:var(--accent-soft)"/>` : '';
   const grid = m.yTicks.map((tk) => `<line x1="${m.x0}" x2="${m.x1}" y1="${f1(tk.y)}" y2="${f1(tk.y)}" style="stroke:var(--border-subtle)" stroke-width="1"/>`).join('');
-  const yLab = m.yTicks.map((tk) => `<text x="40" y="${f1(tk.y + 4)}" text-anchor="end" style="fill:var(--text-2)">${esc(tk.text)}</text>`).join('');
-  const xLab = m.xTicks.map((tk) => `<line x1="${f1(tk.x)}" x2="${f1(tk.x)}" y1="${m.y1}" y2="${m.y1 + 4}" style="stroke:var(--border-input)"/><text x="${f1(tk.x)}" y="${m.y1 + 16}" text-anchor="middle" style="fill:var(--text-2)">${esc(tk.text)}</text>`).join('');
+  const yLab = m.yTicks.map((tk) => `<text x="${m.x0 - 6}" y="${f1(tk.y + 4)}" text-anchor="end" style="fill:var(--text-2)">${esc(tk.text)}</text>`).join('');
+  const xLab = m.xTicks.map((tk) => `<line x1="${f1(tk.x)}" x2="${f1(tk.x)}" y1="${m.y1}" y2="${m.y1 + 4}" style="stroke:var(--border-input)"/><text x="${f1(tk.x)}" y="${m.y1 + Math.round(m.fs + 5)}" text-anchor="middle" style="fill:var(--text-2)">${esc(tk.text)}</text>`).join('');
   const marks = m.mode === 'count'
     ? m.bars.map((b) => `<path d="${barPath(b)}" style="${b.hollow ? HOLLOW : 'fill:var(--accent);stroke:var(--surface)'}" stroke-width="${b.hollow ? 2 : 1}"/>`).join('')
     : m.segments.filter((s) => s.length > 1).map((s) => `<polyline fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${s.map((p) => `${f1(p.x)},${f1(p.cy)}`).join(' ')}"/>`).join('')
@@ -147,13 +152,16 @@ export function drawTrend(box, series, opts) {
   const aria = trendAria(series, opts.mode);
   let m = null, idx = null, timer = null, lastW = 0;
   const tip = () => box.querySelector('.bc-tip');
-  const height = () => (globalThis.matchMedia && matchMedia('(max-width: 767px)').matches ? 140 : 156);
+  const phone = () => !!(globalThis.matchMedia && matchMedia('(max-width: 767px)').matches);
+  const height = () => (phone() ? 140 : 156);
+  // phones draw the labels at .875rem (styles/phone.css floor): lay the chart out for that size (R-09)
+  const fs = () => (phone() ? 0.875 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) : 11);
 
   function paint() {
     const w = box.clientWidth;
     if (!w || w === lastW) return;
     lastW = w;
-    m = trendModel(series, { ...opts, width: w, height: height() });
+    m = trendModel(series, { ...opts, width: w, height: height(), fs: fs() });
     box.innerHTML = trendSvg(m, aria) + '<div class="bc-tip" aria-live="polite" hidden></div>';
     idx = null;
     wire();

@@ -8,6 +8,7 @@ import { sccRateFor, costInput } from '../../engine/scenario.js';
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { ftWord } from '../../core/typical.js';
+import { moneyInput, moneyValue } from '../../core/moneyinput.js';
 
 // One calm hue family: the map's blue ramp for the large lines, greys for the small ones (tokens in styles/modules.css).
 export const SWATCH = { mortgage: 'var(--mc-1)', 'property-tax': 'var(--mc-2)', scc: 'var(--mc-3)', utilities: 'var(--mc-4)', hps: 'var(--mc-5)', fire: 'var(--mc-6)', maintenance: 'var(--mc-6)' };
@@ -172,13 +173,14 @@ function avField(x, policy) {
   const est = x.marketMonthlyRent ? monthlyCost({ ...x, annualValue: null }, policy).avUsed : null;
   const ph = est != null ? t('est. {0}', [Math.round(est).toLocaleString('en-SG')]) : t('from your IRAS notice');
   const back = x.annualValue != null && est != null ? `<p class="hint mc-back"><button type="button" class="link" id="mcAvClear">${t('Use the estimate')}</button></p>` : '';
-  return `<div class="fields"><label class="f mc-av wide"><span>${t('Annual Value from your IRAS notice (S$ a year, optional)')}</span><input type="number" id="mcAv" min="0" step="100" value="${x.annualValue ?? ''}" placeholder="${esc(ph)}"></label></div>${back}`;
+  return `<div class="fields"><label class="f mc-av wide"><span>${t('Annual Value from your IRAS notice (S$ a year, optional)')}</span>${moneyInput({ attrs: 'id="mcAv"', value: x.annualValue ?? null, placeholder: ph })}</label></div>${back}`;
 }
 
 /** Wire the Annual Value input; setFocus(patch) merges into the store's focus flat (stays in the browser). */
 export function bindMonthly(root, setFocus) {
   root.querySelector('#mcAv')?.addEventListener('change', (e) => {
-    const v = e.target.value === '' ? null : +e.target.value;
+    const v = moneyValue(e.target); // separators allowed (core/moneyinput.js); not valid → nothing changes
+    if (Number.isNaN(v)) return;
     setFocus({ annualValue: Number.isFinite(v) && v > 0 ? v : null });
   });
   root.querySelector('#mcAvClear')?.addEventListener('click', () => setFocus({ annualValue: null }));

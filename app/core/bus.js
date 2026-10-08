@@ -11,6 +11,10 @@
 //     SAMPLE_IDS; reloads the page) · 'samples:exit' {} (restore the user's own data; reloads). store.inSample() → {id}|null
 //   · 'start:open' {opener?} (first-run "Start here" questions, modules/start) · 'start:closed' {} (its dialog closed)
 //   · 'explore:view' {view, fit?} (apply a partial map view: ft / towns names, colorBy… — modules/explore/views.js)
+//   · phone shell (modules/shell/phone.js, ≤ 767 px): 'phone:show-map' {size?} · 'sheet:size' size|{size} ·
+//     'sheet:push' {id, el, title, size?} · 'sheet:pop' {id?} → emits 'sheet:changed' {size, view, top} · 'sheet:popped' {id}
+//   · 'menu:painted' {root} (phone Menu opened, modules/shell/menu.js; root's [data-slot="menu-extra"] is free)
+//   · 'brief:open' {id, from?} (open the flat brief for choice id; from = element to focus on close — modules/explore/brief.js)
 
 const target = new EventTarget();
 

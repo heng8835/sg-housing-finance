@@ -209,10 +209,10 @@ export function createCommute({ data, getHubs, setHubs, onChange, doc = globalTh
     filterOn,
     /** B8: keep this block (D.blocks object) under the filter? Always true while the filter is off. */
     keep: (b) => { if (!filterOn()) return true; const c = combined(), bi = indexOf(b); return keepBlock(c && bi != null ? c[bi] : null, max()); },
-    legend({ simple, zoomedIn, chipLabel = null }) {
+    legend({ simple, zoomedIn, chipLabel = null, tap = false }) { // tap = phone wording ("Tap any block.", P-22)
       const hs = hubs();
       if (!hs.length) return `<div class="key">${t('Commute time by public transport')}</div><div class="hint">${t('Choose where you travel to (above) to colour the blocks.')}</div>`;
-      return legendHtml({ scale, mode: 'commute', label: legendLabel(hs), fmt: (v) => t('{0} min', [v]), t, simple, zoomedIn, chipLabel })
+      return legendHtml({ scale, mode: 'commute', label: legendLabel(hs), fmt: (v) => t('{0} min', [v]), t, simple, zoomedIn, chipLabel, tap })
         + (filterOn() ? filterNote(hs, max()) : '')
         + `<div class="hint">${t('Grey also means no estimate for that block.')}</div><div class="hint">${t(MODEL_NOTE)}</div>`;
     },

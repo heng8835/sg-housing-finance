@@ -5,6 +5,7 @@ import { esc, money, pct } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { monthLabel } from '../../core/typical.js';
 import { rentToIncome } from '../../engine/rent.js';
+import { moneyInput, formatMoney } from '../../core/moneyinput.js';
 
 export const RENT_TYPES = [['whole', 'Whole flat'], ['room', 'Room']];
 export const ROOM_NOTE = "Your figure. There's no public data on room rents, so we can't say if it's fair.";
@@ -21,10 +22,16 @@ export function rentTypeField(type) {
     </div>`;
 }
 
-/** The amount field: "Asking rent" for a whole flat, "Your room rent" for a room (same shared figure, #rtAsk). */
-export function amountField(type, amount, placeholder = '') {
+/**
+ * The amount field: "Asking rent" for a whole flat, "Your room rent" for a room (same shared figure, #rtAsk), with
+ * separators (core/moneyinput.js). median = the whole-flat median here: the placeholder on desktop; on a phone
+ * (P-42) no number in the box — it looked typed — but "Median here: S$3,300" under it.
+ */
+export function amountField(type, amount, median = null, phone = false) {
   const label = type === 'room' ? t('Your room rent (S$ a month)') : t('Asking rent (S$/month)');
-  return `<label class="f"><span>${label}</span><input type="number" id="rtAsk" min="0" step="50" value="${amount ?? ''}" placeholder="${type === 'room' ? '' : esc(String(placeholder))}"></label>`;
+  const med = type !== 'room' && median > 0 ? median : null;
+  const help = med != null && phone ? `<small class="f-help rt-median">${esc(t('Median here: {0}', [money(med)]))}</small>` : '';
+  return `<label class="f"><span>${label}</span>${moneyInput({ attrs: 'id="rtAsk"', value: amount ?? null, placeholder: med != null && !phone ? formatMoney(med) : '' })}${help}</label>`;
 }
 
 /** Room: the note and, when the income is known, the share of income — nothing estimated. */
@@ -60,5 +67,5 @@ export function rentCompared(type, rent, typed) {
 
 /** Every English string here (zh coverage test). */
 export const roomStrings = () => [...RENT_TYPES.map(([, l]) => l), ROOM_NOTE, 'What are you renting?', 'Your room rent (S$ a month)', 'Asking rent (S$/month)',
-  'Rent as share of income', 'your figure', 'household gross income', 'Last {0} months · to {1} (HDB rental approvals)',
+  'Median here: {0}', 'Rent as share of income', 'your figure', 'household gross income', 'Last {0} months · to {1} (HDB rental approvals)',
   'Latest quarterly median · to {0} (HDB rental approvals)', 'Rent: {0} a month (your figure)', 'Rent: {0} a month (your asking rent)', 'Rent: {0} a month (median rent here)'];

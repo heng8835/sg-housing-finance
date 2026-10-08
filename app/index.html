@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <!-- Security (go-live §2.6; static hosting cannot set headers). CSP: scripts only from this site + Leaflet on cdnjs
      (SRI below) + the import map by its sha256 (tests/privacy/headers.test.js recomputes it — edit the import map →
      update the hash); requests only to this site; OneMap for map tiles + logo (images only). Inline style=""
@@ -27,6 +27,10 @@
 <link rel="stylesheet" href="styles/brief.css">
 <link rel="stylesheet" href="styles/offline.css">
 <link rel="stylesheet" href="styles/textsize.css">
+<!-- phone (≤ 767 px) layout, loaded last: every rule is inside @media (max-width: 767px) (tests/phone/css-floor.test.js) -->
+<link rel="stylesheet" href="styles/phone.css">
+<link rel="stylesheet" href="styles/phone-compare.css">
+<link rel="stylesheet" href="styles/phone-pages.css">
 </head>
 <body>
 <div id="app">
@@ -35,21 +39,24 @@
     <span class="sub" id="dataInfo" data-i18n>loading data…</span>
     <span class="spacer"></span>
     <span class="stat" id="visStat"></span>
+    <!-- phone top bar (≤ 767 px, styles/phone.css; modules/shell/menu.js): household chip · Aa · Menu -->
+    <button type="button" class="tb-btn" id="phoneAa" hidden aria-haspopup="dialog" aria-expanded="false" aria-controls="tsPop" aria-label="Text size" data-i18n-attr="aria-label">Aa</button>
+    <button type="button" class="tb-btn" id="phoneMenu" hidden aria-haspopup="dialog" data-i18n>Menu</button>
   </header>
 
   <aside id="panel">
     <div class="tabs" role="tablist" aria-label="Panels" data-i18n-attr="aria-label">
-      <button data-tab="explore" class="active" role="tab" id="tabbtn-explore" aria-controls="tab-explore" aria-selected="true" data-i18n>Explore</button>
-      <button data-tab="afford" role="tab" id="tabbtn-afford" aria-controls="tab-afford" aria-selected="false" data-i18n>Afford</button>
-      <button data-tab="rent" role="tab" id="tabbtn-rent" aria-controls="tab-rent" aria-selected="false" data-i18n>Rent &amp; Buy</button>
-      <button data-tab="plan" role="tab" id="tabbtn-plan" aria-controls="tab-plan" aria-selected="false" data-i18n>Plan</button>
-      <button data-tab="choices" role="tab" id="tabbtn-choices" aria-controls="tab-choices" aria-selected="false"><span data-i18n>My choices</span><span class="badge" id="choiceCount">0</span></button>
+      <button data-tab="explore" class="active" role="tab" id="tabbtn-explore" aria-controls="tab-explore" aria-selected="true"><span class="tl-long" data-i18n>Explore</span><span class="tl-short" hidden data-i18n="Map (phone tab)">Map</span></button>
+      <button data-tab="afford" role="tab" id="tabbtn-afford" aria-controls="tab-afford" aria-selected="false"><span class="tl-long" data-i18n>Afford</span><span class="tl-short" hidden data-i18n="Afford (phone tab)">Afford</span></button>
+      <button data-tab="rent" role="tab" id="tabbtn-rent" aria-controls="tab-rent" aria-selected="false"><span class="tl-long" data-i18n>Rent &amp; Buy</span><span class="tl-short" hidden data-i18n="Rent (phone tab)">Rent</span></button>
+      <button data-tab="plan" role="tab" id="tabbtn-plan" aria-controls="tab-plan" aria-selected="false"><span class="tl-long" data-i18n>Plan</span><span class="tl-short" hidden data-i18n="Plan (phone tab)">Plan</span></button>
+      <button data-tab="choices" role="tab" id="tabbtn-choices" aria-controls="tab-choices" aria-selected="false"><span class="tl-long" data-i18n>My choices</span><span class="tl-short" hidden data-i18n="Choices (phone tab)">Choices</span><span class="badge" id="choiceCount">0</span></button>
     </div>
 
     <!-- ============ EXPLORE ============ -->
     <div class="tab active" id="tab-explore" role="tabpanel" aria-labelledby="tabbtn-explore">
       <div class="section">
-        <h3 data-i18n>Colour blocks by</h3>
+        <h3><span class="on-desk" data-i18n>Colour blocks by</span><span class="on-phone" hidden data-i18n>What the colours show</span></h3>
         <div class="radios" id="colorBy">
           <label><input type="radio" name="colorBy" value="price" checked> <span data-i18n>Median price</span></label>
           <label><input type="radio" name="colorBy" value="psf"> <span data-i18n>$ per sqft</span></label>
@@ -144,17 +151,21 @@
     </div>
 
     <!-- ============ AFFORD ============ -->
-    <div class="tab" id="tab-afford" role="tabpanel" aria-labelledby="tabbtn-afford"><div id="affordRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+    <div class="tab" id="tab-afford" role="tabpanel" aria-labelledby="tabbtn-afford"><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Afford</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><p class="page-ctx" hidden></p></div><div id="affordRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
 
     <!-- ============ RENT & RULES ============ -->
-    <div class="tab" id="tab-rent" role="tabpanel" aria-labelledby="tabbtn-rent"><div id="rentRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
-    <div class="tab" id="tab-plan" role="tabpanel" aria-labelledby="tabbtn-plan"><div id="planRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+    <div class="tab" id="tab-rent" role="tabpanel" aria-labelledby="tabbtn-rent"><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Rent &amp; Buy</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><p class="page-ctx" hidden></p></div><div id="rentRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+    <div class="tab" id="tab-plan" role="tabpanel" aria-labelledby="tabbtn-plan"><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Plan</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><p class="page-ctx" hidden></p></div><div id="planRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
 
     <!-- ============ CHOICES ============ -->
     <div class="tab" id="tab-choices" role="tabpanel" aria-labelledby="tabbtn-choices">
+      <div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>My choices</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><p class="page-ctx" hidden></p></div>
+      <!-- phone page head: title + Tour (proxies the .tour-link of this tab, shell/phone.js) + .page-ctx (reserved,
+           empty: future "flat in focus" line). phone: List | Compare (placeholder; the Compare-cards slice wires it and sets data-ready to show it) -->
+      <div class="seg choices-view" id="choicesView" role="radiogroup" aria-label="Show my choices as" data-i18n-attr="aria-label" hidden><button type="button" role="radio" data-v="list" aria-checked="true" class="on" data-i18n>List</button><button type="button" role="radio" data-v="compare" aria-checked="false" tabindex="-1" data-i18n>Compare</button></div>
       <div class="section">
         <h3 data-i18n>Add a flat you found</h3>
-        <p class="hint" style="margin:0 0 8px"><span data-i18n>Paste the block &amp; street from PropertyGuru / 99.co, or click a block on the map →</span> <b data-i18n>Add a flat from this block…</b>.</p>
+        <p class="hint" style="margin:0 0 8px"><span class="on-desk" data-i18n>Paste the block &amp; street from PropertyGuru / 99.co, or click a block on the map →</span><span class="on-phone" hidden data-i18n>Paste the block &amp; street from PropertyGuru / 99.co, or tap a block on the map →</span> <b data-i18n>Add a flat from this block…</b>.</p>
         <form id="choiceForm" autocomplete="off">
           <input type="hidden" id="cId">
           <div class="fields">
@@ -224,6 +235,17 @@
       <div class="ab-body" id="abBody"></div>
     </div>
 
+    <!-- phone map sheet (≤ 767 px, modules/shell/phone.js): handle row · back row · peek slot · views (base = Explore's
+         settings, moved here on phones) -->
+    <section id="mapSheet" class="map-sheet" aria-label="Map sheet" data-i18n-attr="aria-label" data-size="peek" hidden>
+      <button type="button" class="ms-handle" aria-label="Make the sheet taller" data-i18n-attr="aria-label"></button>
+      <button type="button" class="ms-back" hidden></button>
+      <div class="ms-body">
+        <div class="ms-peek" data-slot="peek"></div>
+        <div class="ms-views" data-slot="views"></div>
+      </div>
+    </section>
+
     <div id="drawer">
       <div class="bar" id="drawerBar">
         <b data-i18n>Compare</b><span class="muted" id="drawerHint" data-i18n>add flats to compare them side by side</span>
@@ -237,6 +259,8 @@
       <p class="disc-line inline cmp-disc"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p>
     </div>
   </main>
+  <!-- phone bottom tab bar (≤ 767 px): modules/shell/phone.js moves the .tabs strip (same #tabbtn-* buttons) in here -->
+  <nav class="tabbar" id="tabbar" aria-label="Pages" data-i18n-attr="aria-label" hidden></nav>
 </div>
 
 <div id="boot" role="status" aria-live="polite"><div class="boot-card"><b data-i18n>SG Housing &amp; Finance</b><span class="msg" data-i18n>Loading…</span></div></div>

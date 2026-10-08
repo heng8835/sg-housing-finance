@@ -17,6 +17,7 @@ import { retypePatch, noSalesHint, blockMedian, blockLabelOf } from './flattype.
 import { isSimple, incomeShareText, grantName, reasonText } from '../../core/plain.js';
 import { grantNotesFor } from '../../core/grantnotes.js';
 import { bankLoanNote, grantsMissingFold } from './eligible.js';
+import { moneyInput, moneyValue, bindMoneyInputs } from '../../core/moneyinput.js';
 
 const FLAT_TYPES = ['2 ROOM', '3 ROOM', '4 ROOM', '5 ROOM', 'EXECUTIVE', 'MULTI-GENERATION'];
 const VERDICT = { ok: ['good', '✓', 'Within your limits'], tight: ['warn', '!', 'Possible, but tight'], no: ['critical', '✕', 'Not affordable as it stands'], unknown: ['neutral', '?', 'Need a few more details'] };
@@ -34,11 +35,11 @@ export function mountAfford({ store, policy, bus, el }) {
 
   function flatForm(f, tf) {
     const ftNow = f?.flatType || tf?.flatType || '4 ROOM';
-    const ph = tf && tf.isDefault ? t('{0} (typical)', [tf.price.toLocaleString('en-SG')]) : t('e.g. 600000');
+    const ph = tf && tf.isDefault ? t('{0} (typical)', [tf.price.toLocaleString('en-SG')]) : t('e.g. {0}', ['600,000']);
     return `<div class="section" id="affordFlat"><h3>${t('The flat')}</h3>
       ${f && f.label && f.price > 0 ? `<p class="sec-sub">${esc(f.label)}</p>` : ''}
       <div class="fields">
-        <label class="f"><span>${t('Price (S$)')}</span><input type="number" id="afPrice" step="5000" min="0" value="${f?.price ?? ''}" placeholder="${esc(ph)}"></label>
+        <label class="f"><span>${t('Price (S$)')}</span>${moneyInput({ attrs: 'id="afPrice"', value: f?.price ?? null, placeholder: ph })}</label>
         <label class="f"><span>${t('Flat type')}</span><select id="afFt">${FLAT_TYPES.map((x) => `<option value="${x}"${x === ftNow ? ' selected' : ''}>${t(x)}</option>`).join('')}</select></label>
         <label class="f"><span>${t('Remaining lease (years, optional)')}</span><input type="number" id="afLease" min="1" max="99" step="1" value="${f?.remainingLease != null ? Math.floor(f.remainingLease) : ''}"></label>
       </div>
@@ -140,11 +141,12 @@ export function mountAfford({ store, policy, bus, el }) {
   function bind(p) {
     const num = (v) => (v === '' ? null : +v);
     // typing a price over the typical default keeps the flat type on screen
-    el.querySelector('#afPrice')?.addEventListener('change', (e) => setFocus({ price: num(e.target.value), source: 'price', label: t('Your own figures'), ...(focus()?.flatType || !tfNow ? {} : { flatType: tfNow.flatType }) }));
+    el.querySelector('#afPrice')?.addEventListener('change', (e) => { const v = moneyValue(e.target); if (!Number.isNaN(v)) setFocus({ price: v, source: 'price', label: t('Your own figures'), ...(focus()?.flatType || !tfNow ? {} : { flatType: tfNow.flatType }) }); });
     // a block hand-off brings that block's median for the new type (or no price), never the old type's median
     el.querySelector('#afFt')?.addEventListener('change', (e) => { const f = focus(); setFocus(retypePatch(f, e.target.value, blockMedian, f && f.bid != null ? blockLabelOf(f.bid) : '')); });
     el.querySelector('#afLease')?.addEventListener('change', (e) => setFocus({ remainingLease: num(e.target.value) }));
-    el.querySelector('#afBudget')?.addEventListener('click', () => bus.emit('explore:budget', { maxPrice: p.budget.maxPrice, apply: true }));
+    // phone: the map is a separate screen — show it (Map tab, sheet at peek) so the result is visible (AC8, P-41)
+    el.querySelector('#afBudget')?.addEventListener('click', () => { bus.emit('explore:budget', { maxPrice: p.budget.maxPrice, apply: true }); bus.emit('phone:show-map', {}); });
     el.querySelector('#afLoanWhy')?.addEventListener('click', () => bus.emit('learn:open', { id: 'hdb-loan' }));
     el.querySelector('#afSalePlan')?.addEventListener('click', () => { bus.emit('nav:goto', { tab: 'plan' }); bus.emit('plan:show', { section: 'planSellBuy' }); });
     bindMonthly(el, setFocus);
@@ -152,6 +154,9 @@ export function mountAfford({ store, policy, bus, el }) {
   }
 
   bindPickMap(el);
+  // after bindPickMap: "Pick on the map →" lands on the Map tab with the sheet at peek on phones (no-op on desktop)
+  el.addEventListener('click', (e) => { if (e.target.closest('[data-act="pick-map"]')) bus.emit('phone:show-map', {}); });
+  bindMoneyInputs(el);
   bindNeeds(el, { store, bus });
   store.subscribe('household', render);
   store.subscribe('focus', render);

@@ -50,6 +50,12 @@ export function moneyModel({ p, household, cost = null, saleHome = null, why = n
   };
 }
 
+// md.plain (phone + Simple, P-44): S&CC spelled out
+const COST_NOTE = {
+  pro: { noTax: 'loan, S&CC, utilities, insurance (est.) — excl. property tax', all: 'loan, S&CC, property tax, utilities, insurance (est.)' },
+  plain: { noTax: 'loan, service & conservancy charges (S&CC), utilities, insurance (est.) — excl. property tax',
+    all: 'loan, service & conservancy charges (S&CC), property tax, utilities, insurance (est.)' },
+};
 const line = (label, value, note = '') => `<tr><th scope="row">${label}</th><td>${value}${note ? `<small>${note}</small>` : ''}</td></tr>`;
 
 /** The box (HTML, brief.css pt / mm). */
@@ -73,7 +79,7 @@ export function moneyBoxHtml(md) {
   ];
   const right = [
     line(t('Monthly instalment'), m.upTo ? t('up to {0}', [money(m.amount)]) : money(m.amount), `${t(LOAN_LABEL[m.loanType] || m.loanType)} · ${t('{0} years', [m.tenure])}`),
-    md.cost ? line(t('True monthly cost'), t('{0} a month', [money(md.cost.total)]), md.cost.noTax ? t('loan, S&CC, utilities, insurance (est.) — excl. property tax') : t('loan, S&CC, property tax, utilities, insurance (est.)')) : '',
+    md.cost ? line(t('True monthly cost'), t('{0} a month', [money(md.cost.total)]), t(COST_NOTE[md.plain ? 'plain' : 'pro'][md.cost.noTax ? 'noTax' : 'all'])) : '',
     line(t('Most you can pay'), most, why),
   ];
   const sale = md.sale ? `<p class="bf-msale">${esc(t('Includes selling {0}: {1} cash, {2} back to CPF.', [md.sale.home || t('your home'), money(md.sale.cash), money(md.sale.cpf)]))}</p>` : '';

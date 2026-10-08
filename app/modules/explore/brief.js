@@ -10,6 +10,7 @@
 import { t, currentLang } from '../../core/i18n.js';
 import { esc } from '../../core/dom.js';
 import { withinKm, nearest } from '../../core/geo.js';
+import { bus } from '../../core/bus.js';
 import { moneyBoxHtml, moneyFor, MONEY_SECTION } from './briefmoney.js';
 
 // UI layout constants (not rules)
@@ -24,6 +25,8 @@ export const FLAGS_MIN = 5;                  // B4: the last level (money box ke
 export const HEADER_KEYS = new Set(['Asking price', 'Flat type', 'Storey', 'Town / region', 'Listing']);
 // their row tips become the "Lease & CPF notes" box
 export const LEASE_KEYS = ['Remaining lease today', 'Lease covers youngest owner to 95', 'Lease in 10 years (when you may sell)'];
+/** Phone layout (same breakpoint as styles/phone.css): the preview is the full-screen reading view. */
+const isPhone = () => typeof matchMedia === 'function' && matchMedia('(max-width: 767px)').matches;
 
 /** A row in plain words (B10): its Simple cell `fs` and label `slbl` when it has them; same key, `v` and tip. */
 export const plainRow = (r) => (r.fs || r.slbl ? { ...r, f: r.fs || r.f, lbl: r.slbl ?? r.lbl } : r);
@@ -229,6 +232,7 @@ export function createBrief(ctx) {
     const B4 = !!ctx.planFor, store = ctx.store;
     const { rows, flags } = B4 ? dropMoney(ctx.rows(), ctx.verdict(m), { include, moneyFlags: ctx.glance(m).map((f) => f[2]) }) : { rows: ctx.rows(), flags: ctx.verdict(m) };
     const money = B4 && include ? moneyFor({ p: ctx.planFor(m), household: store.get('household'), policy: ctx.policy, c, flatType: D.flat_types[c.ft], focus: store.get('focus'), plan: store.get('plan'), why: ctx.why ? ctx.why(c) : null, date: printed }) : null;
+    if (money) money.plain = isPhone() && ctx.mode() !== 'pro'; // phone + Simple: plain words in the money box (P-44)
     return { money,
       name: c.name, address: b.label, town: ctx.town(b), flatType: ctx.ftName(c.ft), storey: ctx.storeyName(D.storeys[c.storey]), sqm: c.sqm,
       price: ctx.money(c.price), listing: c.url || '', facts: ctx.facts(c.bid).facts.slice(0, 4),
@@ -246,7 +250,9 @@ export function createBrief(ctx) {
     printEl = Object.assign(document.createElement('div'), { id: 'briefPrint' });
     printEl.setAttribute('aria-hidden', 'true');
     dlg = document.createElement('dialog');
-    dlg.className = 'brief-dlg'; dlg.setAttribute('aria-labelledby', 'briefDlgTitle');
+    // phone (≤ 767 px, brief.css + phone.css): a full-screen reading view — title + Done on top, the page in one column
+    // at the phone type scale, "Include my numbers" + Print at the bottom. The printed A4 page (#briefPrint) is unchanged.
+    dlg.className = 'brief-dlg phone-full'; dlg.setAttribute('aria-labelledby', 'briefDlgTitle');
     dlg.innerHTML = `<div class="brief-bar"><div><h2 id="briefDlgTitle">${t('Flat brief')}</h2><p class="brief-note" aria-live="polite"></p></div>`
       + `<div class="brief-acts">${ctx.planFor ? `<label class="check"><input type="checkbox" data-brief-include checked> ${t('Include my numbers')}</label>` : ''}<button type="button" class="btn sm primary" data-brief-print>${t('Print or save as PDF')}</button><button type="button" class="btn sm" data-brief-close>${t('Close')}</button></div></div>`
       + '<div class="brief-stage"><div class="brief-paper"></div></div>';
@@ -256,7 +262,7 @@ export function createBrief(ctx) {
       else if (e.target.closest('[data-brief-close]')) dlg.close();
     });
     dlg.addEventListener('change', (e) => { const x = e.target.closest('[data-brief-include]'); if (x && current != null) { include = x.checked; open(current, opener); } });
-    dlg.addEventListener('close', () => { document.body.classList.remove('brief-on'); printEl.innerHTML = ''; dlg.querySelector('.brief-paper').innerHTML = ''; opener?.focus?.(); opener = null; });
+    dlg.addEventListener('close', () => { if (dlg.open) return; /* re-opened before this queued event ran */ document.body.classList.remove('brief-on'); printEl.innerHTML = ''; dlg.querySelector('.brief-paper').innerHTML = ''; opener?.focus?.(); opener = null; });
   }
 
   function open(id, from = null) {
@@ -270,6 +276,7 @@ export function createBrief(ctx) {
     printEl.innerHTML = html;
     dlg.querySelector('.brief-paper').innerHTML = html;
     dlg.querySelector('.brief-note').textContent = fitNote(levels[k], mode);
+    dlg.querySelector('[data-brief-close]').textContent = isPhone() ? t('Done') : t('Close');
     if (!dlg.open) dlg.showModal();
     dlg.querySelector('.brief-stage').scrollTop = 0;
     dlg.querySelector('[data-brief-print]').focus();
@@ -287,6 +294,8 @@ export function createBrief(ctx) {
   ctx.body?.addEventListener('click', onClick);
   ctx.list?.addEventListener('click', onClick);
   ctx.csvBtn?.addEventListener('click', (e) => { e.stopPropagation(); csv(); });
+  // other surfaces (phone Compare cards) open a brief without a ctx host: bus 'brief:open' {id, from?}
+  bus.on('brief:open', (d) => { if (d && d.id != null) open(+d.id, d.from || null); });
 
   return { button: headerButton, tsv: () => tsvText(lines()), csv, open };
 }

@@ -1,5 +1,7 @@
 // Rent → "Rent or buy?" chart: net worth when buying vs renting and investing, year by year.
-// Inline SVG drawn at the container's measured width (text stays 11 px), redrawn by a ResizeObserver.
+// Inline SVG drawn at the container's measured width (text 11 px), redrawn by a ResizeObserver. Phones draw the text
+// at the 14 px floor: `fs` makes room for it (wider left margin, the break-even note in its own row above the plot,
+// taller axis rows; review R-09) — at 11 px the layout is unchanged.
 // Same data as engine/rentbuy.js returns (series, breakEvenYear, mop.years) — presentation only.
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
@@ -85,16 +87,19 @@ const bandRows = (bands, k, n) => {
  * @param {{ series:{year:number,buyNetWorth:number,rentNetWorth:number}[], breakEvenYear:number|null, mop?:{years:number} }} res
  * @param {{ buy:object[], rent:object[] }|null} [bands] Monte-Carlo percentiles per year ({ P10, P25, P75, P90 }), or null
  *   (deterministic chart, unchanged)
+ * @param {number} [fs] px size the labels are drawn at (11; phones 14+)
  */
-export function chartModel(res, width, labels = chartLabels(), bands = null) {
-  const S = res.series, W = Math.max(200, Math.round(width)), H = W <= 340 ? 200 : 220;
-  const x0 = M.left, x1 = W - M.right, y0 = M.top, y1 = H - M.bottom;
+export function chartModel(res, width, labels = chartLabels(), bands = null, fs = 11) {
+  const big = fs > 11, tw = (s) => textWidth(s, fs);
+  const S = res.series, W = Math.max(200, Math.round(width)), H = (W <= 340 ? 200 : 220) + (big ? Math.round((fs - 11) * 4) : 0);
   const first = S[0].year, last = S.at(-1).year, span = last - first || 1;
   const bb = bandRows(bands, 'buy', S.length), br = bandRows(bands, 'rent', S.length);
   const vals = S.flatMap((r) => [r.buyNetWorth, r.rentNetWorth])
     .concat([bb, br].flatMap((b) => (b ? b.flatMap((r) => [r.P10, r.P90]) : [])))
     .filter(Number.isFinite);
   const yAxis = niceTicks(Math.min(0, ...vals), Math.max(0, ...vals), 5);
+  const left = big ? Math.max(M.left, Math.ceil(Math.max(...yAxis.ticks.map((v) => tw(sgdShort(v)))) + 12)) : M.left;
+  const x0 = left, x1 = W - M.right, y0 = big ? Math.round(2 * fs + 14) : M.top, y1 = H - (big ? Math.round(2 * fs + 18) : M.bottom);
   const x = (yr) => x0 + ((yr - first) / span) * (x1 - x0);
   const y = (v) => y1 - ((v - yAxis.lo) / (yAxis.hi - yAxis.lo || 1)) * (y1 - y0);
   const pts = (k) => S.map((r) => [x(r.year), y(r[k])]);
@@ -104,9 +109,9 @@ export function chartModel(res, width, labels = chartLabels(), bands = null) {
   let mop = null;
   if (mopYears != null && mopYears > first) {
     const end = Math.min(mopYears, last), bw = x(end) - x0;
-    const text = labels.mopBand, tw = textWidth(text);
+    const text = labels.mopBand, w = tw(text);
     mop = { x: x0, w: bw, endX: x(end), line: mopYears <= last, year: mopYears,
-      label: bw >= Math.max(MOP_LABEL_MIN, tw + 8) ? { text, x: x0 + 4, y: y0 + 13 } : null,
+      label: bw >= Math.max(MOP_LABEL_MIN, w + 8) ? { text, x: x0 + 4, y: y0 + (big ? Math.round(fs + 3) : 13) } : null,
       tick: mopYears <= last ? { x: x(mopYears), text: labels.mopTick(mopYears) } : null };
   }
 
@@ -115,19 +120,19 @@ export function chartModel(res, width, labels = chartLabels(), bands = null) {
   if (res.breakEvenYear != null) {
     const r = S.find((s) => s.year === res.breakEvenYear);
     if (r) {
-      const bx = x(r.year), text = labels.breakEven(r.year), tw = textWidth(text);
-      const lx = Math.min(Math.max(bx, x0 + tw / 2), x1 - tw / 2);
-      be = { x: bx, y: y(r.buyNetWorth), year: r.year, label: { text, x: lx, y: y0 - 4 } };
-      if (mop && mop.label && bx - (mop.label.x + textWidth(mop.label.text)) < MARKER_GAP) mop.label.y = y1 - 6;
+      const bx = x(r.year), text = labels.breakEven(r.year), w = tw(text);
+      const lx = Math.min(Math.max(bx, x0 + w / 2), x1 - w / 2);
+      be = { x: bx, y: y(r.buyNetWorth), year: r.year, label: { text, x: lx, y: y0 - (big ? 8 : 4) } };
+      if (mop && mop.label && bx - (mop.label.x + tw(mop.label.text)) < MARKER_GAP) mop.label.y = y1 - 6;
     }
   }
 
   // x ticks; the MOP tick wins over regular ticks it would overlap
   let ticks = xTicks(first, last).map((yr) => ({ x: x(yr), text: yr === 0 ? labels.now : String(yr), year: yr }));
   if (mop && mop.tick) {
-    const halfW = textWidth(mop.tick.text) / 2;
+    const halfW = tw(mop.tick.text) / 2;
     mop.tick.labelX = Math.min(Math.max(mop.tick.x, halfW), W - halfW);
-    ticks = ticks.filter((tk) => tk.year !== mop.year && Math.abs(tk.x - mop.tick.labelX) >= halfW + 6 + textWidth(tk.text) / 2);
+    ticks = ticks.filter((tk) => tk.year !== mop.year && Math.abs(tk.x - mop.tick.labelX) >= halfW + 6 + tw(tk.text) / 2);
   }
 
   // direct end labels: the higher line 8 px above its end, the lower 14 px below, ≥ 14 px apart
@@ -143,7 +148,7 @@ export function chartModel(res, width, labels = chartLabels(), bands = null) {
   const band = (b) => (b ? { outer: area(b, 'P10', 'P90'), inner: area(b, 'P25', 'P75') } : null);
   const bandsM = bb || br ? { buy: band(bb), rent: band(br) } : null;
 
-  return { W, H, x0, x1, y0, y1, yAxis, yTicks: yAxis.ticks.map((v) => ({ y: y(v), text: sgdShort(v), v })),
+  return { W, H, x0, x1, y0, y1, fs, yAxis, yTicks: yAxis.ticks.map((v) => ({ y: y(v), text: sgdShort(v), v })),
     zeroY: yAxis.lo < 0 ? y(0) : null, xTicks: ticks, mop, be, ends, bands: bandsM,
     buy: pts('buyNetWorth'), rent: pts('rentNetWorth'), xs: S.map((r) => x(r.year)) };
 }
@@ -165,8 +170,9 @@ const halo = 'paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-l
 export function chartSvg(m, labels, aria) {
   const L = labels;
   const grid = m.yTicks.map((tk) => `<line x1="${m.x0}" x2="${m.x1}" y1="${tk.y.toFixed(1)}" y2="${tk.y.toFixed(1)}" style="stroke:var(--border-subtle)" stroke-width="1"/>`).join('');
-  const yLab = m.yTicks.map((tk) => `<text x="46" y="${(tk.y + 4).toFixed(1)}" text-anchor="end" style="fill:var(--text-2)">${esc(tk.text)}</text>`).join('');
-  const xTick = (x, text, lx = x) => `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${m.y1}" y2="${m.y1 + 4}" style="stroke:var(--border-input)"/><text x="${lx.toFixed(1)}" y="${m.y1 + 16}" text-anchor="middle" style="fill:var(--text-2)">${esc(text)}</text>`;
+  const fs = m.fs || 11, ly = fs > 11 ? Math.round(fs + 9) : 16; // x-label baseline below the axis (clear of the S$0 label)
+  const yLab = m.yTicks.map((tk) => `<text x="${m.x0 - 6}" y="${(tk.y + 4).toFixed(1)}" text-anchor="end" style="fill:var(--text-2)">${esc(tk.text)}</text>`).join('');
+  const xTick = (x, text, lx = x) => `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${m.y1}" y2="${m.y1 + 4}" style="stroke:var(--border-input)"/><text x="${lx.toFixed(1)}" y="${m.y1 + ly}" text-anchor="middle" style="fill:var(--text-2)">${esc(text)}</text>`;
   const mop = m.mop ? `<rect x="${m.mop.x}" y="${m.y0}" width="${Math.max(0, m.mop.w).toFixed(1)}" height="${m.y1 - m.y0}" style="fill:var(--band)"/>` : '';
   const mopLine = m.mop && m.mop.line ? `<line x1="${m.mop.endX.toFixed(1)}" x2="${m.mop.endX.toFixed(1)}" y1="${m.y0}" y2="${m.y1}" stroke="${GRID_ZERO}" stroke-width="1"/>` : '';
   const mopLabel = m.mop && m.mop.label ? `<text x="${m.mop.label.x}" y="${m.mop.label.y}" style="fill:var(--text-3);${halo}">${esc(m.mop.label.text)}</text>` : '';
@@ -180,7 +186,7 @@ export function chartSvg(m, labels, aria) {
   const bands = m.bands ? `<g class="rb-bands" aria-hidden="true">${bandK('rent', 'var(--chart-rent)')}${bandK('buy', 'var(--chart-buy)')}</g>` : '';
   return `<svg class="rb-svg" width="${m.W}" height="${m.H}" viewBox="0 0 ${m.W} ${m.H}" tabindex="0" role="img" aria-label="${esc(aria || '')}" font-size="11">
     ${mop}${grid}${zero}${mopLine}${bands}
-    <text x="0" y="11" style="fill:var(--text-3)">${esc(L.yTitle)}</text>${yLab}
+    <text x="0" y="${Math.round(fs)}" style="fill:var(--text-3)">${esc(L.yTitle)}</text>${yLab}
     ${m.xTicks.map((tk) => xTick(tk.x, tk.text)).join('')}${mopTick}
     <text x="${((m.x0 + m.x1) / 2).toFixed(1)}" y="${m.H - 4}" text-anchor="middle" style="fill:var(--text-3)">${esc(L.xTitle)}</text>
     ${mopLabel}
@@ -231,7 +237,8 @@ export function drawChart(box, res, aria, bands = null, mode = 'pro') {
     const w = box.clientWidth;
     if (!w || w === lastW) return;
     lastW = w;
-    m = chartModel(res, w, labels, bands);
+    const phone = typeof matchMedia === 'function' && matchMedia('(max-width: 767px)').matches;
+    m = chartModel(res, w, labels, bands, phone ? 0.875 * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) : 11); // phone.css label floor
     box.innerHTML = chartSvg(m, labels, aria) + '<div class="rb-tip" aria-live="polite" hidden></div>';
     idx = null;
     wire();

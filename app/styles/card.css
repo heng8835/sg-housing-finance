@@ -104,16 +104,91 @@
 /* "Labels on the boxes" (side panel, under the legend) */
 #chipLabel button { white-space: nowrap; }
 
-/* ---- one card at a time: 768–900 px beside the map, phone above the sheet peek */
+/* ---- one card at a time: 768–900 px beside the map */
 #cardDock.solo .bc-win { right: 12px; top: 12px; width: 360px; height: calc(100% - 24px); }
 #cardDock.solo .bc-grip { display: none; }
-@media (max-width: 767px) {
-  #cardDock.solo .bc-win { position: fixed; left: 12px; right: 12px; top: 64px; bottom: 120px; width: auto; height: auto; }
-  #cardDock.solo .bc-win.min { bottom: auto; }
+/* ---- phone (≤ 767 px, phone-overhaul §3.3 + owner feedback "neat, calm, scannable"): the card is a map-sheet view
+   (#mapSheet .ms-view, dock.js 'sheet:push'; markup modules/explore/cardphone.js). One card background, a sticky header,
+   one row of four key tiles, two 48 px buttons, then one-line rows with hairline dividers that open in place. */
+@media screen and (max-width: 767px) {
+  #mapSheet .bc-win { position: static; display: block; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+    border: 0; border-radius: 0; box-shadow: none; background: var(--surface); }
+  #mapSheet .bc-bar { position: sticky; top: 0; z-index: 3; align-items: flex-start; height: auto; gap: var(--sp-2);
+    padding: var(--sp-1) var(--sp-2) var(--sp-2) var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--border-subtle); }
+  #mapSheet .bc-num { width: 1.5rem; height: 1.5rem; margin: .625rem 0 0; font-size: .875rem; }
+  #mapSheet .bc-tw { flex: 1; min-width: 0; padding-top: .5rem; }
+  #mapSheet .bc-wt { font-size: 1.125rem; line-height: 1.3; white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+  #mapSheet .bc-wsub { margin: 2px 0 0; font-size: .875rem; line-height: 1.4; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* a card straight over Map settings: its ✕ is the way back, so the sheet's "‹ Back to Map settings" row is not shown */
+  #mapSheet:has(.ms-views > #tab-explore + .bc-win:last-child) .ms-back { display: none; }
+  #mapSheet .bc-x { flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: var(--radius-sm);
+    background: none; color: var(--text-3); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+  #mapSheet .bc-x:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  #mapSheet .bc-exec[hidden] { display: none; } /* block card: the four tiles replace the summary line (exec is empty) */
+  #mapSheet .bc-exec:not([hidden]) { display: block; -webkit-line-clamp: unset; padding: var(--sp-3) var(--sp-4) 0; border: 0; font-size: .9375rem; line-height: 1.45; color: var(--text-2); }
+  #mapSheet .bc-scroll { overflow: visible; padding: 0; }
+  #mapSheet .bc { gap: 0; font-size: 1rem; }
+
+  /* first view: four equal tiles (2 × 2 at Large / Larger and under 360 px), then the two buttons */
+  .bc-phone .pc-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: var(--sp-3) var(--sp-4) 0; }
+  :root.ts-large .bc-phone .pc-tiles, :root.ts-larger .bc-phone .pc-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1) var(--sp-2); }
+  :root.ts-large .pc-tile, :root.ts-larger .pc-tile { padding: var(--sp-1) var(--sp-2); }
+  .pc-tile { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; padding: var(--sp-2) 6px; border-radius: var(--radius-sm); background: var(--surface-2); }
+  .pc-tile small { display: block; font-size: .875rem; line-height: 1.3; color: var(--text-3); }
+  .pc-tile b { display: block; margin-top: 2px; font-size: clamp(1.0625rem, 5vw, 1.1875rem); line-height: 1.25; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pc-tile b.pc-long { font-size: 1rem; } /* S$1050k and the like: still one line in a quarter of 360 px */
+  /* R-06: the two actions are a sticky footer pinned to the bottom of the sheet view (after the rows in the markup),
+     so they show at every sheet height, text size and stack depth; tiles and rows scroll above them */
+  .bc-phone .pc-acts { position: sticky; bottom: 0; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0;
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--border-subtle); }
+  .bc-phone .pc-acts .btn { flex: 1 1 0; min-width: 0; min-height: 48px; padding: var(--sp-1) var(--sp-2); font-size: 1rem; line-height: 1.25; }
+
+  /* rows: one line (label · summary · chevron), hairline dividers, open in place */
+  .pc-rows { margin-top: var(--sp-3); border-top: 1px solid var(--border-subtle); padding-bottom: var(--sp-4); }
+  .pc-row { border-bottom: 1px solid var(--border-subtle); }
+  .pc-row > summary { list-style: none; display: flex; align-items: center; gap: var(--sp-3); min-height: 52px; padding: 0 var(--sp-4); cursor: pointer; }
+  .pc-row > summary::-webkit-details-marker { display: none; }
+  .pc-row > summary::after { content: ''; flex: none; width: 8px; height: 8px; margin-right: 2px; border: solid var(--text-3); border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; }
+  .pc-row[open] > summary::after { transform: rotate(45deg); }
+  .pc-row > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .pc-l { flex: none; font-size: 1rem; font-weight: 600; color: var(--text); }
+  .pc-s { flex: 1; min-width: 0; font-size: .9375rem; color: var(--text-2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pc-s .pc-warn, .pc-list .pc-warn { color: #a24a25; }
+  .pc-body { padding: 0 var(--sp-4) var(--sp-4); font-size: 1rem; line-height: 1.45; }
+  .pc-plain { display: flex; align-items: center; gap: var(--sp-3); min-height: 52px; padding: var(--sp-1) var(--sp-4); }
+  .pc-plain .pc-l { flex: 1; }
+  .pc-plain.pc-wrap .pc-l { flex: none; }
+  .pc-plain.pc-wrap .pc-s { white-space: normal; padding: var(--sp-2) 0; }
+  .pc-h { margin: var(--sp-3) 0 var(--sp-1); font-size: .9375rem; font-weight: 600; color: var(--text-2); }
+  .pc-note { margin: 0 0 var(--sp-2); font-size: .875rem; line-height: 1.45; color: var(--text-3); }
+  .pc-pad { padding: var(--sp-3) var(--sp-4) 0; }
+  .pc-line { margin: 0 0 var(--sp-2); }
+  .pc-list { margin: 0; padding-left: var(--sp-4); line-height: 1.45; color: var(--text-2); }
+  .pc-list li + li { margin-top: var(--sp-1); }
+  .bc-phone .bc-rows { list-style: none; margin: 0 0 var(--sp-2); padding: 0; }
+  .bc-phone .bc-rows li + li { border-top: 1px solid var(--border-subtle); }
+  .bc-phone .bc-row { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; padding: 0; border: 0;
+    background: none; color: var(--text); font: inherit; font-size: 1rem; text-align: left; cursor: pointer; }
+  .bc-phone .bc-row::after { content: '›'; padding-left: var(--sp-2); color: var(--text-3); font-size: 1.25rem; }
+  .bc-phone .bc-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .bc-phone .bc-cap { margin: 0 0 var(--sp-2); }
+  .bc-phone table { margin: 0 0 var(--sp-2); font-size: .9375rem; }
+  .bc-phone th, .bc-phone td { padding: var(--sp-1) var(--sp-2) var(--sp-1) 0; }
+  .bc-phone tr.sel td:first-child { padding-left: var(--sp-2); }
+  .bc-phone tr.sel td:nth-child(2) { font-weight: inherit; } /* desktop bolds the type column; phone has no type column */
+  .bc-phone .bc-more { min-height: 44px; }
+  .bc-phone .bc-chart { margin: 0 0 var(--sp-1); }
+
+  /* school card (schoolcard.js) in the sheet: same flat background, no boxes */
+  #mapSheet .bc:not(.bc-phone) { padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+  #mapSheet .bc:not(.bc-phone) .bc-sec { padding: 0; border: 0; box-shadow: none; background: none; }
+  #mapSheet .bc:not(.bc-phone) .bc-actions { position: static; display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: var(--sp-3) 0 0; background: none; border-top: 1px solid var(--border-subtle); }
+  #mapSheet .sc-row { min-height: 52px; }
+  #mapSheet .sc-name { font-size: 1rem; }
   .bc-bar { height: 48px; }
   .bc-ib { width: 44px; height: 44px; }
   .bc-actions .btn, .bc-more, .bc-fold > summary, #chipLabel button, .calc-win select { min-height: 44px; }
-  .bc table { font-size: .821rem; }
+  .bc table { font-size: .875rem; }
   .yr-track { height: 44px; }
   .yr-track input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: 8px; }
   .yr-track input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
@@ -132,7 +207,7 @@
 .mk-sw.rpi { border-top: 2px dashed var(--text-2); }
 .mk-plot svg { overflow: visible; touch-action: pan-y; }
 .mk-none { margin: 0; }
-@media (max-width: 767px) { .mk-range button { min-height: 44px; } }
+@media screen and (max-width: 767px) { .mk-range button { min-height: 44px; } }
 
 /* 7b B8 — block card commute line + the commute filter chips under the picker */
 .bc-commute { margin: 2px 0 var(--sp-2); font-size: .893rem; color: var(--text-2); }
@@ -151,4 +226,4 @@
 .sc-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .sc-name { font-size: .929rem; font-weight: 500; min-width: 0; }
 .sc-row .bc-cap { grid-column: 1 / -1; margin: 0; }
-@media (max-width: 767px) { .sc-sort button, .cm-filter .chip { min-height: 44px; } }
+@media screen and (max-width: 767px) { .sc-sort button, .cm-filter .chip { min-height: 44px; } }

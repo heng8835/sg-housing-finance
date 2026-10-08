@@ -13,6 +13,8 @@ import { createMarketCharts } from './marketcharts.js';
 import { createSchoolCard } from './schoolcard.js'; // B3: school search → school card in this dock
 import { shortSchool } from './familyrows.js';
 import { schoolBands, schoolName, p1Band } from '../../core/schools.js';
+import { keepFolds } from '../../core/fold.js';
+import { phoneCardHtml, phoneSalesTable } from './cardphone.js'; // phones: the map-sheet layout (owner: neat, scannable)
 
 export const ROWS_SHOWN = 8;
 export const REFRESH_MS = 120;
@@ -23,6 +25,14 @@ export const ftShort = (name) => t(FT_SHORT[name] || name);
 /** "10 TO 12" → "10–12", "01 TO 03" → "1–3". */
 export const storeyShort = (s) => { const m = String(s).match(/^(\d+) TO (\d+)$/); return m ? `${+m[1]}–${+m[2]}` : String(s); };
 /** Today's tile format (unchanged): S$612k. */
+/** Phones (R-05b): scroll an opened row's summary to the top of its scroller, just under the card's sticky header. */
+function rowToTop(d) {
+  const s = d.querySelector('summary'); let box = d.parentElement;
+  while (box && !(box.scrollHeight > box.clientHeight && /auto|scroll/.test(getComputedStyle(box).overflowY))) box = box.parentElement;
+  if (!s || !box) return;
+  const bar = box.querySelector(':scope > .bc-bar'), top = s.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - (bar ? bar.offsetHeight : 0);
+  box.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
 export const kTile = (v) => (v == null ? '—' : 'S$' + (v / 1000).toFixed(0) + 'k');
 
 /** Selected types: "All flat types", up to 4 short names, or "{0} flat types". */
@@ -64,7 +74,7 @@ export function salesTable(idx, cols, open) {
 
 /** "{n} sales · 2017–2026 · all flat types ({m} of your types)". s: { idx, mine, from, to }. */
 export const salesScope = (s) => t('{0} sales · {1}–{2} · all flat types ({3} of your types)', [s.idx.length, s.from, s.to, s.mine]);
-const moreText = (n, open) => (open ? t('Show fewer') : t('Show all {0}', [n]));
+export const moreText = (n, open) => (open ? t('Show fewer') : t('Show all {0}', [n]));
 
 function salesSection(s, key) {
   if (!s.total) return `<section class="bc-sec"><h5 class="bc-h">${t('Sales in this block')}</h5><p class="bc-scope">${t('No sales in this block yet.')}</p></section>`;
@@ -86,18 +96,27 @@ export const schoolsFact = (n) => (n === 1 ? t('{0} primary school within 1 km',
  * band → "(none)" + the nearest school and its band.
  */
 export function schoolsFold(s, bandsKm, open) {
-  const [b0, b1] = bandsKm, n = s.near.length, name = (x) => esc(shortSchool(schoolName(x.item.n)));
+  const [b0] = bandsKm, n = s.near.length;
   const title = n ? t('Primary schools within {0} km ({1})', [b0, n]) : t('Primary schools within {0} km (none)', [b0]);
+  return fold('schools', open, title, schoolsBody(s, bandsKm));
+}
+/**
+ * The schools fold's body. pick (phone, ./cardphone.js): school item → its index in the school list (≥ 0) → each name is
+ * a 48 px row button that opens the school card stacked on the block card (data-school = that index).
+ */
+export function schoolsBody(s, bandsKm, pick) {
+  const [b0, b1] = bandsKm, n = s.near.length, name = (x) => esc(shortSchool(schoolName(x.item.n)));
   const nn = s.nearest, far = nn && p1Band(nn.km, bandsKm) > 1;
-  const body = (n ? list(s.near.slice(0, SCHOOLS_IN_CARD).map((x) => `${name(x)} · ${dist(x.km)}`)) + (n > SCHOOLS_IN_CARD ? `<p class="bc-cap">${t('+{0} more within {1} km', [n - SCHOOLS_IN_CARD, b0])}</p>` : '')
+  const row = (x) => { const txt = `${name(x)} · ${dist(x.km)}`, i = pick ? pick(x.item) : -1; return i >= 0 ? `<button type="button" class="bc-row" data-school="${i}">${txt}</button>` : txt; };
+  const names = (items) => (pick ? `<ul class="bc-list bc-rows">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : list(items));
+  return (n ? names(s.near.slice(0, SCHOOLS_IN_CARD).map(row)) + (n > SCHOOLS_IN_CARD ? `<p class="bc-cap">${t('+{0} more within {1} km', [n - SCHOOLS_IN_CARD, b0])}</p>` : '')
     : nn ? `<p class="bc-cap">${far ? t('Nearest: {0} · {1} — outside the P1 bands', [name(nn), dist(nn.km)]) : t('Nearest: {0} · {1} ({2}–{3} km band)', [name(nn), dist(nn.km), b0, b1])}</p>` : '')
     + (n && s.second.length ? `<p class="bc-cap">${t('{0} more within {1}–{2} km', [s.second.length, b0, b1])}</p>` : '')
     + `<p class="bc-cap">${t("Straight-line from the block. MOE measures from the home address, so check MOE's tool.")}</p>`;
-  return fold('schools', open, title, body);
 }
 
-const fold = (key, open, title, body) => `<details class="bc-sec bc-fold" data-fold="${key}"${open ? ' open' : ''}><summary class="bc-h">${title}</summary>${body}</details>`;
-const list = (items) => `<ul class="bc-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+export const fold = (key, open, title, body) => `<details class="bc-sec bc-fold" data-fold="${key}"${open ? ' open' : ''}><summary class="bc-h">${title}</summary>${body}</details>`;
+export const list = (items) => `<ul class="bc-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
 /** First warning, short: tags stripped (the item HTML is already escaped), cut before " (". */
 export const warnShort = (html) => String(html || '').replace(/<[^>]*>/g, '').split(' (')[0].trim();
 
@@ -125,8 +144,11 @@ export function execSummary(x) {
  * fv (optional: flat type of the folded "Future-value outlook"; its body is filled on first open — see wire()),
  * mk (optional: { ft, rpi, lease, town } → folds "Town vs market" / "Lease and value", ./marketcharts.js; folds.mkt / folds.lease) }.
  * Facts and items are HTML (escaped by the caller). No element ids except the per-block `bc-{key}-sales`.
+ * model.phone (≤ 767 px): the map-sheet layout from ./cardphone.js instead (same numbers); without it this is exactly
+ * the desktop card.
  */
 export function cardHtml(model) {
+  if (model.phone) return phoneCardHtml(model); // phones: ./cardphone.js (map sheet layout)
   const { head: h, st, tiles: a } = model;
   const warn = h.items.filter((x) => x.tone === 'warn'), near = h.items.filter((x) => x.tone !== 'warn');
   const flags = (warn.length ? `<p class="bc-flags">${warn.map((x) => `<span class="tag serious">${x.html}</span>`).join('')}</p>` : '')
@@ -199,7 +221,10 @@ export function createCard(ctx) {
   const { map, D, TX, PSF, blockTx, txOk, filtActive, getS, getAgg, statsFor, median, fmtMonth, rents, facts } = ctx;
   const folds = new Map();    // fold open state for this session only (not stored)
   const expanded = new Set(); // cards whose sales list shows every row
-  const phone = () => innerWidth <= 767;
+  const mq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null;
+  const phone = () => (mq ? mq.matches : innerWidth <= 767); // the card lives in the map sheet (./dock.js)
+  let pf = null; // phone rows (F6): open / closed remembered for the session by core/fold keepFolds on the map sheet
+  const phoneFolds = () => (pf ||= keepFolds(document.getElementById('mapSheet') || document.body));
   const monthName = (mm) => new Date(2000, mm - 1, 1).toLocaleString(currentLang() === 'zh' ? 'zh-SG' : 'en-SG', { month: 'short' });
   const rentN = (row) => (row ? row[0] || row[5] || 0 : 0);
   // B3: school cards share the dock under string keys 's:<index into ctx.schools()>'; block cards keep numeric keys
@@ -207,9 +232,10 @@ export function createCard(ctx) {
   const pos = (k) => (isSchool(k) ? sc?.at(si(k)) : D.blocks[k]);
   const dock = createDock({ map, L: ctx.L, canvas: ctx.canvas, bus: ctx.bus, root: document.getElementById('cardDock'), live: document.getElementById('cardLive'),
     panelCover: ctx.panelCover, getSize: () => ctx.cardSize.get(), setSize: (s) => ctx.cardSize.set(s), at: pos,
-    onPick: (k) => (isSchool(k) ? dock.open(k) : open(k)), showOnMap: (k) => { const b = pos(k); if (b) ctx.viewTo([b.lat, b.lon], Math.max(map.getZoom(), 16)); }, onChange: (keys) => ctx.onCards(keys.filter((k) => !isSchool(k))) });
+    onPick: (k) => (isSchool(k) ? dock.open(k) : open(k)), showOnMap: (k) => { const b = pos(k); if (b) ctx.viewTo([b.lat, b.lon], Math.max(map.getZoom(), 16)); }, onChange: (keys) => ctx.onCards(keys.filter((k) => !isSchool(k))),
+    reopen: (k) => (isSchool(k) ? dock.open(k, contentFor(k)) : open(k)) }); // phone ↔ wider: rebuilt in the new place
   const sc = ctx.schools ? createSchoolCard({ D, TX, blockTx, getS, median, bandsKm: ctx.p1Bands, schools: ctx.schools, period: ctx.period, budget: () => ctx.budget?.() ?? null,
-    types: () => typesText(getS().ft, D.flat_types), bus: ctx.bus, wireSeg, openBlock: (bi) => { const b = D.blocks[bi]; ctx.viewTo([b.lat, b.lon], Math.max(map.getZoom(), 16)); open(bi); } }) : null;
+    types: () => typesText(getS().ft, D.flat_types), bus: ctx.bus, wireSeg, phone, openBlock: (bi) => { const b = D.blocks[bi]; ctx.viewTo([b.lat, b.lon], Math.max(map.getZoom(), 16)); open(bi); } }) : null;
   const contentFor = (k) => (isSchool(k) ? { ...sc.content(si(k), () => dock.update(k, contentFor(k))), pin: false } : content(k));
   const mkc = createMarketCharts({ D, TX, PSF, wireSeg, fvFacts: ctx.fvFacts });
 
@@ -248,7 +274,7 @@ export function createCard(ctx) {
     const rent = r ? Object.entries(r).map(([ft, row]) => ({ ft, med: row[2] ?? row[7], n: row[0] >= 3 ? row[0] : row[5] })).filter((x) => x.med) : null;
     const rentMode = S.colorBy === 'rent';
     const model = {
-      key: bi, simple: ctx.mode?.() === 'simple', head: { sub: f.sub, facts: f.facts, items: f.items, newYear: f.newYear }, st, tiles: { price: a.price, psf: a.psf, n: a.n },
+      key: bi, simple: ctx.mode?.() === 'simple', phone: phone(), schoolPick: sc ? (item) => ctx.schools().indexOf(item) : null, lease: f.lease, mrt: f.mrt, pfold: (k, d) => phoneFolds().isOpen(k, d), head: { sub: f.sub, facts: f.facts, items: f.items, newYear: f.newYear }, st, tiles: { price: a.price, psf: a.psf, n: a.n },
       scope: scopeText({ ft: S.ft, flatTypes: D.flat_types, mFrom: S.mFrom, mTo: S.mTo, fmtMonth, filtOn: filtActive() }), period: t('{0} – {1}', [fmtMonth(S.mFrom), fmtMonth(S.mTo)]), win: P.calc, trend: tr,
       sales: { idx, cols, total: blockTx[bi].length, mine: idx.filter((i) => ftSet.has(TX.ft[i])).length, from: P.hist.from, to: P.hist.to, open: expanded.has(bi) },
       rent, rentFirst: rentMode, folds: { rent: folds.get('rent') ?? rentMode, near: folds.get('near') ?? false, fv: folds.get('fv') ?? false, schools: folds.get('schools') ?? false },
@@ -264,7 +290,8 @@ export function createCard(ctx) {
     const lastM = D.months.at(-1), dataLast = +lastM.slice(0, 4);
     const partial = lastM.endsWith('-12') || P.hist.to !== dataLast ? null : { year: dataLast, label: `${monthName(1)}–${monthName(+lastM.slice(5))}` };
     return {
-      title: b.label, exec, body: cardHtml(model),
+      title: b.label, exec: model.phone ? '' : exec, body: cardHtml(model), // phone: the four tiles replace the summary line
+      sub: model.phone ? `${f.town} · ${typesText(S.ft, D.flat_types)}` : '',
       mount: (el) => {
         const kills = [];
         wire(el, model, a, bi, kills);
@@ -283,10 +310,22 @@ export function createCard(ctx) {
     return D.flat_types[top(mine) ?? top(c)];
   }
   function wire(el, model, a, bi, kills) {
-    const after = () => { if (phone()) dock.close(bi, { refocus: false }); }; // phone: the sheet shows the tab
-    el.querySelector('[data-act="add"]')?.addEventListener('click', () => { ctx.onAdd(bi); after(); });
-    el.querySelector('[data-act="afford"]')?.addEventListener('click', () => { ctx.onAfford(bi, a.price); after(); });
-    el.querySelector('[data-act="rent"]')?.addEventListener('click', () => { ctx.onRent(bi, a.price); after(); });
+    // phone: the card stays in the map sheet, so it is still there when you come back to the Map tab
+    el.querySelector('[data-act="add"]')?.addEventListener('click', () => ctx.onAdd(bi));
+    el.querySelector('[data-act="afford"]')?.addEventListener('click', () => ctx.onAfford(bi, a.price));
+    el.querySelector('[data-act="rent"]')?.addEventListener('click', () => ctx.onRent(bi, a.price));
+    if (model.phone) {
+      el.querySelector('.bc').addEventListener('click', (e) => { // a school row → its school card, stacked on this one
+        const r = e.target.closest('[data-school]'); if (r) openSchool(ctx.schools()[+r.dataset.school]);
+      });
+      // opening a section scrolls its own summary to the top of the card (just under the sticky header, R-05b), so you
+      // see which row you opened; the sheet itself only grows when the user drags it (owner: the card never covers the
+      // whole map by itself)
+      el.querySelector('.bc').addEventListener('toggle', (e) => {
+        const d = e.target;
+        if (d.open && d.matches?.('.pc-row')) requestAnimationFrame(() => rowToTop(d));
+      }, true);
+    }
     el.querySelector('[data-act="schools"]')?.addEventListener('click', () => { // B3: the fact opens the fold
       const d = el.querySelector('[data-fold="schools"]'); if (!d) return;
       d.open = true; d.scrollIntoView({ block: 'nearest' }); d.querySelector('summary').focus();
@@ -305,7 +344,7 @@ export function createCard(ctx) {
     more.addEventListener('click', () => { // focus stays on the button
       if (expanded.has(bi)) expanded.delete(bi); else expanded.add(bi);
       const on = expanded.has(bi);
-      box.innerHTML = salesTable(s.idx, s.cols, on); box.classList.toggle('open', on); more.textContent = moreText(s.idx.length, on);
+      box.innerHTML = (model.phone ? phoneSalesTable : salesTable)(s.idx, s.cols, on); box.classList.toggle('open', on); more.textContent = moreText(s.idx.length, on);
     });
   }
 

@@ -175,9 +175,9 @@ export function syncChipLabel(doc, { value, metric, off, zoomedIn, offText, help
 
 /**
  * Legend HTML for the current scale. `fmt` formats a value; `t` translates; `simple` hides inner ticks;
- * `chipLabel` = the metric name when the boxes show values (G1), else null.
+ * `chipLabel` = the metric name when the boxes show values (G1), else null. `tap` = phone wording ("Tap", no hover; P-22).
  */
-export function legendHtml({ scale, mode, label, fmt, t, simple, zoomedIn, chipLabel }) {
+export function legendHtml({ scale, mode, label, fmt, t, simple, zoomedIn, chipLabel, tap = false }) {
   const sw = `<div class="ramp ramp5">${scale.ramp.map((c) => `<i style="background:${c}"></i>`).join('')}</div>`;
   const lo = mode === 'count' ? t('Fewer') : mode === 'commute' ? t('Shorter trip') : t('Cheaper');
   const hi = mode === 'count' ? t('More') : mode === 'commute' ? t('Longer trip') : t('Pricier');
@@ -192,6 +192,6 @@ export function legendHtml({ scale, mode, label, fmt, t, simple, zoomedIn, chipL
   const key = zoomedIn
     ? `<span class="chipkey none">${chipLabel ? '–' : '221'}</span> ${t('No sales match your filters')} · <span class="chipkey new">${chipLabel ? '–' : '229'}</span> ${t('New block, no resale yet')}`
     : `<span class="dotkey none"></span> ${t('No sales match your filters')} · <span class="dotkey new"></span> ${t('New block, no resale yet')}`;
-  const valueHint = zoomedIn && chipLabel ? `<div class="hint">${t('Box labels show {0}, rounded. Hover for the exact value.', [chipLabel])}</div>` : '';
-  return `<div class="key">${label}</div>${sw}${ticks}<div class="hint">${caption}</div><div class="hint">${key} · ${t('Click any block.')}</div>${valueHint}`;
+  const valueHint = zoomedIn && chipLabel ? `<div class="hint">${t(tap ? 'Box labels show {0}, rounded. Tap a block for the exact value.' : 'Box labels show {0}, rounded. Hover for the exact value.', [chipLabel])}</div>` : '';
+  return `<div class="key">${label}</div>${sw}${ticks}<div class="hint">${caption}</div><div class="hint">${key} · ${t(tap ? 'Tap any block.' : 'Click any block.')}</div>${valueHint}`;
 }

@@ -26,7 +26,11 @@ import { runMc, mcResult, MC_DRAWS_RENTBUY } from '../../core/mc.js';
 import { MC_FLAG, rangeToggle, rangeBlock } from './range.js';
 import { rentTypeField, amountField, roomBody, windowLine, rentCompared, rentToCompare } from './room.js';
 import { rentPlace, placeFields, changePlaceLink, bindPlace } from './place.js';
-import { sharedRent, rentAmount, bindSharedRent } from '../../core/rentshare.js';
+import { sharedRent, bindSharedRent } from '../../core/rentshare.js';
+import { parseMoney, bindMoneyInputs } from '../../core/moneyinput.js';
+
+const phoneMq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null; // phone overhaul §3.6
+const isPhone = () => !!(phoneMq && phoneMq.matches);
 
 const FLAT_TYPES = ['2 ROOM', '3 ROOM', '4 ROOM', '5 ROOM', 'EXECUTIVE'];
 const VERDICT = { below: 'Below the usual range', fair: 'Fair', above: 'Above the usual range', 'well-above': 'Well above the usual range', unknown: 'Not enough data' };
@@ -133,12 +137,12 @@ export function mountRent({ store, policy, bus, el }) {
     return `${head}${rentTypeField(rt.type)}${basisField(c)}${placeLink}
       <div class="fields">${place}
         <label class="f"><span>${t('Flat type')}</span><select id="rtFt">${FLAT_TYPES.map((x) => `<option value="${x}"${x === ft ? ' selected' : ''}>${ftLabel(x)}</option>`).join('')}</select></label>
-        ${amountField('whole', asking, comps ? Math.round(comps.med) : '')}
+        ${amountField('whole', asking, comps ? Math.round(comps.med) : null, isPhone())}
       </div>
       ${comps ? `<div class="kpis"><div class="kpi"><small>${t('Median rent')} (${esc(tierLabel[comps.tier] || comps.label || '')})</small><b>${money(comps.med)}</b><small>${simple && comps.p25 && comps.n ? t('middle half of {0} rentals: {1}–{2}', [comps.n, money(comps.p25), money(comps.p75)]) : `${comps.p25 ? `${t('middle half')} ${money(comps.p25)}–${money(comps.p75)}` : ''}${comps.n ? (simple ? ` · ${t('{0} rentals', [comps.n])}` : ` · n=${comps.n}`) : ''}`}</small></div>
         <div class="kpi"><small>${t('Verdict')}</small><b>${fair ? esc(t(VERDICT[fair.verdict])) : '—'}</b><small>${fair?.band ? `${t('usual')}: ${money(fair.band[0])}–${money(fair.band[1])}` : t('enter the asking rent')}</small></div>
         ${share}
-        ${c.price ? `<div class="kpi"><small>${t('Gross rental yield')}</small><b>${pct(grossYield({ annualRent: rentNow * 12, price: c.price }), 1)}</b><small>${t('rent ÷ price')} ${money(c.price)}</small></div>` : ''}</div>` : none}
+        ${c.price ? `<div class="kpi"><small>${isPhone() ? t('Rent as a share of the price (gross yield)') : t('Gross rental yield')}</small><b>${pct(grossYield({ annualRent: rentNow * 12, price: c.price }), 1)}</b><small>${t('rent ÷ price')} ${money(c.price)}</small></div>` : ''}</div>` : none}
       ${comps ? windowLine(comps, data.rents.months) : ''}
       ${trend ? `<div class="rt-chart"></div><p class="hint">${esc(c.chartNote || t('HDB quarterly median rent for this town and flat type.'))}</p>` : ''}
       <p class="hint">${t('Source: HDB rental approvals (data.gov.sg), {0} to {1}.', [data.rents.months[0], data.rents.months[1]])}</p></div>`;
@@ -186,8 +190,14 @@ export function mountRent({ store, policy, bus, el }) {
     const last = res.series.at(-1), diff = last.buyNetWorth - last.rentNetWorth;
     const beText = res.breakEvenYear != null ? t('Buying overtakes renting in year {0}.', [res.breakEvenYear]) : t('Buying does not overtake renting within this period.');
     rb = { res, bands: range.out ? range.out.bands : null, aria: `${t('Net worth over {0} years: buying ends at {1}, renting and investing at {2}.', [last.year, signedMoney(last.buyNetWorth), signedMoney(last.rentNetWorth)])} ${beText}` };
-    const table = `<table class="mini"><thead><tr><th>${t('Year')}</th><th>${t('Buy')}</th><th>${t('Rent and invest')}</th><th>${t('Difference')}</th></tr></thead><tbody>
-      ${res.series.map((s) => `<tr><td>${s.year === 0 ? t('Now') : s.year}</td><td>${signedMoney(s.buyNetWorth)}</td><td>${signedMoney(s.rentNetWorth)}</td><td>${signedMoney(s.buyNetWorth - s.rentNetWorth)}</td></tr>`).join('')}
+    const money3 = (s) => `<td>${signedMoney(s.buyNetWorth)}</td><td>${signedMoney(s.rentNetWorth)}</td><td>${signedMoney(s.buyNetWorth - s.rentNetWorth)}</td>`;
+    // phone (AC1): 4 money columns ran to 380 px at 360 px / A++ — the year becomes a row of its own, the same cells under it
+    const table = isPhone()
+      ? `<table class="mini rb-ph"><thead><tr><th>${t('Buy')}</th><th>${t('Rent and invest')}</th><th>${t('Difference')}</th></tr></thead><tbody>
+      ${res.series.map((s) => `<tr class="rb-yr"><th colspan="3" scope="rowgroup">${s.year === 0 ? t('Now') : t('Year {0}', [s.year])}</th></tr><tr>${money3(s)}</tr>`).join('')}
+    </tbody></table>`
+      : `<table class="mini"><thead><tr><th>${t('Year')}</th><th>${t('Buy')}</th><th>${t('Rent and invest')}</th><th>${t('Difference')}</th></tr></thead><tbody>
+      ${res.series.map((s) => `<tr><td>${s.year === 0 ? t('Now') : s.year}</td>${money3(s)}</tr>`).join('')}
     </tbody></table>`;
     return `${head}${sub}${gate.html}
       <div class="fields">
@@ -223,11 +233,12 @@ export function mountRent({ store, policy, bus, el }) {
   el.addEventListener('change', (e) => {
     const x = e.target;
     if (x.id === 'rtFt') { store.set('focus', { ...(focus() || {}), flatType: x.value }); return; }
-    if (x.id === 'rtAsk') { setRent({ amount: rentAmount(x.value) }); return; } // the shared figure: re-render via the store
+    if (x.id === 'rtAsk') { const v = parseMoney(x.value); if (!Number.isNaN(v)) setRent({ amount: v }); return; } // the shared figure: re-render via the store
     if (x.id === 'rbH') local.horizon = +x.value;
     else if (x.id === 'rbS') local.scenario = x.value;
     else if (x.id === 'rbMc') { store.set(MC_FLAG, x.checked); return; }
-    else if (x.dataset.lo) { const k = x.dataset.lo, v = x.value; local.lo[k] = k === 'mopMet' ? v === 'true' : ['occupants', 'months', 'rent'].includes(k) ? (v === '' ? null : +v) : v; }
+    else if (x.dataset.lo === 'rent') { const v = parseMoney(x.value); if (Number.isNaN(v)) return; local.lo.rent = v; } // separators allowed
+    else if (x.dataset.lo) { const k = x.dataset.lo, v = x.value; local.lo[k] = k === 'mopMet' ? v === 'true' : ['occupants', 'months'].includes(k) ? (v === '' ? null : +v) : v; }
     else return;
     render();
   });
@@ -253,6 +264,9 @@ export function mountRent({ store, policy, bus, el }) {
     } else if ((e.key === ' ' || e.key === 'Enter') && b.getAttribute('aria-disabled') === 'true') e.preventDefault();
   });
   bindPickMap(el);
+  // after bindPickMap: "Pick on the map →" lands on the Map tab with the sheet at peek on phones (no-op on desktop)
+  el.addEventListener('click', (e) => { if (e.target.closest('[data-act="pick-map"]')) bus.emit('phone:show-map', {}); });
+  bindMoneyInputs(el);
   bindNeeds(el, { store, bus });
   bindPlace(el, { store, onPlace: () => { local.basis = 'place'; local.placeOpen = false; } });
   bindSharedRent(store); // plan.rent.amount = plan.rentNow (Plan: BTO "Your rent now"), one figure
@@ -272,5 +286,6 @@ export function mountRent({ store, policy, bus, el }) {
   store.subscribe(MC_FLAG, render);
   store.subscribe('ui.mode', render); // Simple ↔ Pro: the range (Pro) and the plain words (B10)
   bus.on('data:ready', render);
+  phoneMq?.addEventListener?.('change', render); // phone ↔ desktop wording and the median hint
   render();
 }

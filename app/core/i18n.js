@@ -6,7 +6,7 @@
 // t('Short of S$19,400 for the upfront payment') → no exact entry: numbers / money / percentages are
 //   swapped for {0},{1}… ("Short of {0} for the upfront payment"), looked up, and put back. This lets
 //   engine messages with live numbers be translated without changing the engines.
-// Static HTML: elements with data-i18n get their text translated; data-i18n-attr="placeholder,title"
+// Static HTML: elements with data-i18n get their text translated (data-i18n="Key" → that key); data-i18n-attr="placeholder,title"
 // translates those attributes.
 
 let dict = {};
@@ -43,10 +43,11 @@ export function t(text, vals) {
   return fill(s, vals);
 }
 
-/** Translate static markup once at start-up (English originals kept in data attributes). */
+/** Translate static markup once at start-up (English originals kept in data attributes). data-i18n="Key" uses that key
+ *  instead of the text — for a short English word that needs another translation (phone tab "Afford" → 负担). */
 export function applyStatic(root = document) {
   if (lang === 'en') return;
-  root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.textContent.trim()); });
+  root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n || el.textContent.trim()); });
   root.querySelectorAll('[data-i18n-attr]').forEach((el) => {
     for (const a of el.dataset.i18nAttr.split(',').map((x) => x.trim())) if (el.hasAttribute(a)) el.setAttribute(a, t(el.getAttribute(a)));
   });
