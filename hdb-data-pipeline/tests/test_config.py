@@ -63,7 +63,9 @@ def test_default_data_dir_points_at_real_repo_data(monkeypatch):
     s = get_settings()
     # the repo's existing data tiers must be reachable from the default
     assert s.processed_dir.is_dir()
-    assert (s.cache_dir / "hdb_address.csv").exists()
+    # the geocode cache stays private (go-live D3): the public repo has no data/cache, so check it only where it exists
+    if s.cache_dir.is_dir():
+        assert (s.cache_dir / "hdb_address.csv").exists()
 
 
 def test_gsheets_defaults_with_no_env_file(monkeypatch, tmp_path):

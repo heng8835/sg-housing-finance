@@ -236,7 +236,9 @@ def transform(rel, data):
 
 
 def check_out(out, src, clean):
-    """Refuse an --out inside / above the source, a non-empty folder that is not an earlier export, or a git repo."""
+    """Refuse an --out inside / above the source, a non-empty folder that is not an earlier export, or a git repo
+    that is not an earlier export. An earlier export that is now the public repo's working copy (.git + MARKER) is
+    updated in place with --clean: everything but .git is replaced, so the owner commits the diff and pushes."""
     out, src = Path(out).resolve(), Path(src).resolve()
     if out == src or src in out.parents or out in src.parents:
         raise SystemExit(f"error: --out must be outside the source repo (got {out})")
@@ -244,8 +246,8 @@ def check_out(out, src, clean):
         if not out.is_dir():
             raise SystemExit(f"error: {out} exists and is not a folder")
         if any(out.iterdir()):
-            if (out / ".git").exists():
-                raise SystemExit(f"error: {out} is a git repository - export into a new folder and copy over")
+            if (out / ".git").exists() and not (out / MARKER).is_file():
+                raise SystemExit(f"error: {out} is a git repository that this script did not make - refusing to touch it")
             if not (out / MARKER).is_file():
                 raise SystemExit(f"error: {out} is not empty and is not an earlier export - refusing to touch it")
             if not clean:
@@ -254,6 +256,12 @@ def check_out(out, src, clean):
 
 
 def prepare_out(out):
+    if out.exists() and (out / ".git").exists():  # the public repo's working copy: keep its history, replace the rest
+        for child in out.iterdir():
+            if child.name == ".git":
+                continue
+            shutil.rmtree(child) if child.is_dir() and not child.is_symlink() else child.unlink()
+        return out
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -307,7 +315,7 @@ def export(src, out, denylist, clean=False):
     if ".gitignore" not in copied:
         copied.append(".gitignore")
     # 4. scan everything that is now in --out
-    files = sorted(p.relative_to(out).as_posix() for p in out.rglob("*") if p.is_file())
+    files = sorted(p.relative_to(out).as_posix() for p in out.rglob("*") if p.is_file() and ".git" not in p.relative_to(out).parts)
     for rel in files:
         if rel == MARKER:
             continue

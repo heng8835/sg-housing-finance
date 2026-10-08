@@ -224,6 +224,26 @@ class PublicExport(Temp):
             self.assertTrue(any(p.startswith(rel) and "secret" in p for p in problems), (rel, problems))
         self.assertFalse(self.out.exists())
 
+    def test_update_in_place_keeps_git_history(self):  # go-live: --out is the public repo's working copy
+        (manifest, problems), _ = self.run_export()
+        self.assertEqual(problems, [])
+        write(self.out, ".git/HEAD", "ref: refs/heads/main\n")  # the owner ran git init + one commit there
+        write(self.out, "stale.txt", "removed from the source since")
+        with self.assertRaises(SystemExit):
+            self.run_export()  # still needs --clean
+        (manifest, problems), _ = self.run_export(clean=True)
+        self.assertEqual(problems, [])
+        self.assertEqual((self.out / ".git/HEAD").read_text(encoding="utf-8"), "ref: refs/heads/main\n", ".git kept")
+        self.assertFalse((self.out / "stale.txt").exists(), "everything else replaced")
+        self.assertNotIn(".git/HEAD", manifest["files"])
+        # a git repo this script did not make is never touched
+        foreign = self.tmp / "foreign"
+        write(foreign, ".git/HEAD", "x")
+        write(foreign, "keep.txt", "keep")
+        with self.assertRaises(SystemExit):
+            quiet(public_export.export, self.src, foreign, self.deny, clean=True)
+        self.assertTrue((foreign / "keep.txt").exists())
+
     def test_out_must_be_outside_and_not_foreign(self):
         with self.assertRaises(SystemExit):
             quiet(public_export.export, self.src, self.src / "export", self.deny)
