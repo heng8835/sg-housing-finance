@@ -1,0 +1,43 @@
+name: deploy app to GitHub Pages
+# Deploys the runtime files of app/ (staged by tools/stage_site.py --public) only after the "tests" workflow passes on main, and only while the repo is
+# public (free-plan Pages needs a public repo; the repo stays private for now — DEC-012 D1).
+on:
+  workflow_run:
+    workflows: [tests]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: true }
+jobs:
+  deploy:
+    if: >-
+      !github.event.repository.private &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha || github.sha }}" }
+      - uses: actions/configure-pages@v5
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      # runtime files only (go-live F8): no README / CLAUDE.md / Dockerfile / policy fragments / .md sources;
+      # public build = btoData + floodData off, no data/bto.js / data/flood.js (DEC-015, PUB terms); sw-manifest.json rebuilt for exactly these files
+      - name: stage the site
+        run: python tools/stage_site.py --public --out _site
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      - name: smoke-check the live site
+        run: |
+          base="${{ steps.deployment.outputs.page_url }}"
+          for f in "" policy/sg-policy.json main.js config.js data/data.js sw-manifest.json; do
+            curl -fsS -o /dev/null --retry 5 --retry-delay 10 --retry-all-errors "${base}${f}" && echo "ok ${f:-index}"
+          done
+          for f in data/bto.js data/flood.js; do
+            if curl -fsS -o /dev/null "${base}${f}"; then echo "${f} must not be published" && exit 1; fi
+          done

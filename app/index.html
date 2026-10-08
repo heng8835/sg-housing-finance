@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Security (go-live §2.6; static hosting cannot set headers). CSP: scripts only from this site + Leaflet on cdnjs
+     (SRI below) + the import map by its sha256 (tests/privacy/headers.test.js recomputes it — edit the import map →
+     update the hash); requests only to this site; OneMap for map tiles + logo (images only). Inline style=""
+     attributes need 'unsafe-inline' styles. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-y72GCdS9prf9HwT3wFlsO3nt9MPo43iteNf5TPv/x7I='; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; img-src 'self' data: blob: https://www.onemap.gov.sg https://cdnjs.cloudflare.com; connect-src 'self'; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin">
+<title data-i18n>SG Housing &amp; Finance</title>
+<meta name="description" content="Explore HDB resale prices, check what you can afford and plan CPF and housing. Educational estimates, not financial advice; your finances stay in your browser." data-i18n-attr="content">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/modules.css">
+<link rel="stylesheet" href="styles/guide.css">
+<link rel="stylesheet" href="styles/guides.css">
+<link rel="stylesheet" href="styles/samples.css">
+<link rel="stylesheet" href="styles/start.css">
+<link rel="stylesheet" href="styles/views.css">
+<link rel="stylesheet" href="styles/card.css">
+<link rel="stylesheet" href="styles/brief.css">
+<link rel="stylesheet" href="styles/offline.css">
+<link rel="stylesheet" href="styles/textsize.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 data-i18n>SG Housing &amp; Finance</h1>
+    <span class="sub" id="dataInfo" data-i18n>loading data…</span>
+    <span class="spacer"></span>
+    <span class="stat" id="visStat"></span>
+  </header>
+
+  <aside id="panel">
+    <div class="tabs" role="tablist" aria-label="Panels" data-i18n-attr="aria-label">
+      <button data-tab="explore" class="active" role="tab" id="tabbtn-explore" aria-controls="tab-explore" aria-selected="true" data-i18n>Explore</button>
+      <button data-tab="afford" role="tab" id="tabbtn-afford" aria-controls="tab-afford" aria-selected="false" data-i18n>Afford</button>
+      <button data-tab="rent" role="tab" id="tabbtn-rent" aria-controls="tab-rent" aria-selected="false" data-i18n>Rent &amp; Buy</button>
+      <button data-tab="plan" role="tab" id="tabbtn-plan" aria-controls="tab-plan" aria-selected="false" data-i18n>Plan</button>
+      <button data-tab="choices" role="tab" id="tabbtn-choices" aria-controls="tab-choices" aria-selected="false"><span data-i18n>My choices</span><span class="badge" id="choiceCount">0</span></button>
+    </div>
+
+    <!-- ============ EXPLORE ============ -->
+    <div class="tab active" id="tab-explore" role="tabpanel" aria-labelledby="tabbtn-explore">
+      <div class="section">
+        <h3 data-i18n>Colour blocks by</h3>
+        <div class="radios" id="colorBy">
+          <label><input type="radio" name="colorBy" value="price" checked> <span data-i18n>Median price</span></label>
+          <label><input type="radio" name="colorBy" value="psf"> <span data-i18n>$ per sqft</span></label>
+          <label><input type="radio" name="colorBy" value="count"> <span data-i18n>Number of transactions</span></label>
+          <label title="Set a budget in the Afford tab first" data-i18n-attr="title"><input type="radio" name="colorBy" value="budget"> <span data-i18n>Within my budget</span></label>
+          <label><input type="radio" name="colorBy" value="rent"> <span data-i18n>Median rent</span></label>
+          <label><input type="radio" name="colorBy" value="commute"> <span data-i18n>Commute time (public transport)</span></label>
+        </div>
+        <div id="commutePick" hidden style="margin:10px 0 0 6px;padding-left:12px;border-left:2px solid var(--border)"></div>
+        <div class="legend" id="legend" style="margin-top:10px"></div>
+        <div class="calc-win"><label for="calcWin" data-i18n>Prices from the last</label>
+          <select id="calcWin" aria-describedby="calcWinHelp"><option value="12" data-i18n>1 year</option><option value="24" data-i18n>2 years</option><option value="36" data-i18n>3 years</option><option value="60" data-i18n>5 years</option></select>
+          <p class="f-help" id="calcWinHelp"></p></div>
+        <div class="seg-field" id="chipLabelField" style="margin-top:12px">
+          <span class="f-label" id="chipLabelLbl" data-i18n>Labels on the boxes</span>
+          <div class="seg" id="chipLabel" role="radiogroup" aria-labelledby="chipLabelLbl">
+            <button type="button" role="radio" data-v="block" aria-checked="true" class="on" data-i18n>Block number</button>
+            <button type="button" role="radio" data-v="value" aria-checked="false" tabindex="-1" id="chipLabelValue">Price</button>
+          </div>
+          <p class="f-help" id="chipLabelHelp" data-i18n>Boxes appear when you zoom in close.</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span data-i18n>Flat type</span> <button class="link" id="ftFamily" data-i18n>family default</button></h3>
+        <div class="chips" id="ftChips"></div>
+        <p class="hint" data-i18n>A family of 4 usually looks at 4-room and above. Colours and stats use only the selected types.</p>
+      </div>
+
+      <div class="section" id="secHistory">
+        <h3 data-i18n>Sales history</h3>
+        <div class="yr-range">
+          <p class="yr-out" aria-live="polite"><b id="histOut"></b></p>
+          <div class="yr-track"><div class="yr-fill" id="histFill"></div>
+            <input type="range" id="histFrom" step="1" aria-label="From year" data-i18n-attr="aria-label"><input type="range" id="histTo" step="1" aria-label="To year" data-i18n-attr="aria-label"></div>
+          <div class="yr-ends"></div>
+        </div>
+        <div class="chips" id="histQuick"><button class="chip" data-y="5" data-i18n>Last 5 y</button><button class="chip" data-y="10" data-i18n>Last 10 y</button><button class="chip" data-y="all" data-i18n>All</button></div>
+        <p class="hint" id="histHint"></p>
+      </div>
+
+      <div class="section collapsible pro-only" id="secFilters">
+        <h3><button class="tog" aria-expanded="true">▾</button><span data-i18n>More filters</span> <span class="muted" id="filtSummary" style="text-transform:none;letter-spacing:0;font-weight:400"></span><button class="link" id="filtReset" data-i18n>reset</button></h3>
+        <div class="body">
+          <label class="f wide"><span data-i18n>Price (S$)</span><div class="row"><input type="number" id="fPmin" placeholder="min" step="10000" data-i18n-attr="placeholder"><span style="flex:0">–</span><input type="number" id="fPmax" placeholder="max" step="10000" data-i18n-attr="placeholder"></div></label>
+          <div class="chips" style="margin:-2px 0 8px"><button class="chip" data-pmax="500000" data-i18n>≤ 500k</button><button class="chip" data-pmax="700000" data-i18n>≤ 700k</button><button class="chip" data-pmax="900000" data-i18n>≤ 900k</button><button class="chip" data-pmax="1200000" data-i18n>≤ 1.2M</button></div>
+          <label class="f wide"><span data-i18n>Remaining lease (years, today)</span><div class="row"><input type="number" id="fLmin" placeholder="min" step="1" data-i18n-attr="placeholder"><span style="flex:0">–</span><input type="number" id="fLmax" placeholder="max" step="1" data-i18n-attr="placeholder"></div></label>
+          <div class="chips" style="margin:-2px 0 8px"><button class="chip" data-lmin="60" data-i18n>≥ 60 y</button><button class="chip" data-lmin="70" data-i18n>≥ 70 y</button><button class="chip" data-lmin="80" data-i18n>≥ 80 y</button><button class="chip" data-lmin="90" data-i18n>≥ 90 y</button></div>
+          <div class="fields">
+            <label class="f"><span data-i18n>Floor area (sqm)</span><div class="row"><input type="number" id="fAmin" placeholder="min" data-i18n-attr="placeholder"><input type="number" id="fAmax" placeholder="max" data-i18n-attr="placeholder"></div></label>
+            <label class="f"><span data-i18n>Storey</span><div class="row"><input type="number" id="fSmin" placeholder="min" min="1" data-i18n-attr="placeholder"><input type="number" id="fSmax" placeholder="max" data-i18n-attr="placeholder"></div></label>
+          </div>
+          <label class="f wide"><span data-i18n>Block completed / lease from (year)</span><div class="row"><input type="number" id="fYmin" placeholder="from" min="1960" data-i18n-attr="placeholder"><span style="flex:0">–</span><input type="number" id="fYmax" placeholder="to" data-i18n-attr="placeholder"></div></label>
+          <p class="hint" data-i18n>Filters apply to the coloured blocks, the "in view / circle" prices box and each block's transaction list. Lease and year are per block; price, area and storey are per transaction.</p>
+        </div>
+      </div>
+
+      <div class="section collapsible collapsed" id="secAreas">
+        <h3><button class="tog" aria-expanded="false">▸</button><span data-i18n>Areas</span> <span class="muted" id="areaSummary" style="text-transform:none;letter-spacing:0;font-weight:400"></span><button class="link" id="townsAll" data-i18n>all</button><button class="link" id="townsNone" style="margin-left:8px" data-i18n>none</button></h3>
+        <div class="body" id="towns"></div>
+      </div>
+
+      <div class="section collapsible" id="secLayers">
+        <h3><button class="tog" aria-expanded="true">▾</button><span data-i18n>Map layers</span> <button class="link" id="layersAll" data-i18n>all</button><button class="link" id="layersNone" style="margin-left:8px" data-i18n>none</button><button class="link" id="layersDefault" style="margin-left:8px" data-i18n>default</button></h3>
+        <div class="body" id="layers">
+          <label class="check"><input type="checkbox" data-l="blocks" checked><i class="sw" style="background:#2a66ad"></i><span data-i18n>HDB blocks</span> <span class="muted xs" data-i18n>(hollow = completed, no resale yet)</span></label>
+          <label class="check"><input type="checkbox" data-l="futmrt" checked><i class="sw"></i><span data-i18n>Future MRT stations</span> <span class="muted xs" data-i18n>(CRL, JRL, TEL/DTL ext… click for lines &amp; year)</span></label>
+          <label class="check"><input type="checkbox" data-l="bto" checked><i class="sw"></i><span data-i18n>BTO / under-construction projects</span></label>
+          <label class="check"><input type="checkbox" data-l="mrt" checked><i class="sw"></i><span data-i18n>MRT / LRT stations</span> <span class="muted xs" data-i18n>(click a station for its lines)</span></label>
+          <label class="check"><input type="checkbox" data-l="schools" checked><i class="sw" style="background:#008300;border-radius:0"></i><span data-i18n>Primary schools</span></label>
+          <label class="check"><input type="checkbox" data-l="secondary"><i class="sw" style="background:#5fb35f;border-radius:0"></i><span data-i18n>Secondary schools &amp; JCs</span></label>
+          <label class="check"><input type="checkbox" data-l="hawkers"><i class="sw" style="background:#eda100"></i><span data-i18n>Hawker centres</span></label>
+          <label class="check"><input type="checkbox" data-l="malls" checked><i class="sw"></i><span data-i18n>Shopping malls</span></label>
+          <label class="check"><input type="checkbox" data-l="supermarkets"><i class="sw"></i><span data-i18n>Supermarkets</span> <span class="muted xs" data-i18n>(FairPrice, Sheng Siong, Giant, Cold Storage…)</span></label>
+          <label class="check"><input type="checkbox" data-l="parks" checked><i class="sw" style="background:#a8d5a2;border:1px solid #4c9a45"></i><span data-i18n>Parks &amp; nature reserves</span></label>
+          <label class="check"><input type="checkbox" data-l="childcare"><i class="sw" style="background:#1baf7a;border-radius:50%"></i><span data-i18n>Childcare &amp; kindergartens</span> <span class="muted xs" id="ccVacHint" hidden data-i18n>(vacancies from ECDA · faded = full now)</span></label>
+          <label class="check"><input type="checkbox" data-l="polyclinics"><i class="sw"></i><span data-i18n>Polyclinics</span></label>
+          <label class="check"><input type="checkbox" data-l="clinics"><i class="sw"></i><span data-i18n>CHAS clinics</span> <span class="muted xs" data-i18n>(zoom ≥ 15)</span></label>
+          <label class="check"><input type="checkbox" data-l="flood"><i class="sw"></i><span data-i18n>Flood-prone areas (PUB)</span> <span class="muted xs" data-i18n>(shaded = approximate area; zoom in for points)</span></label>
+          <div class="hint" id="familySrc" hidden style="margin:2px 0 10px 22px;line-height:1.55"></div>
+          <label class="check"><input type="checkbox" data-l="eldercare"><i class="sw" style="background:#e87ba4;border-radius:50%"></i><span data-i18n>Eldercare centres</span></label>
+          <label class="check"><input type="checkbox" data-l="funeral" checked><i class="sw" style="background:#7a1f1f"></i><span data-i18n>Funeral parlours, columbaria, cemeteries</span></label>
+          <label class="check"><input type="checkbox" data-l="sites" checked><i class="sw" style="border:2px dashed #7a1f1f;background:none;border-radius:50%"></i><span data-i18n>Former burial grounds (approx.)</span></label>
+          <label class="check"><input type="checkbox" data-l="bus"><i class="sw" style="background:#52514e;border-radius:50%"></i><span data-i18n>Bus stops</span> <span class="muted xs" data-i18n>(street zoom · click a stop for its bus routes)</span></label>
+          <label class="check"><input type="checkbox" data-l="food"><i class="sw" style="background:#eb6834;border-radius:50%"></i><span data-i18n>Cafés &amp; eateries</span> <span class="muted xs" data-i18n>(zoom ≥ 15)</span></label>
+          <label class="check"><input type="checkbox" data-l="work" checked><i class="sw" style="background:#0b0b0b;border-radius:2px"></i><span data-i18n>Workplaces &amp; daily places</span></label>
+          <label class="check"><input type="checkbox" data-l="choices" checked><i class="sw" style="background:#eb6834;border-radius:50% 50% 50% 0"></i><span data-i18n>My choices</span></label>
+          <label class="check"><input type="checkbox" data-l="rings" checked><i class="sw" style="border:2px dashed #eb6834;background:none"></i><span data-i18n>1 km school-priority rings</span></label>
+        </div>
+      </div>
+      <p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p>
+    </div>
+
+    <!-- ============ AFFORD ============ -->
+    <div class="tab" id="tab-afford" role="tabpanel" aria-labelledby="tabbtn-afford"><div id="affordRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+
+    <!-- ============ RENT & RULES ============ -->
+    <div class="tab" id="tab-rent" role="tabpanel" aria-labelledby="tabbtn-rent"><div id="rentRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+    <div class="tab" id="tab-plan" role="tabpanel" aria-labelledby="tabbtn-plan"><div id="planRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+
+    <!-- ============ CHOICES ============ -->
+    <div class="tab" id="tab-choices" role="tabpanel" aria-labelledby="tabbtn-choices">
+      <div class="section">
+        <h3 data-i18n>Add a flat you found</h3>
+        <p class="hint" style="margin:0 0 8px"><span data-i18n>Paste the block &amp; street from PropertyGuru / 99.co, or click a block on the map →</span> <b data-i18n>Add a flat from this block…</b>.</p>
+        <form id="choiceForm" autocomplete="off">
+          <input type="hidden" id="cId">
+          <div class="fields">
+            <label class="f wide"><span data-i18n>Block &amp; street</span>
+              <div class="ac"><input type="text" id="cAddr" placeholder="e.g. 406 Ang Mo Kio Ave 10" data-i18n-attr="placeholder" required><div class="ac-list" id="acList"></div></div>
+            </label>
+            <label class="f"><span data-i18n>Flat type</span><select id="cFt"></select></label>
+            <label class="f"><span data-i18n>Storey</span><select id="cStorey"></select></label>
+            <label class="f"><span data-i18n>Main windows face</span><select id="cFacing" aria-describedby="cFacingHint"><option value="" data-i18n>unknown</option><option>N</option><option>NE</option><option>E</option><option>SE</option><option>S</option><option>SW</option><option>W</option><option>NW</option></select></label>
+            <p class="hint wide" id="cFacingHint" data-i18n>Ask the agent / check the floor plan — drives the sun, view and park-facing checks.</p>
+            <label class="f"><span data-i18n>Floor area (sqm)</span><input type="number" id="cSqm" min="20" max="300" required></label>
+            <label class="f"><span data-i18n>Asking price (S$)</span><input type="number" id="cPrice" min="100000" step="1000" required></label>
+            <label class="f"><span data-i18n>Nickname</span><input type="text" id="cName" placeholder="e.g. AMK near school" data-i18n-attr="placeholder"></label>
+            <label class="f wide"><span data-i18n>Listing URL (optional)</span><input type="url" id="cUrl" placeholder="https://…"></label>
+          </div>
+          <p class="hint" id="cMeta"></p>
+          <div class="actions">
+            <button type="submit" class="btn primary" id="cSubmit" data-i18n>Add to comparison</button>
+            <button type="button" class="btn" id="cReset" data-i18n>Clear</button>
+          </div>
+        </form>
+      </div>
+      <div class="section">
+        <h3><span data-i18n>Your shortlist</span> <button class="link" id="shareChoices" title="Copy a link with these flats only — no names, income or CPF" data-i18n data-i18n-attr="title">share link</button><button class="link" id="clearChoices" style="margin-left:8px" data-i18n>remove all</button></h3>
+        <div id="choiceList"></div>
+      </div>
+      <div class="section">
+        <h3 data-i18n>Daily places</h3>
+        <p class="hint" style="margin:0 0 8px" data-i18n>Add each family member's office, the kids' childcare, grandparents' home… Every flat you compare gets a distance to each place automatically.</p>
+        <form id="workForm" autocomplete="off">
+          <div class="fields">
+            <label class="f"><span data-i18n>Name</span><input type="text" id="wName" placeholder="e.g. Dad's office" data-i18n-attr="placeholder" required></label>
+            <label class="f wide"><span data-i18n>Place</span>
+              <div class="ac"><input type="text" id="wPlace" placeholder="search street, block, MRT, school…" data-i18n-attr="placeholder"><div class="ac-list" id="wList"></div></div>
+            </label>
+          </div>
+          <p class="hint" id="wMeta"><span data-i18n>Search, or</span> <button type="button" class="link" id="wPick" data-i18n>pick on the map</button>.</p>
+          <div class="actions">
+            <button type="submit" class="btn primary" id="wSubmit" data-i18n>Add place</button>
+            <button type="button" class="btn" id="wCancel" data-i18n>Clear</button>
+          </div>
+        </form>
+        <div id="workList" style="margin-top:10px"></div>
+      </div>
+      <p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p>
+    </div>
+
+    <!-- 7b disclaimer line (O14): fixed panel footer at >= 768 px; phones get the .tab-end copy at the end of each tab -->
+    <p class="disc-line" id="discLine"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p>
+  </aside>
+
+  <main id="mapwrap">
+    <div id="map"></div>
+    <button id="panelToggle" title="Hide / show side panel (\ key)" aria-label="Hide or show the side panel" data-i18n-attr="title,aria-label">◀</button>
+    <div class="mapbar">
+      <div class="ac msearch"><input type="text" id="mSearch" placeholder="Search block, street, town, MRT or school…" data-i18n-attr="placeholder" autocomplete="off"><div class="ac-list" id="mList"></div></div>
+      <button class="btn" id="clearRoutes" style="display:none" data-i18n>Clear all lines</button>
+      <button class="btn" id="fitChoices" data-i18n>Zoom to choices</button>
+      <button class="btn" id="fitSg" data-i18n>Singapore</button>
+    </div>
+    <div class="banner" id="banner"></div>
+    <div id="cardDock" aria-label="Block cards" data-i18n-attr="aria-label"></div>
+    <p id="cardLive" class="bc-live" aria-live="polite"></p>
+    <div id="drawnStrip" style="display:none"></div>
+    <div class="areabox" id="areaBox">
+      <div class="ab-head"><button class="tog" id="abTog" title="Collapse" data-i18n-attr="title">▾</button><b id="abTitle" data-i18n>Prices in view</b><span class="ab-mini" id="abMini"></span><span class="spacer"></span><button class="link" id="abCircle" data-i18n>circle</button><button class="link" id="abDraw" style="margin-left:8px" data-i18n>draw</button><button class="link" id="abClear" style="display:none;margin-left:8px" data-i18n>clear</button></div>
+      <div class="ab-body" id="abBody"></div>
+    </div>
+
+    <div id="drawer">
+      <div class="bar" id="drawerBar">
+        <b data-i18n>Compare</b><span class="muted" id="drawerHint" data-i18n>add flats to compare them side by side</span>
+        <span class="spacer"></span>
+        <button class="btn sm" id="copyTsv" data-i18n>Copy table</button>
+        <button class="btn sm" id="csvDownload" title="Save the shortlist as a CSV file on this device (opens in Excel, one column per flat)" data-i18n data-i18n-attr="title">Download CSV</button>
+        <button class="btn sm" id="printSummary" title="Print or save as PDF: comparison + Afford summary" data-i18n data-i18n-attr="title">Print</button>
+        <button class="btn sm" id="drawerToggle">▲</button>
+      </div>
+      <div class="body" id="cmpBody"></div>
+      <p class="disc-line inline cmp-disc"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p>
+    </div>
+  </main>
+</div>
+
+<div id="boot" role="status" aria-live="polite"><div class="boot-card"><b data-i18n>SG Housing &amp; Finance</b><span class="msg" data-i18n>Loading…</span></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO" crossorigin="anonymous"></script>
+<script type="importmap">
+{ "imports": { "@core/": "./core/", "@engine/": "./engine/", "@modules/": "./modules/" } }
+</script>
+<script type="module" src="main.js"></script>
+<noscript>This app needs JavaScript.</noscript>
+</body>
+</html>

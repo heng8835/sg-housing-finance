@@ -1,0 +1,52 @@
+name: policy review warning
+# Weekly: read review_due from app/policy/sg-policy.json and open ONE issue when it is 30 days away or past
+# (go-live plan §3.4). tests/policy.test.js turns CI red after review_due; this gives a month's notice.
+# Only the built-in GITHUB_TOKEN is used; no other secrets.
+on:
+  schedule:
+    - cron: "0 1 * * 1"          # Mondays 01:00 UTC (09:00 SGT)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  warn:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const WARN_DAYS = 30;
+            const doc = JSON.parse(fs.readFileSync('app/policy/sg-policy.json', 'utf8'));
+            const due = doc.review_due;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(due || '')) {
+              core.setFailed(`review_due missing or not YYYY-MM-DD: ${due}`);
+              return;
+            }
+            const days = Math.floor((Date.parse(`${due}T00:00:00+08:00`) - Date.now()) / 86400000);
+            core.info(`policy review_due ${due}: ${days} day(s) left`);
+            if (days > WARN_DAYS) return;
+            const title = `Policy review due ${due} (app/policy/sg-policy.json)`;
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
+            });
+            if (open.some((i) => !i.pull_request && i.title === title)) {
+              core.info('an issue for this review date is already open');
+              return;
+            }
+            const when = days < 0 ? `was due ${-days} day(s) ago` : `is due in ${days} day(s)`;
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo, title,
+              body: [
+                `The Singapore rules file \`app/policy/sg-policy.json\` (version ${doc.version}, reviewed ${doc.reviewed}) ${when}.`,
+                '',
+                'After that date `tests/policy.test.js` fails, so CI is red and Pages does not deploy.',
+                '',
+                'To do: re-read every `source_url`, add dated rows for changed values (never overwrite history),',
+                'bump `version` / `reviewed` / `review_due`, re-run `npm test` and the characterisation fixtures.',
+              ].join('\n'),
+            });

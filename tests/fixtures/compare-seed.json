@@ -1,0 +1,13 @@
+{
+  "_note": "Characterisation seed for the compare table (Phase 0, T2). Put into localStorage key 'hdb-comparer', reload, dump table rows as 'cell | cell'. Values depend on the capture date (remaining lease uses today's date) and on data.js.",
+  "captured": "2026-10-06",
+  "state": {
+    "profile": { "income": 9000, "cash": 150000, "age": 32, "grants": 30000, "loan": "hdb", "tenure": 25 },
+    "choices": [
+      { "id": 1, "bid": 50, "ft": 3, "storey": 12, "sqm": 93, "price": 720000, "name": "Bishan 4R", "url": "", "facing": "N" },
+      { "id": 2, "bid": 693, "ft": 4, "storey": 8, "sqm": 112, "price": 650000, "name": "Punggol 5R", "url": "", "facing": "W" },
+      { "id": 3, "bid": 500, "ft": 2, "storey": 5, "sqm": 67, "price": 380000, "name": "Ho Ching 3R", "url": "", "facing": "" }
+    ],
+    "nextId": 4
+  }
+}

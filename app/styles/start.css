@@ -1,0 +1,46 @@
+/* First-run "Start here" (modules/start): a calm centred modal, one question per screen. Tokens from base.css only;
+   the ✕ reuses .gp-x from guide.css, option rows follow the tour picker (.gp-opt) look. */
+dialog.start-dlg { width: min(480px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 0;
+  border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow-pop); overflow-y: auto; }
+dialog.start-dlg::backdrop { background: var(--veil); }
+.st-inner { position: relative; padding: var(--sp-5); }
+.st-head { position: relative; }
+.st-head .gp-x { top: -6px; right: -6px; }
+.st-step { margin: 0 0 var(--sp-1); font-size: .857rem; color: var(--text-3); }
+.st-head h2 { margin: 0 var(--sp-8) var(--sp-2) 0; font-size: 1.214rem; font-weight: 650; line-height: 1.3; }
+.st-help { margin: 0 0 var(--sp-4); font-size: .964rem; line-height: 1.55; color: var(--text-2); }
+.st-next { margin: var(--sp-2) 0 var(--sp-2); font-size: .929rem; font-weight: 600; }
+.st-body { margin-bottom: var(--sp-5); }
+.st-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.st-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 48px; padding: var(--sp-3) 14px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+.st-opt:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+.st-opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.st-t { font-size: 1rem; font-weight: 600; line-height: 1.35; }
+.st-d { font-size: .893rem; color: var(--text-3); line-height: 1.4; }
+.st-opt:hover .st-t, .st-opt.on .st-t { color: var(--accent-ink); }
+.st-fields { margin-top: var(--sp-3); }
+.st-chips { margin-bottom: var(--sp-3); }
+.st-towns { max-height: 240px; overflow-y: auto; padding: 2px; }
+.st-body .seg button { min-height: 36px; padding: 6px 16px; font-size: .929rem; }
+.st-foot { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.st-gap { flex: 1; }
+.st-alt { margin: var(--sp-4) 0 0; padding-top: var(--sp-3); border-top: 1px solid var(--border-subtle); font-size: .857rem; color: var(--text-3); line-height: 1.5; }
+.st-alt .link { font-size: .857rem; }
+.start-learn { margin-top: 0; }
+/* 7b B5: EN · 中文 inside the dialog (left of the ✕); the step line keeps room for it */
+.st-lang { position: absolute; top: -6px; right: 36px; }
+.st-lang button { min-height: 32px; padding: 4px 10px; font-size: .857rem; }
+.st-head:has(.st-lang) .st-step { min-height: 30px; padding-right: 130px; }
+.st-extra { margin: var(--sp-3) 0 0; }
+.st-body .seg-field + .seg-field, .st-body .fields + .seg-field, .st-body .seg-field + .fields { margin-top: var(--sp-3); }
+.ts-big .st-lang button { min-height: 44px; }
+.ts-big .st-head:has(.st-lang) .st-step { min-height: 42px; }
+@media (max-width: 767px) {
+  .st-inner { padding: var(--sp-4); }
+  .st-foot .btn, .st-alt .link { min-height: 44px; }
+  .st-towns { max-height: 40vh; }
+  .st-lang button { min-height: 44px; }
+  .st-head:has(.st-lang) .st-step { min-height: 42px; }
+}
+@media print { dialog.start-dlg { display: none !important; } }

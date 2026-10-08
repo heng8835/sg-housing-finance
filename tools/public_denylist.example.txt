@@ -1,0 +1,22 @@
+# Denylist for tools/public_export.py (DEC-015 public export).
+# Copy this file to tools/public_denylist.txt (gitignored - never commit the real one) and replace the
+# placeholders with YOUR values. One string per line; blank lines and lines starting with # are ignored.
+# Matching ignores case and treats \ and / as the same, so "C:\Users\<me>" also catches "C:/Users/<me>" and the
+# JSON-escaped form with doubled backslashes. Each entry needs at least 3 characters. Hits are reported by line number only.
+#
+# The export FAILS when an entry appears in any exported code / config / test file, and leaves out optional docs
+# (docs/, hdb-data-pipeline/docs/) that contain one. Keep entries specific: a common word drops many files.
+#
+# Machine paths (old project folders, user-profile paths)
+X:\Old Project Folder
+C:\Users\<your-windows-login>
+# User names / handles that should not be public (work-linked logins, scripts named after them)
+your-work-github-handle
+your-windows-login
+# Company, network and internal system names
+Your Company Pte Ltd
+yourcompany.example
+INTERNAL-SYSTEM-NAME
+# E-mail addresses (work and private) - the public LICENSE name is fine, list e-mails only
+you@work.example
+you@personal.example

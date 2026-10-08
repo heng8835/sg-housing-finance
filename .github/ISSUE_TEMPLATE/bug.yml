@@ -1,0 +1,56 @@
+name: Bug
+description: Something does not work — a button, a tab, the map, the offline copy, printing, the 中文 view…
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Never paste your income, CPF balances, savings, debts or anyone's name here — issues are public.**
+        Screenshots are welcome, but crop or blur any household numbers first. A wrong figure? Use "Wrong number" instead.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Afford tab
+        2. Click …
+        3. See …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      description: e.g. iPhone 15 / Safari 18, Windows 11 / Chrome 130.
+    validations:
+      required: true
+  - type: dropdown
+    id: lang
+    attributes:
+      label: Language and mode
+      multiple: true
+      options:
+        - English
+        - 中文
+        - Simple mode
+        - Pro mode
+  - type: textarea
+    id: console
+    attributes:
+      label: Error messages (optional)
+      description: Any red text from the browser console (F12). Check it holds no personal figures.
+      render: text
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I have not pasted any income, CPF balance, savings, debts or names.
+          required: true

@@ -1,0 +1,33 @@
+{
+  "asOf": "2026-10-07",
+  "note": "Named major projects for the future-value 'catalysts' driver. Positions are APPROXIMATE (district or site centre picked by hand, ~200-500 m); km = rough reach used to decide 'near this flat'. year = opening / start year as published (null = long-term, no date). Only facts read from the source_url (or the official page it cites) are recorded; re-check when URA / MOH / HDB announce changes.",
+  "projects": [
+    {"id": "pdd", "name": "Punggol Digital District", "kind": "jobs", "lat": 1.4108, "lon": 103.9105, "approx": true, "km": 1.2,
+     "year": 2024, "status": "opening in phases", "source_url": "https://www.jtc.gov.sg/find-space/punggol-digital-district",
+     "note": "JTC business district + SIT campus at Punggol Coast; opened progressively from Q3 2024."},
+    {"id": "jld", "name": "Jurong Lake District", "kind": "jobs", "lat": 1.3355, "lon": 103.7400, "approx": true, "km": 2.0,
+     "year": null, "status": "long-term (phased)", "source_url": "https://www.ura.gov.sg/land-planning/master-plan/master-plan-2025/regional-plans/",
+     "note": "Largest business district outside the Central Area (URA Master Plan 2025, West region); developed over decades."},
+    {"id": "plab", "name": "Paya Lebar Air Base redevelopment", "kind": "new town", "lat": 1.3600, "lon": 103.9100, "approx": true, "km": 2.5,
+     "year": null, "status": "long-term (relocation from the 2030s)", "source_url": "https://www.ura.gov.sg/land-planning/master-plan/master-plan-2025/regional-plans/",
+     "note": "Air base relocates from the 2030s; new town of up to 150,000 homes announced at National Day Rally 2022; height limits around it may be lifted. Adds supply as well as amenities."},
+    {"id": "gsw", "name": "Greater Southern Waterfront (Keppel Club site)", "kind": "new town", "lat": 1.2690, "lon": 103.8160, "approx": true, "km": 2.0,
+     "year": null, "status": "long-term (phased)", "source_url": "https://www.ura.gov.sg/land-planning/master-plan/master-plan-2025/regional-plans/",
+     "note": "Waterfront from Pasir Panjang to Marina East freed up as the ports move to Tuas; first precincts (Keppel Club, Pasir Panjang Power District) within about 5-10 years."},
+    {"id": "turf", "name": "Bukit Timah Turf City", "kind": "new town", "lat": 1.3380, "lon": 103.7930, "approx": true, "km": 1.2,
+     "year": null, "status": "long-term (20-30 years)", "source_url": "https://www.ura.gov.sg/Corporate/Media-Room/Media-Releases/pr24-24",
+     "note": "URA (2024): new estate of about 15,000-20,000 public and private homes over 20-30 years; served by Sixth Avenue (DTL) and a future Cross Island Line station."},
+    {"id": "whc", "name": "Woodlands Health Campus", "kind": "hospital", "lat": 1.4250, "lon": 103.7950, "approx": true, "km": 1.5,
+     "year": 2024, "status": "opened", "source_url": "https://www.hospitalmanagement.net/news/singapores-woodlands-health-campus-opens/",
+     "note": "Acute + community hospital (NHG) at 17 Woodlands Drive 17; opened progressively, officially opened 13 July 2024."},
+    {"id": "egh", "name": "Eastern General Hospital", "kind": "hospital", "lat": 1.3350, "lon": 103.9180, "approx": true, "km": 1.5,
+     "year": 2030, "status": "under construction", "source_url": "https://www.singhealth.com.sg/our-institutions/eastern-general-hospital",
+     "note": "SingHealth general + community hospital next to Bedok North MRT (DTL), bounded by Bedok Reservoir Rd and Bedok North Rd; expected around 2029-2030."},
+    {"id": "tgh", "name": "Tengah hospital (integrated general + community)", "kind": "hospital", "lat": 1.3560, "lon": 103.7300, "approx": true, "km": 1.5,
+     "year": 2030, "status": "planned (early 2030s)", "source_url": "https://www.moh.gov.sg/newsroom/speech-by-mr-ong-ye-kung-minister-for-health-at-the-ministry-of-health-committee-of-supply-debate-2024-on-wednesday-6-march-2024/",
+     "note": "MOH Committee of Supply 2024: new NUHS hospital in Tengah, completion in the early 2030s (year shown = earliest). Exact site not published - placed at Tengah town centre."},
+    {"id": "bidadari", "name": "Bidadari estate (Bidadari Park, Woodleigh Mall)", "kind": "amenities", "lat": 1.3395, "lon": 103.8715, "approx": true, "km": 1.0,
+     "year": 2024, "status": "opened", "source_url": "https://en.wikipedia.org/wiki/Bidadari,_Singapore",
+     "note": "New HDB estate on the former cemetery: first flats 2019, Woodleigh Mall 2023, 10-ha Bidadari Park opened September 2024 (secondary source)."}
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "sg-housing-finance",
+  "private": true,
+  "type": "module",
+  "description": "No-build static web app (app/) + Python data pipeline. This file exists only so node --test loads ES modules.",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\"",
+    "fixtures": "node tests/fixtures/gen/all.mjs",
+    "fixtures:check": "node tests/fixtures/gen/all.mjs --check"
+  }
+}

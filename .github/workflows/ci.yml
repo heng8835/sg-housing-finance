@@ -1,0 +1,33 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: hdb-data-pipeline } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -e .[dev]
+      - run: pytest -q
+
+  js:
+    # app/ engine + policy tests (node --test, no dependencies). Includes the policy
+    # review-date check, so CI goes red when sg-policy.json is due for re-sourcing.
+    # Also: the offline-copy manifest must be fresh, the privacy guarantee (go-live blocker 3) is shown as its own
+    # step, and the public Pages build must stage cleanly (allow-list, BTO off, size budget). Python is for the
+    # tools tests inside npm test (tests/tools/python-tools.test.js) and the two tools steps.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: offline-copy manifest is up to date
+        run: python tools/build_sw_manifest.py --check
+      - name: privacy guarantee (marker values, egress allow-list, CSP / SRI)
+        run: node --test "tests/privacy/*.test.js"
+      - run: npm test
+      - name: public Pages build stages (runtime allow-list, btoData + floodData off, size budget)
+        run: python tools/stage_site.py --public --out "$RUNNER_TEMP/_site"

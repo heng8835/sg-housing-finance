@@ -1,0 +1,13 @@
+/* Saved map views (modules/explore/views.js): a small card at the end of the Explore tab. Tokens from base.css only. */
+#secViews .vw-list { list-style: none; margin: 0 0 var(--sp-3); padding: 0; }
+#secViews .vw-row { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; padding: var(--sp-2) 0; border-top: 1px solid var(--border-subtle); }
+#secViews .vw-row:first-child { border-top: 0; }
+#secViews .vw-text { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#secViews .vw-text b { font-size: .964rem; font-weight: 600; overflow-wrap: anywhere; }
+#secViews .vw-text small { font-size: .857rem; color: var(--text-3); line-height: 1.4; }
+#secViews .vw-acts { display: flex; align-items: center; gap: var(--sp-3); }
+#secViews .vw-form { flex: 1 1 100%; }
+#secViews .vw-form .f { display: flex; flex-direction: column; gap: var(--sp-1); margin-bottom: var(--sp-2); }
+#secViews .hint:empty { display: none; }
+@media (max-width: 767px) { #secViews .vw-acts .btn, #secViews .vw-acts .link { min-height: 44px; } }
+@media print { #secViews { display: none !important; } }

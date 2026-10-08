@@ -1,0 +1,115 @@
+/* Flat brief (modules/explore/brief.js): preview dialog on screen, one A4 page in print.
+   The page uses pt / mm so the off-screen measurement (#briefPrint, 186 mm wide) matches print.
+   Calm and black-and-white safe: meaning is carried by icons and words, not colour. */
+
+/* compare-table header + My choices controls */
+.cmp th .br-open { display: block; margin-top: 4px; font-weight: 400; }
+.cmp th .br-open::after { content: attr(data-label); }  /* label via CSS: the table dump / "Copy table" stay data only */
+
+/* phones: one more button in the compare bar — let the bar scroll sideways rather than overflow */
+@media (max-width: 480px) { #drawerBar { gap: 8px; overflow-x: auto; scrollbar-width: none; } }
+
+/* off-screen copy that is measured and printed (never visible on screen) */
+#briefPrint { position: absolute; left: -10000px; top: 0; width: 186mm; visibility: hidden; pointer-events: none; }
+
+/* preview dialog */
+dialog.brief-dlg { width: min(860px, 96vw); height: min(94vh, 1200px); max-height: 94vh; padding: 0; border: 0; border-radius: var(--radius); background: var(--surface-2); color: var(--text); box-shadow: var(--shadow-pop); display: none; }
+dialog.brief-dlg[open] { display: flex; flex-direction: column; }
+dialog.brief-dlg::backdrop { background: var(--veil); }
+.brief-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.brief-bar h2 { margin: 0; font-size: 16px; }
+.brief-note { margin: 2px 0 0; font-size: 12px; color: var(--text-3); }
+.brief-acts { display: flex; gap: 8px; }
+.brief-stage { flex: 1; overflow: auto; padding: 20px; overscroll-behavior: contain; }
+.brief-paper { width: 210mm; max-width: 100%; margin: 0 auto; padding: 12mm; box-sizing: border-box; background: #fff; box-shadow: var(--shadow-card); border: 1px solid var(--border); }
+@media (max-width: 700px) {
+  .brief-stage { padding: 8px; }
+  .brief-paper { padding: 16px; }
+  .brief-paper .bf-top { grid-template-columns: 1fr; }
+  .brief-paper .bf-map svg { width: 100%; max-width: 62mm; }
+  .brief-paper .bf-keys { columns: 1; }
+  .brief-paper .bf-head { flex-direction: column; }
+  .brief-paper .bf-price { text-align: left; }
+}
+
+/* the page */
+.brief { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 8.5pt; line-height: 1.32; color: #111; }
+.brief h1 { margin: 0; font-size: 15pt; line-height: 1.15; font-weight: 650; overflow-wrap: anywhere; }
+.brief h2 { margin: 0 0 1.5mm; font-size: 7.5pt; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: #333; }
+.brief h3 { margin: 0 0 .8mm; font-size: 7.5pt; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: #333; }
+.brief p { margin: 0; }
+.brief .bf-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 6mm; padding-bottom: 2.5mm; border-bottom: 1.2pt solid #111; }
+.brief .bf-kicker { font-size: 7.5pt; letter-spacing: .06em; text-transform: uppercase; color: #444; }
+.brief .bf-sub { margin-top: 1mm; font-size: 9.5pt; color: #222; }
+.brief .bf-facts { margin-top: .8mm; font-size: 7.5pt; color: #444; }
+.brief .bf-price { flex: none; text-align: right; }
+.brief .bf-price b { display: block; font-size: 15pt; line-height: 1.2; font-weight: 650; font-variant-numeric: tabular-nums; }
+.brief .bf-price small { display: block; font-size: 7.5pt; color: #444; }
+.brief .bf-disc { margin-top: 1.5mm; font-size: 7pt; color: #444; }
+.brief .bf-top { display: grid; grid-template-columns: 62mm 1fr; gap: 5mm; margin-top: 3.5mm; }
+.brief .bf-map { margin: 0; }
+.brief .bf-map svg { display: block; width: 62mm; height: auto; }
+.brief .bf-map figcaption { display: flex; flex-direction: column; gap: .4mm; margin-top: 1.2mm; font-size: 6.8pt; color: #333; }
+.brief .bf-flags ul { list-style: none; margin: 0; padding: 0; }
+.brief .bf-f { display: flex; gap: 1.6mm; padding: .55mm 0; border-bottom: .4pt solid #ddd; break-inside: avoid; }
+.brief .bf-ic { flex: none; width: 3.2mm; text-align: center; font-weight: 700; }
+.brief .bf-f.critical, .brief .bf-f.serious { font-weight: 600; }
+.brief .bf-more { margin-top: 1mm; font-size: 7pt; color: #444; }
+.brief .bf-kh { margin-top: 4mm; padding-top: 2mm; border-top: .75pt solid #999; }
+.brief .bf-keys { columns: 2; column-gap: 6mm; }
+.brief .bf-sec { break-inside: avoid; margin: 0 0 2.5mm; }
+.brief table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.brief th, .brief td { padding: .55mm 0; border-bottom: .4pt solid #ddd; vertical-align: top; text-align: left; }
+.brief th { width: 44%; padding-right: 2mm; font-weight: 400; color: #333; }
+.brief td { font-weight: 600; overflow-wrap: anywhere; }
+.brief td small { display: block !important; font-size: 7pt; font-weight: 400; color: #444; }
+.brief .tag { display: inline; padding: 0; border-radius: 0; background: none !important; color: inherit !important; font-size: inherit; font-weight: 600; }
+.brief .muted { color: #555; font-weight: 400; }
+.brief [style*="color"] { color: inherit !important; }
+.brief button { display: none !important; }
+.brief a { color: inherit; text-decoration: none; }
+.brief a::after { content: none !important; }
+.brief .bf-notes { margin-top: 1.5mm; padding: 2mm 3mm; border: .75pt solid #999; break-inside: avoid; }
+.brief .bf-notes ul { margin: 0; padding-left: 4mm; font-size: 7pt; color: #222; }
+.brief .bf-src { margin-top: 2mm; font-size: 6.5pt; color: #444; }
+.brief .bf-foot { display: flex; justify-content: space-between; gap: 6mm; margin-top: 2mm; padding-top: 1.2mm; border-top: .4pt solid #999; font-size: 6.5pt; color: #444; }
+.brief .bf-url { overflow-wrap: anywhere; text-align: right; }
+
+/* B4 money box: between the top (map + At a glance) and Key numbers; kept at every fit level */
+.brief .bf-money { margin-top: 3mm; padding: 2mm 3mm; border: .75pt solid #999; break-inside: avoid; }
+.brief .bf-mcols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+.brief .bf-mcols th { width: 40%; }
+.brief .bf-msale, .brief .bf-mnote { margin: 0 0 1mm; font-size: 7pt; color: #222; }
+.brief .bf-mnote { margin: 1mm 0 0; }
+.brief .bf-why { margin-top: 1.2mm; font-size: 7.5pt; }
+.brief .bf-mfoot { margin-top: 1.2mm; font-size: 7pt; color: #444; }
+.brief-acts .check { display: inline-flex; align-items: center; gap: 6px; font-size: .857rem; color: var(--text-2); }
+@media (max-width: 700px) { .brief-paper .bf-mcols { grid-template-columns: 1fr; gap: 0; } }
+
+/* tighter level (fitting step 3+) */
+.brief.dense { font-size: 7.6pt; line-height: 1.25; }
+.brief.dense h1, .brief.dense .bf-price b { font-size: 13pt; }
+.brief.dense .bf-top { grid-template-columns: 50mm 1fr; gap: 4mm; margin-top: 2.5mm; }
+.brief.dense .bf-map svg { width: 50mm; }
+.brief.dense th, .brief.dense td { padding: .35mm 0; }
+.brief.dense td small { font-size: 6.4pt; }
+.brief.dense .bf-f { padding: .35mm 0; }
+.brief.dense .bf-kh { margin-top: 2.5mm; }
+.brief.dense .bf-money { margin-top: 2mm; padding: 1.5mm 2.5mm; }
+.brief.dense .bf-why, .brief.dense .bf-mfoot, .brief.dense .bf-msale, .brief.dense .bf-mnote { font-size: 6.4pt; }
+.brief.dense .bf-money h2 { margin-bottom: .8mm; }
+.brief.dense .bf-money td small { display: inline !important; }   /* one line per money row when space is short */
+.brief.dense .bf-money td small::before { content: ' · '; }
+/* last level (B4): smaller locator */
+.brief.tight .bf-top { grid-template-columns: 42mm 1fr; }
+.brief.tight .bf-map svg { width: 42mm; }
+
+/* print: only the brief while it is open; one A4 portrait page (named page, the normal Print is unchanged) */
+@page brief { size: A4 portrait; margin: 12mm; }
+@media print {
+  .cmp th .br-open, #choiceList [data-brief] { display: none !important; }
+  body.brief-on > *:not(#briefPrint) { display: none !important; }
+  body.brief-on #briefPrint { position: static; left: auto; width: auto; visibility: visible; page: brief; }
+  body.brief-on { background: #fff !important; }
+  .brief { -webkit-print-color-adjust: economy; print-color-adjust: economy; }
+}

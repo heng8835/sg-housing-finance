@@ -1,0 +1,32 @@
+{
+  "_about": "Chinese names of the HDB towns for the map search (Phase 7b B15). Key = the town as written in the HDB resale data (HDB_DATA.towns, upper case); value = Chinese names, the first one is shown in the search result. Drafts — owner / native reader to confirm (O16). Used by app/core/townalias.js.",
+  "towns": {
+    "ANG MO KIO": ["宏茂桥"],
+    "BEDOK": ["勿洛"],
+    "BISHAN": ["碧山"],
+    "BUKIT BATOK": ["武吉巴督"],
+    "BUKIT MERAH": ["红山", "武吉美拉"],
+    "BUKIT PANJANG": ["武吉班让"],
+    "BUKIT TIMAH": ["武吉知马"],
+    "CENTRAL AREA": ["中区", "市区", "市中心"],
+    "CHOA CHU KANG": ["蔡厝港"],
+    "CLEMENTI": ["金文泰"],
+    "GEYLANG": ["芽笼"],
+    "HOUGANG": ["后港"],
+    "JURONG EAST": ["裕廊东"],
+    "JURONG WEST": ["裕廊西"],
+    "KALLANG/WHAMPOA": ["加冷/黄埔", "加冷黄埔", "加冷", "黄埔"],
+    "MARINE PARADE": ["马林百列"],
+    "PASIR RIS": ["巴西立"],
+    "PUNGGOL": ["榜鹅"],
+    "QUEENSTOWN": ["女皇镇"],
+    "SEMBAWANG": ["三巴旺"],
+    "SENGKANG": ["盛港"],
+    "SERANGOON": ["实龙岗"],
+    "TAMPINES": ["淡滨尼"],
+    "TENGAH": ["登加"],
+    "TOA PAYOH": ["大巴窑"],
+    "WOODLANDS": ["兀兰"],
+    "YISHUN": ["义顺"]
+  }
+}

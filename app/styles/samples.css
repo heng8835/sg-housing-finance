@@ -1,0 +1,29 @@
+/* Sample households sandbox (modules/samples): calm banner above the app, picker cards (dialog.drawer, WP-A
+   .section cards), entry card at the top of the Learn sheet. Tokens from base.css only. */
+
+/* the banner sits above #app; the app keeps the rest of the viewport (header + panel + map grid unchanged) */
+body.in-sample { display: flex; flex-direction: column; }
+body.in-sample #app { flex: 1 1 0; min-height: 0; height: auto; }
+.sample-banner { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--accent-soft); border-bottom: 1px solid var(--border); color: var(--text); font-size: .929rem; line-height: 1.45; }
+.sample-banner .sb-text { flex: 1 1 320px; margin: 0; }
+.sample-banner .sb-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+@media (max-width: 767px) {
+  .sample-banner { padding: var(--sp-2) var(--sp-3); font-size: .893rem; }
+  .sample-banner .sb-text { flex-basis: 100%; }
+  .sample-banner .btn { min-height: 36px; }
+}
+@media print { .sample-banner { display: none !important; } }
+
+/* picker */
+#smpDialog .smp-card h3 { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+#smpDialog .smp-current { border-color: var(--accent); }
+.smp-facts { list-style: none; margin: var(--sp-3) 0 0; padding: 0; font-size: .893rem; color: var(--text-2); line-height: 1.5; }
+.smp-facts li + li { margin-top: 2px; }
+#smpDialog .actions { margin-top: var(--sp-3); }
+#smpDialog .foot-note { margin: var(--sp-2) 0 var(--sp-6); }
+
+/* Learn sheet entry */
+.smp-learn { margin: 0 0 var(--sp-4); padding: var(--sp-3) var(--sp-4); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); }
+.smp-learn p { margin: 0; }
+.smp-learn .hint { margin-top: var(--sp-1); }
+.smp-learn .actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-2); }

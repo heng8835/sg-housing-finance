@@ -1,0 +1,34 @@
+# Data: large/regenerable files are not committed.
+# Keep folder structure via .gitkeep; external reference data and the geocode
+# cache are small and valuable, so they ARE committed.
+data/raw/*
+data/interim/*
+data/processed/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment / secrets
+.env
+secrets/
+*.json.key
+gsheets-service-account*.json
+
+# Dagster local run/event storage (regenerable; logs/run-history only)
+.dagster_home/
+
+# OS
+Thumbs.db
+desktop.ini

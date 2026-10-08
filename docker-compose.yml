@@ -1,0 +1,15 @@
+services:
+  app:                           # the web app -> http://localhost:8080
+    build: ./app
+    ports: ["8080:80"]
+
+  pipeline:                      # Dagster UI -> http://localhost:3000
+    build: ./hdb-data-pipeline
+    ports: ["3000:3000"]
+    # optional: copy hdb-data-pipeline/.env.example to .env to set a proxy / data dir / Sheets mirror.
+    # Without it the pipeline runs with defaults (`required: false` needs Docker Compose 2.24+).
+    env_file:
+      - path: ./hdb-data-pipeline/.env
+        required: false
+    volumes:
+      - ./hdb-data-pipeline/data:/app/data

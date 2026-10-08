@@ -1,0 +1,40 @@
+[project]
+name = "hdb-data-pipeline"
+version = "0.1.0"
+description = "Singapore HDB resale/BTO analysis data pipeline feeding Tableau dashboards"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "requests>=2.31",
+    "beautifulsoup4>=4.11",
+    "lxml>=4.9",
+    "gspread>=5.0",
+    "google-auth>=2.0",
+    "python-dotenv>=1.0",
+    "dagster>=1.8",
+    "dagster-webserver>=1.8",
+]
+
+[tool.dagster]
+module_name = "dagster_project.definitions"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.1",
+    "ruff>=0.4",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]

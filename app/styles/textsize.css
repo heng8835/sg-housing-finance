@@ -1,0 +1,67 @@
+/* Text size (Phase 7 B10, DEC-016 Q5, spec phase7-user-feedback.md §4.5). core/textsize.js puts ts-large / ts-larger
+   (and ts-big for both) on <html>. Every app font size is rem (rem = px ÷ 14 at Normal), so one token scales the text:
+   Normal 14 px · Large 16 px · Larger 18 px. Large and Larger also raise tap targets to ≥ 44 px. Header chrome and map
+   markers keep their px sizes (the phone header is full; markers are fixed graphics); brief.css (A4 print) is untouched.
+   Calm: no new colours — the switch is a .seg like EN / 中文. Loaded last, so equal-specificity rules here win. */
+:root { --fs-base: 14px; }
+:root.ts-large { --fs-base: 16px; --panel-w: 460px; --field-min: 168px; }
+:root.ts-larger { --fs-base: 18px; --panel-w: 500px; --field-min: 184px; }
+
+/* ---------- the switch: three "A"s in growing sizes (px on purpose: they preview the sizes) ---------- */
+header { font-size: 14px; }
+header .seg button, header .btn.sm { font-size: 12px; }
+.ts-switch button { min-width: 30px; padding: 4px 8px; line-height: 1; }
+header .ts-switch button { min-height: 32px; } /* as tall as the Simple / Pro switch */
+.ts-switch span { font-weight: 600; }
+.ts-switch .ts-0 span { font-size: 12px; }
+.ts-switch .ts-1 span { font-size: 15px; }
+.ts-switch .ts-2 span { font-size: 18px; }
+.ts-learn { display: none; }
+@media (max-width: 767px) {
+  header .ts-switch { display: none; } /* phone: in the Learn sheet instead (modules/shell/textsize.js) */
+  .ts-learn { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin: 0 0 var(--sp-4); padding: var(--sp-3); background: var(--surface-2); border-radius: var(--radius-sm); }
+  .ts-learn .f-label { margin: 0; }
+}
+/* tablet: room for the switch — the block count and the "Learn" word give way (the 📘 stays, with its aria-label) */
+@media (min-width: 768px) and (max-width: 1023px) { header .stat, #learnBtn .lbl { display: none; } }
+
+/* "Bigger text?" on Start here → You're set */
+.st-ts { margin: var(--sp-4) 0 var(--sp-5); }
+.st-ts .st-d { display: block; margin: 0 0 var(--sp-2); }
+.st-ts-opts { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.st-ts-opts .btn { min-height: 40px; min-width: 88px; }
+.st-ts-opts .btn.st-ts-large { font-size: 1.143rem; }
+.st-ts-opts .btn.st-ts-larger { font-size: 1.286rem; }
+.st-ts-opts .btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+
+/* ---------- Large and Larger: tap targets ≥ 44 px ---------- */
+.ts-big .btn, .ts-big .seg button, .ts-big .chip, .ts-big .svc, .ts-big .hh-chip, .ts-big #learnBtn, .ts-big #guideBtn,
+.ts-big button.link, .ts-big .tabs button, .ts-big .ac-list div, .ts-big .ac-list [role="option"],
+.ts-big select, .ts-big input[type=text], .ts-big input[type=number], .ts-big input[type=url], .ts-big input[type=date], .ts-big input[type=search],
+.ts-big details > summary, .ts-big .check, .ts-big .radios label { min-height: 44px; }
+.ts-big .btn, .ts-big .seg button, .ts-big .chip, .ts-big .gp-x, .ts-big .ts-switch button { min-width: 44px; }
+.ts-big .gp-x { min-height: 44px; }
+.ts-big .radios { gap: 0; }
+.ts-big input[type=checkbox], .ts-big input[type=radio] { width: 1.15em; height: 1.15em; }
+.ts-big details.fold-inline > summary, .ts-big .cmp-fv-how > summary { min-height: 44px; }
+/* ⓘ (button.info 1 rem circle, .term ⓘ) grow with the text; an invisible 44 px hit area around them */
+.ts-big button.info, .ts-big .term { position: relative; }
+.ts-big button.info::after, .ts-big .term::after { content: ''; position: absolute; inset: -14px; }
+/* map zoom buttons */
+.ts-big .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; font-size: 22px; }
+/* compare drawer bar: 52 px so its 44 px buttons fit; the map's bottom controls and the phone sheet follow it */
+.ts-big #drawer .bar { height: 52px; }
+.ts-big #drawer:not(.open) { transform: translateY(calc(100% - 52px)); }
+.ts-big .leaflet-bottom { bottom: 52px; }
+@media (max-width: 767px) { .ts-big #panel { padding-bottom: 64px; } }
+/* header: same px text, bigger targets; below 1180 px the block count and the Learn word give way, the title may shorten */
+@media (max-width: 1179px) {
+  .ts-big header .stat, .ts-big #learnBtn .lbl { display: none; }
+  .ts-big header h1 { min-width: 0; flex-shrink: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+}
+/* charts drawn at a measured width with font-size="11" (rent, rent trend, block trend, town vs market): a little larger */
+.ts-large svg[font-size="11"] { font-size: 12px; }
+.ts-larger svg[font-size="11"] { font-size: 13px; }
+/* segs in tabs and drawers may wrap at Larger instead of being cut off on a phone */
+.ts-big .tab .seg, .ts-big .drawer-body .seg { flex-wrap: wrap; max-width: 100%; }
+@media print { header .ts-switch, .ts-learn { display: none !important; } }

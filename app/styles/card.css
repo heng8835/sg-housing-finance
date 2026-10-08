@@ -1,0 +1,154 @@
+/* Explore — floating block cards (./modules/explore/dock.js), the card content, the calculation window and the
+   sales-history slider, the "Labels on the boxes" switch (hdb-data-pipeline/docs/specs/phase5-block-card-design.md
+   §1, §4.3; phase5-accept1-design.md §5). WP-A tokens from base.css. */
+
+/* ---- dock + card windows: above the Prices box (600), below #panelToggle (650) and the panel */
+#cardDock { position: absolute; inset: 0; pointer-events: none; z-index: 645; }
+.bc-win { position: absolute; pointer-events: auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-pop); }
+.bc-bar { flex: none; position: sticky; top: 0; display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 6px 0 10px;
+  background: var(--surface); border-bottom: 1px solid var(--border-subtle); }
+.bc-num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: 4px;
+  border-radius: 50%; background: var(--accent-ink); color: #fff; font-size: .786rem; font-weight: 700; }
+.bc-wt { flex: 1; min-width: 0; margin: 0; font-size: 1.071rem; font-weight: 650; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-ib { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0;
+  border-radius: 6px; background: none; color: var(--text-2); font-size: 1.071rem; line-height: 1; cursor: pointer; }
+.bc-ib:hover { background: var(--surface-2); color: var(--text); }
+.bc-ib:focus-visible, .bc-grip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bc-exec { flex: none; margin: 0; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--border);
+  font-size: .929rem; line-height: 1.45; color: var(--text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.bc-exec b { font-variant-numeric: tabular-nums; }
+.bc-exec-warn { color: #a24a25; }
+.bc-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 12px 12px 0; }
+.bc-grip { position: absolute; left: 0; bottom: 0; z-index: 2; display: flex; align-items: flex-end; justify-content: flex-start; width: 24px; height: 24px;
+  padding: 0 0 4px 4px; border: 0; background: none; color: var(--text-3); cursor: nesw-resize; touch-action: none; }
+.bc-win.min { height: auto !important; }
+.bc-win.min .bc-scroll, .bc-win.min .bc-grip { display: none; }
+.bc-win.min .bc-bar { cursor: pointer; }
+.bc-win.min .bc-exec { border-bottom: 0; }
+.bc-win.pulse { animation: bc-pulse .6s ease-out; }
+@keyframes bc-pulse { from { outline: 2px solid var(--accent); outline-offset: 0; } to { outline: 2px solid transparent; outline-offset: 6px; } }
+.bc-fade { animation: bc-fade .15s ease-out; }
+@keyframes bc-fade { from { opacity: .35; } to { opacity: 1; } }
+/* "Add a flat from this block…" → My choices form highlighted briefly (modules/explore/handoff.js flashForm) */
+.ho-flash { border-radius: 8px; animation: ho-flash 1.6s ease-out forwards; }
+@keyframes ho-flash { 0%, 60% { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 4px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
+@media (prefers-reduced-motion: reduce) { .ho-flash { animation: none; box-shadow: 0 0 0 3px var(--accent-soft); } }
+.bc-live { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* numbered map pins (front #1b1b19, others #52514e); hovering a card enlarges its pin */
+.bc-pin svg { transition: transform .12s; transform-origin: 50% 100%; }
+.bc-pin.hot svg { transform: scale(1.15); }
+
+/* ---- card content */
+.bc { display: flex; flex-direction: column; gap: var(--sp-2); font-size: .893rem; }
+/* undo the app-header rules (base.css `header`, modules.css `header .sub`) that also match the card's <header> */
+.bc .bc-head { display: block; grid-column: auto; padding: 0; background: none; border: 0; gap: 0; min-width: 0; }
+.bc .bc-head .bc-sub { display: block; overflow: visible; font-size: .893rem; -webkit-line-clamp: unset; }
+.bc-sub { margin: 0 0 var(--sp-2); color: var(--text-3); }
+.bc-facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.bc-facts li { font-size: .857rem; color: var(--text-2); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 2px 8px; }
+.bc-flags { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.bc-sec { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-card); padding: 10px 12px; }
+.bc-h { margin: 0 0 var(--sp-2); font-size: .929rem; font-weight: 600; color: var(--text); }
+.bc-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.bc-tile { background: var(--surface-2); border-radius: 6px; padding: 6px 8px; }
+.bc-tile small { display: block; font-size: .786rem; color: var(--text-3); }      /* 5.05:1 on --surface-2 */
+.bc-tile b { font-size: 1rem; font-variant-numeric: tabular-nums; }
+.bc-scope, .bc-cap { margin: 6px 0 0; font-size: .857rem; color: var(--text-3); line-height: 1.45; }
+.bc-chart { position: relative; margin-top: 2px; }
+.bc-chart svg { display: block; }
+.bc-chart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.bc-tip { position: absolute; z-index: 2; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); padding: 8px 10px; font-size: .857rem; line-height: 1.45; max-width: 190px; pointer-events: none; font-variant-numeric: tabular-nums; }
+.bc-tip b, .bc-tip span, .bc-tip small { display: block; } .bc-tip small { color: var(--text-3); }
+.bc table { width: 100%; margin-top: 6px; border-collapse: collapse; font-size: .857rem; font-variant-numeric: tabular-nums; }
+.bc th { text-align: left; color: var(--text-3); font-weight: 500; padding: 3px 4px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.bc-table.open th { position: sticky; top: 0; }   /* only inside the "Show all" scroller */
+.bc td { padding: 3px 4px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+.bc tbody tr:not(.sel) td { color: var(--text-2); }
+.bc tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); padding-left: 7px; }   /* "Blue bar = your flat types." */
+.bc tr.sel td:nth-child(2) { font-weight: 600; }
+.bc .r { text-align: right; }
+.bc-table.open { max-height: 264px; overflow: auto; overscroll-behavior: contain; }
+.bc-more { margin-top: 6px; min-height: 32px; }
+.bc-fold > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; min-height: 32px; margin: -4px 0; cursor: pointer; }
+.bc-fold > summary::-webkit-details-marker { display: none; }
+.bc-fold > summary::after { content: ''; width: 7px; height: 7px; margin-top: -3px; border: solid var(--text-3); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.bc-fold[open] > summary::after { transform: rotate(-135deg); margin-top: 3px; }
+.bc-fold[open] > summary { margin-bottom: var(--sp-2); }
+.bc-list { margin: 0; padding-left: 16px; color: var(--text-2); line-height: 1.5; }
+/* sticky inside the card's scroller */
+.bc-actions { position: sticky; bottom: 0; background: var(--surface-2); padding: 8px 0 12px 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+.bc-actions .foot-note { flex-basis: 100%; margin: 0; }
+
+/* ---- "Prices from the last N years" (under the legend) + sales-history slider */
+.calc-win { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 12px; font-size: .929rem; }
+.calc-win select { width: auto; min-width: 112px; min-height: 32px; }
+.calc-win .f-help { flex-basis: 100%; margin: 0; }
+.yr-range { --yr-r: 10px; margin: 2px 0 10px; }   /* --yr-r = thumb radius: the thumbs' travel starts / ends this far in */
+.yr-out { margin: 0 0 2px; font-size: .929rem; font-variant-numeric: tabular-nums; }
+.yr-track { position: relative; height: 32px; }
+.yr-track::before { content: ''; position: absolute; left: var(--yr-r); right: var(--yr-r); top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--border-subtle); }
+.yr-fill { position: absolute; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--accent); }
+.yr-track input[type="range"] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; min-height: 0; border: 0; box-shadow: none; -webkit-appearance: none; appearance: none; background: none; pointer-events: none; z-index: 1; }
+.yr-track input[type="range"]::-webkit-slider-runnable-track { background: none; border: 0; height: 100%; }
+.yr-track input[type="range"]::-moz-range-track { background: none; border: 0; }
+.yr-track input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; pointer-events: auto; width: 20px; height: 20px; margin-top: 6px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--accent); box-shadow: var(--shadow-card); cursor: pointer; }
+.yr-track input[type="range"]::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: var(--shadow-card); cursor: pointer; }
+.yr-track input[type="range"]:focus { outline: none; }
+.yr-track input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.yr-track input[type="range"]:focus-visible::-moz-range-thumb { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.yr-ends { display: flex; justify-content: space-between; font-size: .786rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+#histQuick { margin-top: 2px; }
+
+/* "Labels on the boxes" (side panel, under the legend) */
+#chipLabel button { white-space: nowrap; }
+
+/* ---- one card at a time: 768–900 px beside the map, phone above the sheet peek */
+#cardDock.solo .bc-win { right: 12px; top: 12px; width: 360px; height: calc(100% - 24px); }
+#cardDock.solo .bc-grip { display: none; }
+@media (max-width: 767px) {
+  #cardDock.solo .bc-win { position: fixed; left: 12px; right: 12px; top: 64px; bottom: 120px; width: auto; height: auto; }
+  #cardDock.solo .bc-win.min { bottom: auto; }
+  .bc-bar { height: 48px; }
+  .bc-ib { width: 44px; height: 44px; }
+  .bc-actions .btn, .bc-more, .bc-fold > summary, #chipLabel button, .calc-win select { min-height: 44px; }
+  .bc table { font-size: .821rem; }
+  .yr-track { height: 44px; }
+  .yr-track input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; margin-top: 8px; }
+  .yr-track input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; }
+  .yr-range { --yr-r: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bc-fold > summary::after, .bc-pin svg { transition: none; }
+  .bc-win.pulse, .bc-fade { animation: none; }
+}
+
+/* ---- "Town vs market" / "Lease and value" folds (marketcharts.js) */
+.mk-range { margin-bottom: var(--sp-2); }
+.mk-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0 0 4px; font-size: .857rem; color: var(--text-2); }
+.mk-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.mk-sw { display: inline-block; width: 16px; height: 0; border-top: 2px solid var(--accent); }
+.mk-sw.rpi { border-top: 2px dashed var(--text-2); }
+.mk-plot svg { overflow: visible; touch-action: pan-y; }
+.mk-none { margin: 0; }
+@media (max-width: 767px) { .mk-range button { min-height: 44px; } }
+
+/* 7b B8 — block card commute line + the commute filter chips under the picker */
+.bc-commute { margin: 2px 0 var(--sp-2); font-size: .893rem; color: var(--text-2); }
+.cm-filter { margin-top: var(--sp-2); }
+.cm-filter .chip { min-height: 32px; }
+
+/* 7b B3 — school card (dock): sort, block rows (whole row = one button), the card fact as a link */
+.bc-facts li .link { font-size: inherit; color: var(--accent-ink); }
+.sc-sort { margin-bottom: var(--sp-2); }
+.sc-sort button { min-height: 32px; }
+.sc-blocks { list-style: none; margin: 0; padding: 0; }
+.sc-blocks li + li { border-top: 1px solid var(--border-subtle); }
+.sc-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; width: 100%; min-height: 44px; padding: var(--sp-2) 0;
+  border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.sc-row:hover .sc-name { color: var(--accent-ink); text-decoration: underline; }
+.sc-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sc-name { font-size: .929rem; font-weight: 500; min-width: 0; }
+.sc-row .bc-cap { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 767px) { .sc-sort button, .cm-filter .chip { min-height: 44px; } }

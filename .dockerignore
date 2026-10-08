@@ -1,0 +1,12 @@
+**/__pycache__
+**/.pytest_cache
+**/*.pyc
+.git
+.venv
+tableau/
+legacy/
+*.zip
+hdb-data-pipeline/data/raw
+hdb-data-pipeline/data/interim
+hdb-data-pipeline/secrets
+tools/osm_*_cache.json

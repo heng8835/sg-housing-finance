@@ -1,0 +1,68 @@
+{
+  "_note": "Hand-maintained list of former burial grounds / sites some buyers ask about. Coordinates and radii are APPROXIMATE centres of the historical site, from public sources — verify before relying on them. Add entries freely; radius_m is the rough extent of the former site.",
+  "sites": [
+    {
+      "name": "Bidadari Cemetery (former)",
+      "lat": 1.3408,
+      "lon": 103.8712,
+      "radius_m": 700,
+      "period": "1908–1972; exhumed 2001–2006",
+      "note": "Christian, Muslim, Hindu and Sinhalese sections; site is now Bidadari estate (Woodleigh / Upper Aljunied / Bidadari Park Dr).",
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=bidadari-cemetery"
+    },
+    {
+      "name": "Mount Vernon Columbarium & crematorium (former)",
+      "lat": 1.335,
+      "lon": 103.879,
+      "radius_m": 350,
+      "period": "1962–2018",
+      "note": "Closed 2018; land folded into the Bidadari development.",
+      "source": "https://en.wikipedia.org/wiki/Mount_Vernon_Columbarium"
+    },
+    {
+      "name": "Kwong Wai Siew Peck San Theng Cemetery (former) — Bishan",
+      "lat": 1.35,
+      "lon": 103.847,
+      "radius_m": 900,
+      "period": "1870–1973; exhumed 1980s",
+      "note": "Cantonese/Hakka cemetery over most of today's Bishan New Town (Bishan St 11–24, Sin Ming). The Peck San Theng temple/columbarium remains at Bishan St 22. Extent approximate: roughly Bishan St 11–25 south of Ang Mo Kio Ave 1.",
+      "source": "https://en.wikipedia.org/wiki/Bishan,_Singapore"
+    },
+    {
+      "name": "Tiong Bahru burial grounds (former)",
+      "lat": 1.286,
+      "lon": 103.8305,
+      "radius_m": 500,
+      "period": "19th century – 1920s",
+      "note": "'Tiong Bahru' = 'new cemetery' (Hokkien/Malay); the estate and Bukit Merah fringe were built over cleared burial land.",
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=tiong-bahru"
+    },
+    {
+      "name": "Bukit Brown / Kopi Sua Cemetery (mostly intact)",
+      "lat": 1.34,
+      "lon": 103.829,
+      "radius_m": 900,
+      "period": "1922–1973 (still standing; partly cleared for Lornie Highway)",
+      "note": "Large Chinese cemetery west of Thomson; no HDB directly inside but blocks along Thomson/Sime Rd sit near its edge.",
+      "source": "https://en.wikipedia.org/wiki/Bukit_Brown"
+    },
+    {
+      "name": "Jalan Kubor Cemetery (intact)",
+      "lat": 1.3055,
+      "lon": 103.8593,
+      "radius_m": 200,
+      "period": "early 1800s –",
+      "note": "Historic Malay/Muslim cemetery in Kampong Glam, next to Victoria St / Kallang Rd flats.",
+      "source": "https://en.wikipedia.org/wiki/Jalan_Kubor_Cemetery"
+    },
+    {
+      "name": "Old Kallang / Geylang Bahru Chinese cemeteries (former)",
+      "lat": 1.3215,
+      "lon": 103.869,
+      "radius_m": 400,
+      "period": "cleared 1960s–70s",
+      "note": "Several small clan burial grounds stood between Kallang Bahru and Geylang Bahru before the HDB estates; extent approximate.",
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=kallang"
+    }
+  ]
+}

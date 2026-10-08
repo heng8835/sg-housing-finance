@@ -1,0 +1,91 @@
+/* Guides, quizzes and the policy-change log (modules/guides/*). Tokens from base.css; calm: white cards, one blue. */
+
+/* ---------------------------------------------------------------- Guides list (top of the Learn sheet) */
+.g-list { margin: 0 0 var(--sp-4); }
+.g-list > h3, .learn-gloss { margin: var(--sp-3) 0 var(--sp-2); }
+.g-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.g-card { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: var(--sp-3) 14px; text-align: left;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+.g-card:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+.g-card:hover .g-card-t { color: var(--accent-ink); }
+.g-card-t { font-size: 1rem; font-weight: 600; line-height: 1.35; }
+.g-card-d { font-size: .893rem; line-height: 1.45; color: var(--text-2); }
+.g-card-m { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); margin-top: 2px; font-size: .857rem; color: var(--text-3); }
+.g-log-link { margin: var(--sp-2) 0 0; }
+.g-log-link .link { font-size: .929rem; }
+
+/* ---------------------------------------------------------------- reader (own side sheet, same shell as Learn) */
+.g-sheet .drawer-head { gap: var(--sp-3); }
+.g-sheet .drawer-head h2 { flex: 1; min-width: 0; font-size: 1.071rem; line-height: 1.3; }
+.g-back { flex-shrink: 0; font-size: .893rem; white-space: nowrap; }
+.g-count { margin: 0 0 var(--sp-1); font-size: .857rem; color: var(--text-3); }
+.g-dots { display: flex; gap: 4px; margin: 0 0 var(--sp-3); }
+.g-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--border-subtle); }
+.g-dot.past { background: var(--accent-soft); }
+.g-dot.on { background: var(--accent); }
+.g-intro { font-size: .929rem; color: var(--text-2); }
+.g-sheet .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-4);
+  box-shadow: var(--shadow-card); margin-bottom: var(--sp-4); }
+.g-sheet .section > h3 { font-size: 1.071rem; font-weight: 650; text-transform: none; letter-spacing: 0; color: var(--text); margin: 0 0 var(--sp-3); }
+.g-step .md p, .g-step .md li { font-size: .964rem; line-height: 1.55; }
+.g-step .md ul { margin: 0 0 10px; padding-left: 20px; }
+.g-step .md li { margin-bottom: 4px; }
+.g-live { color: var(--accent-ink); font-weight: 600; white-space: nowrap; }
+.g-live.missing { color: var(--text-3); cursor: help; }
+.g-step .need { margin-top: var(--sp-2); }
+.g-step .actions { margin: var(--sp-3) 0 0; }
+.g-src { margin: var(--sp-3) 0 0; padding-top: var(--sp-2); border-top: 1px solid var(--border-subtle); font-size: .857rem; color: var(--text-3); }
+.g-nav { display: flex; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-3); }
+.g-gap { flex: 1; }
+.g-nav .btn { min-height: 36px; padding: 6px 14px; }
+@media (max-width: 767px) { .g-nav .btn, .g-step .actions .btn { min-height: 44px; } }
+
+/* ---------------------------------------------------------------- quiz */
+.g-qs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-4); }
+.g-q-t { margin: 0 0 var(--sp-2); font-size: .964rem; font-weight: 600; line-height: 1.45; }
+.g-opts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.g-opt { display: flex; align-items: flex-start; gap: var(--sp-2); width: 100%; min-height: 40px; padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text);
+  text-align: left; font-size: .929rem; line-height: 1.45; }
+.g-opt:not([disabled]):hover { border-color: var(--accent); background: var(--accent-soft); }
+.g-opt[disabled] { cursor: default; color: var(--text-2); border-color: var(--border); }
+.g-opt.right { border-color: var(--good); background: var(--good-bg); color: var(--text); }
+.g-opt.wrong { border-color: var(--critical); background: var(--critical-bg); color: var(--text); }
+.g-mark { flex-shrink: 0; width: 14px; font-weight: 700; }
+.g-opt.right .g-mark { color: #0a7a0a; }
+.g-opt.wrong .g-mark { color: #a12727; }
+.g-fb { margin-top: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-sm); background: var(--surface-2);
+  font-size: .893rem; line-height: 1.5; color: var(--text-2); }
+.g-fb .link { margin-left: 4px; font-size: .893rem; }
+.g-score { margin: var(--sp-4) 0 0; padding: var(--sp-3); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-ink); font-size: .929rem; }
+@media (max-width: 767px) { .g-opt { min-height: 44px; } }
+
+/* ---------------------------------------------------------------- "Show me" (reuses the tour's .coach styles) */
+.g-return { position: fixed; z-index: 1300; left: calc(var(--cover, 0px) + var(--sp-4)); bottom: 60px; display: flex; align-items: center; gap: 4px;
+  padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-pop); }
+.g-return .btn { min-height: 32px; border-radius: var(--radius-pill); }
+.g-return-x { width: 32px; height: 32px; border: 0; border-radius: 50%; background: none; color: var(--text-3); }
+.g-return-x:hover { background: var(--surface-2); color: var(--text); }
+@media (max-width: 767px) { .g-return { left: 12px; top: 64px; bottom: auto; } .g-return .btn, .g-return-x { min-height: 44px; height: 44px; } .g-return-x { width: 44px; } }
+
+/* ---------------------------------------------------------------- policy-change log */
+.pl-banner { margin: 0 0 var(--sp-3); padding: var(--sp-3); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text-2); font-size: .893rem; line-height: 1.5; }
+.pl-banner.soon { background: var(--accent-soft); color: var(--accent-ink); }
+.pl-banner.warn { background: var(--warn-bg); color: #6b4800; }
+.pl-filter { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 var(--sp-4); }
+.pl-filter .chip { min-height: 32px; }
+.pl-filter button, .pl-top .tag { text-transform: capitalize; }
+.pl-group h3 small { font-weight: 400; }
+.pl-list { list-style: none; margin: 0; padding: 0; }
+.pl-item { padding: var(--sp-2) 0; border-top: 1px solid var(--border-subtle); font-size: .893rem; }
+.pl-item:first-child { border-top: 0; padding-top: 0; }
+.pl-item.ended { opacity: .75; }
+.pl-top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.pl-id { font-family: ui-monospace, Consolas, monospace; font-size: .857rem; color: var(--text); overflow-wrap: anywhere; }
+.pl-val { margin: 2px 0; font-size: .929rem; }
+.pl-meta { color: var(--text-3); font-size: .857rem; }
+.pl-note { margin: var(--sp-1) 0; color: var(--text-2); line-height: 1.45; }
+.pl-json { margin: var(--sp-1) 0 0; padding: var(--sp-2); border-radius: var(--radius-sm); background: var(--surface-2); font-size: .821rem;
+  white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow: auto; }
+
+@media print { dialog.g-sheet, dialog.g-coach, .g-return { display: none !important; } }

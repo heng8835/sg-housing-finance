@@ -1,0 +1,49 @@
+# generated data payloads (regenerable; see README)
+hdb-data-pipeline/data/raw/*
+hdb-data-pipeline/data/interim/*
+hdb-data-pipeline/data/processed/*
+!hdb-data-pipeline/data/**/.gitkeep
+
+# fetch caches (large, regenerable)
+tools/osm_*_cache.json
+tools/poi_cache.json
+tools/blocks_geocode_cache.json
+
+# secrets / env
+.env
+hdb-data-pipeline/secrets/
+*.pem
+*.key
+
+# not part of this repo
+tableau/
+legacy/
+*.zip
+
+# tooling
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.dagster_home/
+graphify-out/
+.claude/
+.playwright-mcp/
+Thumbs.db
+desktop.ini
+
+# per-script download caches (regenerable)
+tools/*_cache.json
+tools/cache/
+
+# go-live (DEC-015): real denylist for tools/public_export.py stays local; staged Pages site
+tools/public_denylist.txt
+_site/
+*.log
+
+# written by tools/public_export.py (export bookkeeping, not part of the repo)
+.public-export.json

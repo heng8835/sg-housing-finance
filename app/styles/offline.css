@@ -1,0 +1,14 @@
+/* Offline copy (phase 6c, modules/offline): "Update available — Reload" toast + the Learn sheet line. */
+.sw-toast { position: fixed; z-index: 1300; left: calc(var(--cover, 0px) + var(--sp-4)); bottom: 60px; display: flex; align-items: center; gap: var(--sp-2);
+  max-width: min(420px, calc(100vw - 2 * var(--sp-4))); padding: 6px 6px 6px var(--sp-4); border: 1px solid var(--border); border-radius: var(--radius-pill);
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow-pop); font-size: .929rem; }
+.sw-toast > span { flex: 1; line-height: 1.35; }
+.sw-toast .btn { min-height: 32px; border-radius: var(--radius-pill); white-space: nowrap; }
+.sw-toast-x { width: 32px; height: 32px; flex: none; border: 0; border-radius: 50%; background: none; color: var(--text-3); }
+.sw-toast-x:hover { background: var(--surface-2); color: var(--text); }
+@media (max-width: 767px) {
+  .sw-toast { left: 12px; right: 12px; top: 64px; bottom: auto; max-width: none; border-radius: var(--radius); }
+  .sw-toast .btn, .sw-toast-x { min-height: 44px; height: 44px; } .sw-toast-x { width: 44px; }
+}
+.offline-line { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--border-subtle); }
+@media print { .sw-toast { display: none !important; } }

@@ -1,0 +1,403 @@
+/* Styles for the new modules (household, afford, learn, simple/pro, mobile). Tokens from base.css. */
+
+/* header chip + mode switch */
+.hh-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; min-height: 32px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.hh-chip:hover, .hh-chip:focus-visible { border-color: var(--accent); }
+.mode-switch button { min-height: 32px; }
+/* controls keep their size; the subtitle gives way (at ~1024px the language switch was clipped to "EN") */
+header .seg, .hh-chip, #learnBtn { flex-shrink: 0; white-space: nowrap; }
+#drawerBar > b, #drawerBar button { white-space: nowrap; flex-shrink: 0; }
+header .sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+@media (max-width: 1180px) { header .sub { display: none; } }
+
+/* right-hand drawer / side sheet (native <dialog>: focus trap + Esc for free) */
+dialog.drawer, dialog.sheet { margin: 0 0 0 auto; height: 100%; max-height: 100%; width: min(440px, 100vw); padding: 0; border: 0; border-left: 1px solid var(--border); background: var(--surface); color: var(--text); box-shadow: -8px 0 32px rgba(0, 0, 0, .12); }
+dialog.drawer::backdrop, dialog.sheet::backdrop { background: rgba(20, 20, 18, .25); }
+.drawer-body { padding: 0 var(--sp-4) var(--sp-6); overflow-y: auto; height: 100%; box-sizing: border-box; }
+dialog.drawer .drawer-body { background: var(--surface-2); } /* household drawer: cards on grey (Learn sheet stays white) */
+/* full-bleed white bar */
+.drawer-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; margin: 0 calc(-1 * var(--sp-4)) var(--sp-3); padding: 14px var(--sp-4) 10px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.drawer-head h2 { font-size: 1.143rem; margin: 0; }
+/* one grey block per buyer inside a white card; the legend floats so it sits inside the block */
+fieldset.buyer { background: var(--surface-2); border: 0; border-radius: var(--radius-sm); padding: var(--sp-3); margin: var(--sp-3) 0; min-width: 0; }
+fieldset.buyer > legend { float: left; width: 100%; padding: 0; margin: 0 0 var(--sp-2); font-size: .893rem; font-weight: 600; color: var(--text-2); }
+fieldset.buyer > legend + * { clear: both; }
+fieldset.buyer .fields { margin-bottom: 0; }
+fieldset.buyer input, fieldset.buyer select { background: var(--surface); }
+.row.wrap { flex-wrap: wrap; gap: 8px; }
+.btn.danger { color: var(--critical); border-color: var(--critical); }
+.btn.file { cursor: pointer; }
+.notice { background: #fff6e0; border: 1px solid #f0d9a0; border-radius: 8px; padding: 8px 10px; font-size: .893rem; margin: 8px 0; }
+
+/* afford panel */
+.afford .verdict, #rentRoot .verdict, #planRoot .verdict { font-size: 1.071rem; font-weight: 600; margin: 6px 0 2px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: var(--sp-2); margin: var(--sp-2) 0; }
+.kpi { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; }
+.section .kpi { border: 0; } /* grey tiles on a white card: no double outline */
+.kpi small { display: block; color: var(--text-2); font-size: .821rem; }
+.kpi b { font-size: 1.143rem; }
+.stackbar { display: flex; height: 18px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); margin: 6px 0; }
+.stackbar span { display: block; height: 100%; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .857rem; color: var(--text-2); }
+.legend-row i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+table.mini { width: 100%; border-collapse: collapse; font-size: .893rem; margin: 6px 0; }
+table.mini th, table.mini td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+table.mini th:first-child, table.mini td:first-child { text-align: left; }
+/* afford: true monthly cost — one calm hue family (map blue ramp, then greys); each segment named in the list */
+:root { --mc-1: #1a4a8a; --mc-2: #2a66ad; --mc-3: #3f84d1; --mc-4: #6aa3dc; --mc-5: #6b6a65; --mc-6: #8a8983; }
+.mc-head { margin: 8px 0 4px; font-size: .857rem; color: var(--text-2); }
+.mc-head b { font-size: 1.429rem; color: var(--text); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.mc-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--surface-2); margin: 4px 0 10px; }
+.mc-bar span { display: block; height: 100%; min-width: 0; flex-basis: 0; box-shadow: inset -1px 0 0 var(--surface); }
+.mc-bar span:last-child { box-shadow: none; }
+.mc-list { list-style: none; padding: 0; margin: 0 0 10px; font-size: .929rem; }
+.mc-list li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; column-gap: 8px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.mc-list .sw { width: 10px; height: 10px; border-radius: 2px; align-self: center; }
+.mc-list b { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.mc-list small { grid-column: 2 / -1; display: block; color: var(--text-3); font-size: .821rem; line-height: 1.45; margin-top: 2px; }
+.mc-av input { max-width: 220px; }
+.mc-risk { margin: 10px 0 0; font-size: .929rem; }
+.mc-risk b { font-variant-numeric: tabular-nums; }
+.mc-assume { padding-left: 16px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart text { font-size: .714rem; fill: var(--text-2); }
+.sources { font-size: .821rem; color: var(--text-2); }
+.sources a { color: inherit; }
+
+/* map: block numbers above the dots (zoom ≥ 17) and the selected-block pin */
+.legend .ramp.ramp5 { gap: 1px; height: 12px; }
+.legend .ticks5 { position: relative; height: 15px; font-size: .786rem; color: var(--text-2); }
+.legend .ticks5 span { position: absolute; top: 1px; transform: translateX(-50%); white-space: nowrap; }
+.legend .ticks5 span:first-child { transform: translateX(-35%); }
+.legend .ticks5 span:last-child { transform: translateX(-65%); }
+.chipkey { display: inline-block; font-size: .714rem; font-weight: 600; line-height: 14px; padding: 0 4px; border-radius: 3px; vertical-align: 1px; }
+.chipkey.none { background: #f1f0ec; color: #6b6a65; border: 1px solid #b5b4ae; }
+.chipkey.new { background: #fff; color: #52514e; border: 1.5px solid #6b6a65; }
+.dotkey { display: inline-block; border-radius: 50%; vertical-align: middle; }
+.dotkey.none { width: 6px; height: 6px; background: #b5b4ae; }
+.dotkey.new { width: 8px; height: 8px; border: 1.5px solid #6b6a65; background: #fff; }
+/* zoom ≥ 17: pins sit just above the block's number box instead of covering it */
+.chips-on .sel-pin svg, .chips-on .leaflet-marker-icon > .pin { position: relative; top: -10px; }
+/* zoom ≤ 13: hovering a hexagon (hexgrid.js) — click zooms in */
+.leaflet-container.hex-hot { cursor: pointer; }
+.areabox { transition: opacity .15s; }
+.areabox.dim { opacity: 0; pointer-events: none; }
+.sel-pin { background: none; border: 0; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .35)); }
+
+/* plan tab */
+ol.steps, ul.dates { padding-left: 18px; margin: 6px 0 10px; font-size: .929rem; line-height: 1.45; }
+ol.steps li, ul.dates li { margin-bottom: 8px; }
+ol.steps small, ul.dates small { color: var(--text-2); }
+ul.dates { list-style: none; padding-left: 0; }
+ul.dates li { border-left: 3px solid var(--accent); padding-left: 10px; }
+ul.dates li.past { opacity: .55; border-left-color: var(--border); }
+/* vertical timeline: Plan → BTO payment stages (btopay.js), Sell then buy timeline (contra.js) */
+ol.tl { list-style: none; margin: 8px 0 12px; padding: 0; font-size: .929rem; line-height: 1.45; }
+ol.tl > li { position: relative; padding: 0 0 14px 24px; }
+ol.tl > li::before { content: ''; position: absolute; left: 5px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+ol.tl > li:not(:last-child)::after { content: ''; position: absolute; left: 10px; top: 18px; bottom: 2px; width: 2px; background: var(--border-subtle); }
+ol.tl > li.tl-key::before { background: var(--accent); }
+ol.tl > li.tl-key { background: var(--accent-soft); border-radius: var(--radius-sm); padding: 6px 8px 8px 24px; margin-bottom: 10px; }
+ol.tl > li.tl-key::before { top: 10px; }
+ol.tl .tl-when { color: var(--text-2); font-size: .857rem; margin-bottom: 2px; }
+ol.tl small { color: var(--text-2); }
+ol.tl ul.tl-lines { list-style: none; margin: 4px 0 2px; padding: 0; }
+ol.tl ul.tl-lines li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-bottom: 1px solid var(--border-subtle); }
+ol.tl ul.tl-lines li > span:last-child { white-space: nowrap; text-align: right; }
+.tl-block { margin-top: var(--sp-3, 12px); }
+.section h3 + .check { margin-top: -2px; }
+#planRoot fieldset.buyer { min-width: 0; overflow-x: auto; }
+#planRoot table.mini { font-size: .857rem; }
+#planRoot table.mini th, #planRoot table.mini td { padding: 4px 4px; white-space: nowrap; }
+.kpi .tag { font-size: .75rem; }
+#planRoot details:not(.fold):not(.fold-inline) > summary { cursor: pointer; font-size: .893rem; color: var(--accent-ink); margin: 6px 0; }
+ul.notes { padding-left: 18px; font-size: .857rem; color: var(--text-2); line-height: 1.45; }
+#planRoot table.options td:first-child { white-space: normal; }
+.f.kid > label.f { margin-bottom: var(--sp-1); } /* Key dates: child's date, "remove" link under it */
+
+/* learn: term buttons, popover, side sheet */
+.term { border: 0; background: none; padding: 0 2px; margin-left: 2px; color: var(--accent); font: inherit; font-size: .786rem; cursor: pointer; border-radius: 50%; min-width: 1.286rem; min-height: 1.286rem; }
+.term:focus-visible { outline: 2px solid var(--accent); }
+.term-pop { position: fixed; z-index: 20000; max-width: 300px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 24px rgba(0, 0, 0, .15); padding: 10px 12px; font-size: .929rem; line-height: 1.4; }
+.term-pop b { display: block; margin-bottom: 4px; }
+.sheet .md p { line-height: 1.5; margin: 0 0 10px; }
+.sheet .formula { font-family: ui-monospace, Consolas, monospace; font-size: .893rem; background: var(--surface-2); padding: 6px 8px; border-radius: 6px; }
+
+/* simple mode hides power-user controls */
+body.simple .pro-only { display: none !important; }
+
+/* mobile: map full screen, panel becomes a bottom sheet */
+.sheet-handle { display: none; }
+@media (max-width: 767px) {
+  .hh-chip { padding: 6px 10px; font-size: 12px; flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .hh-chip .hh-more { display: none; }   /* phone: "1 buyer ▾" only; income/age are in the drawer */
+  header h1, header .sub, header .stat { display: none; }
+  #app { grid-template-columns: 1fr !important; grid-template-rows: 52px 1fr !important; }
+  #panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1050; height: 45vh; border-right: 0; border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; box-shadow: 0 -6px 24px rgba(0, 0, 0, .15); transition: height .2s; }
+  #panel[data-size="peek"] { height: 112px; }
+  #panel[data-size="full"] { height: calc(100vh - 52px); }
+  .sheet-handle { display: block; width: 100%; min-height: 28px; border: 0; background: none; cursor: pointer; }
+  .sheet-handle::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto; }
+  .tabs button { min-height: 44px; padding: 12px 10px; font-size: .929rem; }
+  dialog.drawer, dialog.sheet { width: 100vw; border-left: 0; }
+  #mapwrap { grid-row: 2; }
+  header { gap: 6px; padding: 0 8px; min-width: 0; }
+  #learnBtn .lbl, #panelToggle { display: none; }
+  .mode-switch button { padding: 6px 8px; }
+  #panel { padding-bottom: 56px; box-sizing: border-box; }
+  #drawerHint { display: none; }
+  .mapbar { flex-wrap: wrap; }
+  .msearch { flex: 1 1 100%; }
+  .areabox { top: 102px; max-width: calc(100vw - 66px); }
+}
+
+/* learn: compare-row info buttons (were title-only spans), index list, examples */
+button.info { border: 0; padding: 0; font: inherit; font-size: .714rem; cursor: pointer; }
+button.info:focus-visible, .term:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.learn-index { list-style: none; padding: 0; margin: 8px 0; columns: 2; column-gap: 16px; }
+.learn-index li { margin: 0 0 6px; break-inside: avoid; }
+.sheet .eg { font-weight: 600; white-space: nowrap; }
+.sheet h3 { font-size: .857rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); margin: 16px 0 6px; }
+#learnBtn { min-height: 32px; }
+@media (max-width: 767px) { .learn-index { columns: 1; } }
+
+/* segmented choice inside forms (§4.2): roomier buttons; an unavailable option stays focusable (aria-disabled) but muted */
+.tab .seg button, .drawer-body .seg button { min-height: 32px; padding: 6px 14px; }
+.seg button.is-off, .seg button.is-off:hover { background: var(--band); color: var(--text-3); cursor: not-allowed; }
+
+/* pathways list (Rent & Buy → What your household can do): name + why | one tag in a fixed 96 px column, so the
+   tags line up on one right edge across the Buy / Borrow / Rent lists; rule status is text in the why line */
+.pw-list { list-style: none; margin: 0; padding: 0; --pw-tag-w: 6.857rem; } /* 96 px at Normal; grows with the text (B10) */
+.pw { display: grid; grid-template-columns: minmax(0, 1fr) var(--pw-tag-w); column-gap: var(--sp-3); row-gap: 2px; align-items: start; padding: 10px 0; border-top: 1px solid var(--border-subtle); }
+.pw:first-child { border-top: 0; padding-top: 0; }
+.pw:last-child { padding-bottom: 0; }
+.pw-name { grid-column: 1; font-size: .964rem; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
+.pw-tag { grid-column: 2; grid-row: 1; justify-self: end; min-width: 64px; justify-content: center; white-space: nowrap; }
+.pw-why { grid-column: 1; margin: 0; font-size: .857rem; line-height: 1.5; color: var(--text-2); }
+.pw-conf { color: var(--text-3); white-space: nowrap; }
+.fold-body .pw-list + h4.sub { margin-top: var(--sp-5); }
+
+/* H1 typical-flat note ("≈ Typical 4-room in …") and H4 missing-input prompt (core/typical.js, core/missing.js) */
+.default-note { display: grid; grid-template-columns: 16px 1fr; gap: 2px 8px; margin: 0 0 var(--sp-3); padding: 10px 12px; background: var(--accent-soft); border-radius: var(--radius-sm); font-size: .893rem; line-height: 1.45; color: var(--text); }
+.dn-ic { color: var(--accent-ink); font-weight: 700; }
+.default-note > :not(.dn-ic) { grid-column: 2; }
+.default-note small { color: var(--text-2); font-size: .857rem; }
+.default-note .link { justify-self: start; }
+.fields + .default-note { margin-top: calc(-1 * var(--sp-1)); }
+.need { display: grid; grid-template-columns: 16px 1fr; gap: 4px 8px; padding: 10px 12px; margin: 0 0 var(--sp-3); border: 1px dashed var(--border-input); border-radius: var(--radius-sm); font-size: .893rem; line-height: 1.45; }
+.need-ic { color: var(--accent-ink); }
+.need p { margin: 0; color: var(--text); }
+.need-act { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.kpis .need { margin: 0; }
+.need.compact { padding: 8px 10px; }
+.verdict + .need, .hint + .need { margin-top: var(--sp-2); }
+@media (max-width: 767px) { .need-act .btn, .need-act .link { min-height: 44px; } }
+
+/* quick-fill popover (core/quickfill.js): appended to body, under its button (phone: card at the bottom) */
+.qf { position: fixed; z-index: 1400; width: 280px; max-width: calc(100vw - 24px); box-sizing: border-box; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-pop); padding: 14px; }
+.qf h4 { margin: 0 0 var(--sp-3); font-size: 1rem; font-weight: 650; }
+.qf .fields { grid-template-columns: 1fr; margin-bottom: var(--sp-3); }
+.qf .actions { display: flex; gap: var(--sp-2); }
+.qf-foot { margin: var(--sp-2) 0 0; font-size: .857rem; color: var(--text-3); }
+@media (max-width: 767px) {
+  .qf { left: 12px !important; right: 12px; top: auto !important; bottom: 12px; width: auto; max-width: none; }
+  .qf input, .qf .btn { min-height: 44px; }
+}
+/* household field opened from "Set in household →" */
+.drawer-body .flash { box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent); animation: hh-flash 1.6s ease-out forwards; }
+@keyframes hh-flash { 0%, 60% { box-shadow: 0 0 0 3px var(--accent-soft); } 100% { box-shadow: 0 0 0 3px transparent; } }
+@media (prefers-reduced-motion: reduce) { .drawer-body .flash { animation: none; } }
+
+/* Rent & Buy → "Based on" switch (block / drawn area / typical): long labels ellipsize, the seg wraps */
+.rb-ctx .seg { flex-wrap: wrap; max-width: 100%; }
+.rb-ctx .seg button { max-width: 14em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Rent & Buy → quarterly rent trend (modules/rent/rentchart.js) */
+.rt-chart { position: relative; margin: var(--sp-3) 0 var(--sp-1); }
+.rt-range { margin-bottom: var(--sp-2); }
+.rt-plot { position: relative; min-height: 160px; }
+.rt-plot svg { display: block; overflow: visible; touch-action: pan-y; }
+.rt-plot svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.rt-hit { cursor: crosshair; }
+.rt-tip { position: absolute; z-index: 2; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); padding: 8px 10px; font-size: .857rem; line-height: 1.45; max-width: 200px; pointer-events: none; font-variant-numeric: tabular-nums; }
+.rt-tip[hidden] { display: none; }
+.rt-tip b, .rt-tip span, .rt-tip small { display: block; }
+.rt-tip small { color: var(--text-2); }
+/* Afford → monthly cost: property tax "Estimated" / "From your notice" tag and the estimate's basis (Simple too) */
+.mc-tag { font-size: .786rem; padding: 1px 6px; margin-left: 4px; vertical-align: 1px; }
+.mc-list small.mc-est { color: var(--text-3); }
+.mc-back { margin: calc(-1 * var(--sp-2)) 0 var(--sp-2); }
+
+/* Rent → rent-vs-buy chart (modules/rent/chart.js): SVG at the measured width, HTML tooltip on top */
+.rb-chart { position: relative; min-height: 200px; margin: var(--sp-3) 0 var(--sp-2); }
+.rb-chart svg { display: block; overflow: visible; touch-action: pan-y; }
+.rb-chart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.rb-hit { cursor: crosshair; }
+.rb-tip { position: absolute; z-index: 2; max-width: 200px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-pop); font-size: .857rem; line-height: 1.45; pointer-events: none; font-variant-numeric: tabular-nums; }
+.rb-tip[hidden] { display: none; }
+.rb-tip b, .rb-tip span, .rb-tip small { display: block; white-space: nowrap; }
+.rb-tip small { color: var(--text-2); font-size: .857rem; margin-top: 2px; white-space: normal; }
+.rb-k { font-style: normal; display: inline-block; width: 12px; }
+.rb-k.buy { color: var(--chart-buy); }
+.rb-k.rent { color: var(--chart-rent); }
+#rentBuy table.mini td, #rentBuy table.mini th { font-variant-numeric: tabular-nums; }
+/* Monte-Carlo range (Phase 6c, Pro): switch, summary sentence under the chart, range line under the CPF KPIs.
+   Band fills are set in rent/chart.js (light blue around Buy, light grey around Rent); all text stays --text / --text-2 (AA). */
+.rb-mc { margin-top: var(--sp-2); }
+.rb-mc-out { margin: var(--sp-1) 0; color: var(--text); font-variant-numeric: tabular-nums; }
+.kpi small.mc-range { margin-top: 2px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+/* drag-resizable side panel (modules/shell/resize.js) — desktop only; phone / stacked layouts keep their own */
+#panelResizer { display: none; }
+@media (min-width: 901px) {
+  #panel { position: relative; }
+  /* 10 px hit strip centred on the panel edge, with a gap where the #panelToggle tab sits (50 % height) */
+  #panelResizer { display: block; position: absolute; top: 0; bottom: 0; right: -5px; width: 10px; z-index: 5; cursor: col-resize; touch-action: none;
+    clip-path: polygon(0 0, 100% 0, 100% calc(50% - 32px), 0 calc(50% - 32px), 0 calc(50% + 32px), 100% calc(50% + 32px), 100% 100%, 0 100%); }
+  #panelResizer::after { content: ''; position: absolute; top: 0; bottom: 0; left: 4px; width: 2px; background: transparent; transition: background-color .15s; }
+  #panelResizer::before { content: ''; position: absolute; top: 30%; left: 3px; width: 4px; height: 32px; margin-top: -16px; border-radius: 2px; background: var(--accent); opacity: 0; z-index: 1; }
+  #panelResizer:hover::after { background: var(--border-input); transition-delay: .15s; }
+  #app.resizing #panelResizer::after, #panelResizer:focus-visible::after { background: var(--accent); transition-delay: 0s; }
+  #app.resizing #panelResizer::before, #panelResizer:focus-visible::before { opacity: 1; }
+  #panelResizer:focus-visible { outline: none; } /* the accent line + pill is the focus indicator */
+  #app.panel-hidden #panelResizer { display: none; }
+  #app.resizing, #app.resizing * { cursor: col-resize !important; user-select: none; }
+  #app.resizing #panel, #app.resizing .leaflet-control-container .leaflet-left, #app.resizing #panelToggle, #app.resizing #drawer,
+  #app.resizing .areabox, #app.resizing .mapbar, #app.resizing .picking-banner { transition: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { #panelResizer::after { transition: none; } }
+
+/* compare drawer: "Over-priced?" row link + comparable sales panel (explore/comparables.js) */
+.cmp .cc-open { display: block; margin-top: 4px; }
+.cmp .cc-open::after { content: attr(data-label); }   /* label via CSS: the table dump / "Copy table" stay data only */
+.cmp .cc-open[aria-expanded="true"] { font-weight: 600; }
+.cmp-comps { margin-top: 12px; max-width: 760px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-card); }
+.cc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.cc-head h4 { margin: 0; font-size: 1rem; font-weight: 600; }
+.cc-head h4:focus:not(:focus-visible) { outline: none; }
+.cc-sub { margin: 4px 0 0; font-size: .857rem; color: var(--text-2); }
+.cc-note { margin: 8px 0 0; font-size: .821rem; color: var(--text-3); }
+.cc-table { margin-top: 8px; max-height: 320px; overflow: auto; overscroll-behavior: contain; }
+.cc-table table { width: 100%; border-collapse: collapse; font-size: .857rem; font-variant-numeric: tabular-nums; }
+.cc-table th { position: sticky; top: 0; text-align: left; color: var(--text-3); font-weight: 500; padding: 3px 6px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.cc-table td { padding: 3px 6px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; color: var(--text-2); }
+.cc-table .r { text-align: right; }
+.cc-more { margin-top: 6px; min-height: 32px; }
+@media print { .cmp .cc-open, .cc-more, .cmp-comps [data-comps-close] { display: none !important; } .cc-table { max-height: none; overflow: visible; } }
+
+/* Afford → Scenarios (modules/scenarios): saved list + side-by-side table; phone: the table scrolls inside the card */
+#affordScenarios .actions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.sc-count { font-size: .857rem; color: var(--text-3); }
+.sc-list { list-style: none; margin: 10px 0 4px; padding: 0; }
+.sc-item { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
+.sc-item:last-child { border-bottom: 0; }
+.sc-item.editing { display: block; }
+.sc-name { display: flex; flex-direction: column; min-width: 0; }
+.sc-name b { font-weight: 600; overflow-wrap: anywhere; }
+.sc-name small { color: var(--text-3); font-size: .857rem; }
+.sc-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.sc-scroll { overflow-x: auto; max-width: 100%; margin-top: 8px; -webkit-overflow-scrolling: touch; }
+.sc-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+table.sc-table { font-variant-numeric: tabular-nums; }
+table.sc-table th, table.sc-table td { vertical-align: top; min-width: 112px; }
+table.sc-table thead th { font-weight: 600; color: var(--text); }
+table.sc-table tbody th { font-weight: 500; color: var(--text-2); text-align: left; position: sticky; left: 0; z-index: 1; background: var(--surface); max-width: 168px; }
+table.sc-table small { display: block; color: var(--text-3); font-size: .821rem; font-weight: 400; }
+table.sc-table td.best { background: var(--best-bg); font-weight: 600; }
+.sc-corner { color: var(--text-3); font-weight: 400; }
+@media print {
+  .sc-acts, #scSave, .sc-count { display: none !important; }
+  .sc-scroll { overflow: visible; }
+  table.sc-table tr.pro-only { display: table-row !important; }
+  table.sc-table tbody th { position: static; }
+}
+
+/* print: comparison table + the open tab's summary, no map or controls */
+@media print {
+  #panelResizer, header .seg, #hhChip, #learnBtn, .tabs, #map, .leaflet-control-container, #panelToggle, .sheet-handle, #boot, #drawerBar button, .term, button.info { display: none !important; }
+  html, body, #app { height: auto !important; overflow: visible !important; display: block !important; background: #fff; }
+  #panel { position: static !important; width: auto !important; height: auto !important; border: 0 !important; box-shadow: none !important; }
+  .tab:not(.active), #tab-explore, #tab-choices { display: none !important; }
+  .pro-only { display: block !important; }
+  #mapwrap, #drawer { position: static !important; height: auto !important; max-height: none !important; }
+  #cmpBody { overflow: visible !important; max-height: none !important; }
+  table.cmp { font-size: 9pt; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 8pt; color: #555; }
+}
+
+/* future-value scorecard (explore/futurevalue-ui.js): calm grey pips, visual only — the text "3/5" carries the value */
+.fv-pips { display: inline-flex; gap: 3px; margin-right: 6px; vertical-align: 1px; }
+.fv-pips i { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--text-3); box-sizing: border-box; }
+.fv-pips i.on { background: var(--text-2); border-color: var(--text-2); }
+.cmp-fv-how { margin-top: 12px; max-width: 760px; padding: 6px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.cmp-fv-how > summary { display: flex; align-items: center; min-height: 32px; cursor: pointer; font-size: .929rem; font-weight: 600; color: var(--accent-ink); }
+.cmp-fv-how h5 { margin: 12px 0 4px; font-size: .857rem; font-weight: 600; color: var(--text-2); }
+.cmp-fv-how p, .cmp-fv-how ul { margin: 4px 0; font-size: .857rem; line-height: 1.55; color: var(--text-2); }
+.cmp-fv-how ul { padding-left: 18px; }
+.cmp-fv-how li { margin: 2px 0; }
+.cmp-fv-how .fv-status { color: var(--text-3); }
+.bc-fv { list-style: none; margin: 0; padding: 0; font-size: .893rem; font-variant-numeric: tabular-nums; }
+.bc-fv li { padding: 5px 0; border-bottom: 1px solid var(--border-subtle); }
+.bc-fv li:last-child { border-bottom: 0; }
+.bc-fv .bc-fv-k { display: block; color: var(--text-2); font-weight: 500; }
+.bc-fv small { display: block; color: var(--text-3); line-height: 1.45; }
+@media print { .fv-pips i { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* Plan → Sell then buy: current-block picker (options are spans inside the field's label) + value range */
+span.ac { display: block; }
+.ac-list [role="option"] { display: block; padding: 7px 10px; font-size: .929rem; cursor: pointer; color: var(--text); }
+.ac-list [role="option"]:hover, .ac-list [role="option"].hi { background: var(--accent-soft); }
+.sb-range .link { margin-left: 4px; }
+.sb-range small { color: var(--text-3); }
+
+/* phone: the Compare bar's buttons scroll sideways; the ▲ open/close toggle stays pinned on screen (persona P3/P5, Larger text) */
+@media (max-width: 767px) {
+  #drawer #drawerBar { overflow-x: auto; scrollbar-width: none; gap: 8px; padding-right: 0; }
+  #drawerBar::-webkit-scrollbar { display: none; }
+  #drawerToggle { position: sticky; right: 0; z-index: 1; background: var(--surface); box-shadow: -10px 0 8px var(--surface), 10px 0 0 var(--surface); margin-right: 8px; }
+}
+
+/* 7b B6 */
+.ret-lines { grid-column: 1 / -1; list-style: none; margin: 6px 0 0; padding: 0; font-size: .929rem; }
+.ret-lines li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--border-subtle); }
+.ret-lines li:last-child { border-bottom: 0; }
+.ret-lines span { color: var(--text-2); }
+.ret-lines b { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.ret-lines small { grid-column: 1 / -1; display: block; color: var(--text-3); font-size: .821rem; line-height: 1.45; margin-top: 2px; }
+@media (max-width: 400px) { .ret-lines li { grid-template-columns: minmax(0, 1fr); } .ret-lines b { text-align: left; } }
+.ts-larger .ret-lines li { grid-template-columns: minmax(0, 1fr); }
+.ts-larger .ret-lines b { text-align: left; }
+
+/* 7b B9 */
+ul.dates li.past { opacity: 1; }
+ul.dates li.past .fade { opacity: .55; }
+
+/* 7b ABOUT — disclaimer line (O14: panel footer >= 768 px, end of each tab on phones) + Learn → About view (O15) */
+.disc-line { flex: none; margin: 0; min-height: 32px; padding: 6px var(--sp-4); font-size: .857rem; line-height: 1.45; color: var(--text-3); background: var(--surface); border-top: 1px solid var(--border); }
+.disc-line.inline { background: none; border-top: 0; padding: var(--sp-2) var(--sp-1) 0; text-align: center; }
+.disc-line .link { font-size: inherit; }
+.disc-line.tab-end, .disc-line.learn-disc { display: none; }
+#drawer .cmp-disc { flex: none; padding: var(--sp-1) 14px var(--sp-2); }
+#drawer .bar { flex: none; }              /* the bar keeps its 44 / 52 px; only the table body scrolls */
+#drawer .body { flex: 1 1 auto; min-height: 0; }
+@media (max-width: 767px) {
+  #discLine { display: none; }
+  .disc-line.tab-end, .disc-line.learn-disc { display: block; }
+}
+.learn-about { margin: var(--sp-3) 0 0; }
+.about table.about-src th, .about table.about-src td { text-align: left; vertical-align: top; }
+.about .about-version { margin-top: var(--sp-4); }
+.sheet table.rule-table { max-width: 320px; }
+@media print { .disc-line.tab-end, .disc-line.learn-disc { display: none !important; } }
+
+/* 7b B1 — "What matters most to you?" above the compare table (modules/explore/priorities.js) */
+.prio { max-width: 760px; padding: var(--sp-3) 0 var(--sp-4); margin-bottom: var(--sp-3); border-bottom: 1px solid var(--border-subtle); }
+.prio h4.sub { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-2); font-size: .929rem; font-weight: 600; color: var(--text-2); }
+.prio h4.sub .prio-clear { margin-left: auto; }
+.prio-list { list-style: none; padding-left: 0; margin: var(--sp-3) 0 0; }
+.prio-list li { margin: 0 0 var(--sp-2); font-size: .929rem; line-height: 1.5; }
+.prio-list .tag { display: inline-block; margin-left: var(--sp-1); }
+.prio .foot-note { margin-left: 0; }
+@media print { .prio .chips, .prio details.fold-inline > summary, .prio-clear { display: none !important; } }
+
+/* 7b B7 integrator: the "Typical: …" line under the Whole flat / Room switch (sec-sub pulls up under headings) */
+.seg-field + .sec-sub { margin-top: var(--sp-2); }

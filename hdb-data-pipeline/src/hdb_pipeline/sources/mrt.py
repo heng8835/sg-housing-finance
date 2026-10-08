@@ -1,0 +1,248 @@
+"""MRT/LRT station reference data: centroids and station-line expansion.
+
+Migrated (pure functions only) from legacy/notebooks/HDB Resale Data Scraper.ipynb
+cells 18-20. Behavior rule: BR-10 in docs/BUSINESS_RULES.md.
+
+Still in the notebook, pending the shared HTTP layer (http.py): the data.gov.sg
+poll-download fetch of the station-exit GeoJSON (dataset
+d_b39d3a0871985372d7e1637193335da5) and its flattening into the exits table.
+
+STATION_LINE_MAP is hand-maintained: new stations/lines require manual updates.
+"""
+
+import pandas as pd
+
+STATION_LINE_MAP = {
+  "ADMIRALTY MRT STATION": [{"code": "NS10", "line": "NS", "seq": 10}],
+  "ALJUNIED MRT STATION": [{"code": "EW9", "line": "EW", "seq": 9}],
+  "ANG MO KIO MRT STATION": [{"code": "NS16", "line": "NS", "seq": 16}],
+  "BARTLEY MRT STATION": [{"code": "CC12", "line": "CC", "seq": 12}],
+  "BAYSHORE MRT STATION": [{"code": "TE29", "line": "TE", "seq": 29}],
+  "BEAUTY WORLD MRT STATION": [{"code": "DT5", "line": "DT", "seq": 5}],
+  "BEDOK MRT STATION": [{"code": "EW5", "line": "EW", "seq": 5}],
+  "BEDOK NORTH MRT STATION": [{"code": "DT29", "line": "DT", "seq": 29}],
+  "BEDOK RESERVOIR MRT STATION": [{"code": "DT30", "line": "DT", "seq": 30}],
+  "BENCOOLEN MRT STATION": [{"code": "DT21", "line": "DT", "seq": 21}],
+  "BENDEMEER MRT STATION": [{"code": "DT23", "line": "DT", "seq": 23}],
+  "BISHAN MRT STATION": [{"code": "NS17", "line": "NS", "seq": 17}, {"code": "CC15", "line": "CC", "seq": 15}],
+  "BOON KENG MRT STATION": [{"code": "NE9", "line": "NE", "seq": 9}],
+  "BOON LAY MRT STATION": [{"code": "EW27", "line": "EW", "seq": 27}],
+  "BOTANIC GARDENS MRT STATION": [{"code": "CC19", "line": "CC", "seq": 19}, {"code": "DT9", "line": "DT", "seq": 9}],
+  "BRADDELL MRT STATION": [{"code": "NS18", "line": "NS", "seq": 18}],
+  "BRIGHT HILL MRT STATION": [{"code": "TE7", "line": "TE", "seq": 7}],
+  "BUANGKOK MRT STATION": [{"code": "NE15", "line": "NE", "seq": 15}],
+  "BUGIS MRT STATION": [{"code": "EW12", "line": "EW", "seq": 12}, {"code": "DT14", "line": "DT", "seq": 14}],
+  "BUKIT BATOK MRT STATION": [{"code": "NS2", "line": "NS", "seq": 2}],
+  "BUKIT GOMBAK MRT STATION": [{"code": "NS3", "line": "NS", "seq": 3}],
+  "BUKIT PANJANG MRT STATION": [{"code": "DT1", "line": "DT", "seq": 1}],
+  "BUONA VISTA MRT STATION": [{"code": "EW21", "line": "EW", "seq": 21}, {"code": "CC22", "line": "CC", "seq": 22}],
+  "CALDECOTT MRT STATION": [{"code": "CC17", "line": "CC", "seq": 17}, {"code": "TE9", "line": "TE", "seq": 9}],
+  "CANBERRA MRT STATION": [{"code": "NS12", "line": "NS", "seq": 12}],
+  "CASHEW MRT STATION": [{"code": "DT2", "line": "DT", "seq": 2}],
+  "CHANGI AIRPORT MRT STATION": [{"code": "CG2", "line": "CG", "seq": 2}],
+  "EXPO MRT STATION": [{"code": "CG1", "line": "CG", "seq": 1}, {"code": "DT35", "line": "DT", "seq": 35}],
+  "TANAH MERAH MRT STATION": [{"code": "EW4", "line": "EW", "seq": 4}, {"code": "CG", "line": "CG", "seq": 0}],
+  "CHINATOWN MRT STATION": [{"code": "NE4", "line": "NE", "seq": 4}, {"code": "DT19", "line": "DT", "seq": 19}],
+  "CHINESE GARDEN MRT STATION": [{"code": "EW25", "line": "EW", "seq": 25}],
+  "CHOA CHU KANG MRT STATION": [{"code": "NS4", "line": "NS", "seq": 4}, {"code": "BP1", "line": "BPLRT", "seq": 1}],
+  "CITY HALL MRT STATION": [{"code": "NS25", "line": "NS", "seq": 25}, {"code": "EW13", "line": "EW", "seq": 13}],
+  "CLARKE QUAY MRT STATION": [{"code": "NE5", "line": "NE", "seq": 5}],
+  "CLEMENTI MRT STATION": [{"code": "EW23", "line": "EW", "seq": 23}],
+  "COMMONWEALTH MRT STATION": [{"code": "EW20", "line": "EW", "seq": 20}],
+  "DAKOTA MRT STATION": [{"code": "CC8", "line": "CC", "seq": 8}],
+  "DHOBY GHAUT MRT STATION": [{"code": "NS24", "line": "NS", "seq": 24}, {"code": "NE6", "line": "NE", "seq": 6}, {"code": "CC1", "line": "CC", "seq": 1}],
+  "BRAS BASAH MRT STATION": [{"code": "CC2", "line": "CC", "seq": 2}],
+  "ESPLANADE MRT STATION": [{"code": "CC3", "line": "CC", "seq": 3}],
+  "PROMENADE MRT STATION": [{"code": "CC4", "line": "CC", "seq": 4}, {"code": "DT15", "line": "DT", "seq": 15}, {"code": "CE0", "line": "CE", "seq": 0}],
+  "BAYFRONT MRT STATION": [{"code": "CE1", "line": "CE", "seq": 1}, {"code": "DT16", "line": "DT", "seq": 16}],
+  "MARINA BAY MRT STATION": [{"code": "NS27", "line": "NS", "seq": 27}, {"code": "CE2", "line": "CE", "seq": 2}, {"code": "TE20", "line": "TE", "seq": 20}],
+  "DOVER MRT STATION": [{"code": "EW22", "line": "EW", "seq": 22}],
+  "DOWNTOWN MRT STATION": [{"code": "DT17", "line": "DT", "seq": 17}],
+  "EUNOS MRT STATION": [{"code": "EW7", "line": "EW", "seq": 7}],
+  "FARRER PARK MRT STATION": [{"code": "NE8", "line": "NE", "seq": 8}],
+  "FARRER ROAD MRT STATION": [{"code": "CC20", "line": "CC", "seq": 20}],
+  "FORT CANNING MRT STATION": [{"code": "DT20", "line": "DT", "seq": 20}],
+  "GARDENS BY THE BAY MRT STATION": [{"code": "TE22", "line": "TE", "seq": 22}],
+  "GEYLANG BAHRU MRT STATION": [{"code": "DT24", "line": "DT", "seq": 24}],
+  "GREAT WORLD MRT STATION": [{"code": "TE15", "line": "TE", "seq": 15}],
+  "GUL CIRCLE MRT STATION": [{"code": "EW30", "line": "EW", "seq": 30}],
+  "HARBOURFRONT MRT STATION": [{"code": "NE1", "line": "NE", "seq": 1}, {"code": "CC29", "line": "CC", "seq": 29}],
+  "HAVELOCK MRT STATION": [{"code": "TE16", "line": "TE", "seq": 16}],
+  "HAW PAR VILLA MRT STATION": [{"code": "CC25", "line": "CC", "seq": 25}],
+  "HILLVIEW MRT STATION": [{"code": "DT3", "line": "DT", "seq": 3}],
+  "HOLLAND VILLAGE MRT STATION": [{"code": "CC21", "line": "CC", "seq": 21}],
+  "HOUGANG MRT STATION": [{"code": "NE14", "line": "NE", "seq": 14}],
+  "JALAN BESAR MRT STATION": [{"code": "DT22", "line": "DT", "seq": 22}],
+  "JOO KOON MRT STATION": [{"code": "EW29", "line": "EW", "seq": 29}],
+  "JURONG EAST MRT STATION": [{"code": "EW24", "line": "EW", "seq": 24}, {"code": "NS1", "line": "NS", "seq": 1}],
+  "KAKI BUKIT MRT STATION": [{"code": "DT28", "line": "DT", "seq": 28}],
+  "KALLANG MRT STATION": [{"code": "EW10", "line": "EW", "seq": 10}],
+  "KATONG PARK MRT STATION": [{"code": "TE24", "line": "TE", "seq": 24}],
+  "KEMBANGAN MRT STATION": [{"code": "EW6", "line": "EW", "seq": 6}],
+  "KENT RIDGE MRT STATION": [{"code": "CC24", "line": "CC", "seq": 24}],
+  "KHATIB MRT STATION": [{"code": "NS14", "line": "NS", "seq": 14}],
+  "KING ALBERT PARK MRT STATION": [{"code": "DT6", "line": "DT", "seq": 6}],
+  "KOVAN MRT STATION": [{"code": "NE13", "line": "NE", "seq": 13}],
+  "KRANJI MRT STATION": [{"code": "NS7", "line": "NS", "seq": 7}],
+  "LABRADOR PARK MRT STATION": [{"code": "CC27", "line": "CC", "seq": 27}],
+  "LAKESIDE MRT STATION": [{"code": "EW26", "line": "EW", "seq": 26}],
+  "LAVENDER MRT STATION": [{"code": "EW11", "line": "EW", "seq": 11}],
+  "LENTOR MRT STATION": [{"code": "TE5", "line": "TE", "seq": 5}],
+  "LITTLE INDIA MRT STATION": [{"code": "NE7", "line": "NE", "seq": 7}, {"code": "DT12", "line": "DT", "seq": 12}],
+  "LORONG CHUAN MRT STATION": [{"code": "CC14", "line": "CC", "seq": 14}],
+  "MACPHERSON MRT STATION": [{"code": "CC10", "line": "CC", "seq": 10}, {"code": "DT26", "line": "DT", "seq": 26}],
+  "MARINA SOUTH MRT STATION": [{"code": "TE21", "line": "TE", "seq": 21}],
+  "MARINA SOUTH PIER MRT STATION": [{"code": "NS28", "line": "NS", "seq": 28}],
+  "MARINE PARADE MRT STATION": [{"code": "TE26", "line": "TE", "seq": 26}],
+  "MARINE TERRACE MRT STATION": [{"code": "TE27", "line": "TE", "seq": 27}],
+  "MARSILING MRT STATION": [{"code": "NS8", "line": "NS", "seq": 8}],
+  "MARYMOUNT MRT STATION": [{"code": "CC16", "line": "CC", "seq": 16}],
+  "MATTAR MRT STATION": [{"code": "DT25", "line": "DT", "seq": 25}],
+  "MAXWELL MRT STATION": [{"code": "TE18", "line": "TE", "seq": 18}],
+  "MAYFLOWER MRT STATION": [{"code": "TE6", "line": "TE", "seq": 6}],
+  "MOUNTBATTEN MRT STATION": [{"code": "CC7", "line": "CC", "seq": 7}],
+  "NAPIER MRT STATION": [{"code": "TE12", "line": "TE", "seq": 12}],
+  "NEWTON MRT STATION": [{"code": "NS21", "line": "NS", "seq": 21}, {"code": "DT11", "line": "DT", "seq": 11}],
+  "NICOLL HIGHWAY MRT STATION": [{"code": "CC5", "line": "CC", "seq": 5}],
+  "NOVENA MRT STATION": [{"code": "NS20", "line": "NS", "seq": 20}],
+  "ONE-NORTH MRT STATION": [{"code": "CC23", "line": "CC", "seq": 23}],
+  "ORCHARD BOULEVARD MRT STATION": [{"code": "TE13", "line": "TE", "seq": 13}],
+  "ORCHARD MRT STATION": [{"code": "NS22", "line": "NS", "seq": 22}, {"code": "TE14", "line": "TE", "seq": 14}],
+  "OUTRAM PARK MRT STATION": [{"code": "EW16", "line": "EW", "seq": 16}, {"code": "NE3", "line": "NE", "seq": 3}, {"code": "TE17", "line": "TE", "seq": 17}],
+  "PASIR PANJANG MRT STATION": [{"code": "CC26", "line": "CC", "seq": 26}],
+  "PASIR RIS MRT STATION": [{"code": "EW1", "line": "EW", "seq": 1}],
+  "PAYA LEBAR MRT STATION": [{"code": "EW8", "line": "EW", "seq": 8}, {"code": "CC9", "line": "CC", "seq": 9}],
+  "PIONEER MRT STATION": [{"code": "EW28", "line": "EW", "seq": 28}],
+  "POTONG PASIR MRT STATION": [{"code": "NE10", "line": "NE", "seq": 10}],
+  "QUEENSTOWN MRT STATION": [{"code": "EW19", "line": "EW", "seq": 19}],
+  "RAFFLES PLACE MRT STATION": [{"code": "NS26", "line": "NS", "seq": 26}, {"code": "EW14", "line": "EW", "seq": 14}],
+  "REDHILL MRT STATION": [{"code": "EW18", "line": "EW", "seq": 18}],
+  "ROCHOR MRT STATION": [{"code": "DT13", "line": "DT", "seq": 13}],
+  "SEMBAWANG MRT STATION": [{"code": "NS11", "line": "NS", "seq": 11}],
+  "SERANGOON MRT STATION": [{"code": "NE12", "line": "NE", "seq": 12}, {"code": "CC13", "line": "CC", "seq": 13}],
+  "SHENTON WAY MRT STATION": [{"code": "TE19", "line": "TE", "seq": 19}],
+  "SIGLAP MRT STATION": [{"code": "TE28", "line": "TE", "seq": 28}],
+  "SIMEI MRT STATION": [{"code": "EW3", "line": "EW", "seq": 3}],
+  "SIXTH AVENUE MRT STATION": [{"code": "DT7", "line": "DT", "seq": 7}],
+  "SOMERSET MRT STATION": [{"code": "NS23", "line": "NS", "seq": 23}],
+  "SPRINGLEAF MRT STATION": [{"code": "TE4", "line": "TE", "seq": 4}],
+  "STADIUM MRT STATION": [{"code": "CC6", "line": "CC", "seq": 6}],
+  "STEVENS MRT STATION": [{"code": "DT10", "line": "DT", "seq": 10}, {"code": "TE11", "line": "TE", "seq": 11}],
+  "TAI SENG MRT STATION": [{"code": "CC11", "line": "CC", "seq": 11}],
+  "TAMPINES EAST MRT STATION": [{"code": "DT33", "line": "DT", "seq": 33}],
+  "TAMPINES MRT STATION": [{"code": "EW2", "line": "EW", "seq": 2}, {"code": "DT32", "line": "DT", "seq": 32}],
+  "TAMPINES WEST MRT STATION": [{"code": "DT31", "line": "DT", "seq": 31}],
+  "TAN KAH KEE MRT STATION": [{"code": "DT8", "line": "DT", "seq": 8}],
+  "TANJONG KATONG MRT STATION": [{"code": "TE25", "line": "TE", "seq": 25}],
+  "TANJONG PAGAR MRT STATION": [{"code": "EW15", "line": "EW", "seq": 15}],
+  "TANJONG RHU MRT STATION": [{"code": "TE23", "line": "TE", "seq": 23}],
+  "TELOK AYER MRT STATION": [{"code": "DT18", "line": "DT", "seq": 18}],
+  "TELOK BLANGAH MRT STATION": [{"code": "CC28", "line": "CC", "seq": 28}],
+  "TIONG BAHRU MRT STATION": [{"code": "EW17", "line": "EW", "seq": 17}],
+  "TOA PAYOH MRT STATION": [{"code": "NS19", "line": "NS", "seq": 19}],
+  "TUAS CRESCENT MRT STATION": [{"code": "EW31", "line": "EW", "seq": 31}],
+  "TUAS WEST ROAD MRT STATION": [{"code": "EW32", "line": "EW", "seq": 32}],
+  "TUAS LINK MRT STATION": [{"code": "EW33", "line": "EW", "seq": 33}],
+  "UBI MRT STATION": [{"code": "DT27", "line": "DT", "seq": 27}],
+  "UPPER CHANGI MRT STATION": [{"code": "DT34", "line": "DT", "seq": 34}],
+  "UPPER THOMSON MRT STATION": [{"code": "TE8", "line": "TE", "seq": 8}],
+  "WOODLANDS MRT STATION": [{"code": "NS9", "line": "NS", "seq": 9}, {"code": "TE2", "line": "TE", "seq": 2}],
+  "WOODLANDS NORTH MRT STATION": [{"code": "TE1", "line": "TE", "seq": 1}],
+  "WOODLANDS SOUTH MRT STATION": [{"code": "TE3", "line": "TE", "seq": 3}],
+  "WOODLEIGH MRT STATION": [{"code": "NE11", "line": "NE", "seq": 11}],
+  "YEW TEE MRT STATION": [{"code": "NS5", "line": "NS", "seq": 5}],
+  "YIO CHU KANG MRT STATION": [{"code": "NS15", "line": "NS", "seq": 15}],
+  "YISHUN MRT STATION": [{"code": "NS13", "line": "NS", "seq": 13}],
+  "BAKAU LRT STATION": [{"code": "SE3", "line": "SKLRT_SE", "seq": 3}],
+  "BANGKIT LRT STATION": [{"code": "BP9", "line": "BPLRT", "seq": 9}],
+  "BUKIT PANJANG LRT STATION": [{"code": "BP6", "line": "BPLRT", "seq": 6}],
+  "CC9": [{"code": "CC9", "line": "CC", "seq": 9}],
+  "CHENG LIM LRT STATION": [{"code": "SW1", "line": "SKLRT_SW", "seq": 1}],
+  "CHOA CHU KANG LRT STATION": [{"code": "BP1", "line": "BPLRT", "seq": 1}],
+  "COMPASSVALE LRT STATION": [{"code": "SE1", "line": "SKLRT_SE", "seq": 1}],
+  "CORAL EDGE LRT STATION": [{"code": "PE3", "line": "PGLRT_PE", "seq": 3}],
+  "DT18": [{"code": "DT18", "line": "DT", "seq": 18}],
+  "DT4": [{"code": "DT4", "line": "DT", "seq": 4}],
+  "FAJAR LRT STATION": [{"code": "BP10", "line": "BPLRT", "seq": 10}],
+  "FARMWAY LRT STATION": [{"code": "SW2", "line": "SKLRT_SW", "seq": 2}],
+  "FERNVALE LRT STATION": [{"code": "SW5", "line": "SKLRT_SW", "seq": 5}],
+  "JELAPANG LRT STATION": [{"code": "BP12", "line": "BPLRT", "seq": 12}],
+  "KADALOOR LRT STATION": [{"code": "PE5", "line": "PGLRT_PE", "seq": 5}],
+  "KANGKAR LRT STATION": [{"code": "SE4", "line": "SKLRT_SE", "seq": 4}],
+  "KEAT HONG LRT STATION": [{"code": "BP3", "line": "BPLRT", "seq": 3}],
+  "KUPANG LRT STATION": [{"code": "SW3", "line": "SKLRT_SW", "seq": 3}],
+  "LAYAR LRT STATION": [{"code": "SW6", "line": "SKLRT_SW", "seq": 6}],
+  "MERIDIAN LRT STATION": [{"code": "PE2", "line": "PGLRT_PE", "seq": 2}],
+  "OASIS LRT STATION": [{"code": "PE6", "line": "PGLRT_PE", "seq": 6}],
+  "PENDING LRT STATION": [{"code": "BP8", "line": "BPLRT", "seq": 8}],
+  "PETIR LRT STATION": [{"code": "BP7", "line": "BPLRT", "seq": 7}],
+  "PHOENIX LRT STATION": [{"code": "BP5", "line": "BPLRT", "seq": 5}],
+  "PUNGGOL MRT STATION": [{"code": "NE17", "line": "NE", "seq": 17}],
+  "PUNGGOL LRT STATION": [{"code": "PW1", "line": "PGLRT_PW", "seq": 1}, {"code": "PW9", "line": "PGLRT_PW", "seq": 9},
+                          {"code": "PE0", "line": "PGLRT_PE", "seq": 0}, {"code": "PE8", "line": "PGLRT_PE", "seq": 8}],
+  "SAM KEE LRT STATION": [{"code": "PW2", "line": "PGLRT_PW", "seq": 2}],
+  "TECK LEE LRT STATION": [{"code": "PW3", "line": "PGLRT_PW", "seq": 3}],
+  "PUNGGOL POINT LRT STATION": [{"code": "PW4", "line": "PGLRT_PW", "seq": 4}],
+  "SAMUDERA LRT STATION": [{"code": "PW5", "line": "PGLRT_PW", "seq": 5}],
+  "NIBONG LRT STATION": [{"code": "PW6", "line": "PGLRT_PW", "seq": 6}],
+  "SUMANG LRT STATION": [{"code": "PW7", "line": "PGLRT_PW", "seq": 7}],
+  "SOO TECK LRT STATION": [{"code": "PW8", "line": "PGLRT_PW", "seq": 8}],
+  "COVE LRT STATION": [{"code": "PE1", "line": "PGLRT_PE", "seq": 1}],
+  "DAMAI LRT STATION": [{"code": "PE7", "line": "PGLRT_PE", "seq": 7}],
+  "RANGGUNG LRT STATION": [{"code": "SE5", "line": "SKLRT_SE", "seq": 5}],
+  "RENJONG LRT STATION": [{"code": "SW8", "line": "SKLRT_SW", "seq": 8}],
+  # NOTE: the legacy notebook defined SENGKANG twice; the second definition (below)
+  # won, so it is the one preserved here.
+  "SENGKANG MRT STATION": [{"code": "NE16", "line": "NE", "seq": 16},
+                           {"code": "SW0", "line": "SKLRT_SW", "seq": 0}, {"code": "SW9", "line": "SKLRT_SW", "seq": 9},
+                           {"code": "SE0", "line": "SKLRT_SE", "seq": 0}, {"code": "SE6", "line": "SKLRT_SE", "seq": 6}],
+  "RIVIERA LRT STATION": [{"code": "PE4", "line": "PGLRT_PE", "seq": 4}],
+  "RUMBIA LRT STATION": [{"code": "SE2", "line": "SKLRT_SE", "seq": 2}],
+  "SEGAR LRT STATION": [{"code": "BP11", "line": "BPLRT", "seq": 11}],
+  "SENJA LRT STATION": [{"code": "BP13", "line": "BPLRT", "seq": 13}],
+  "SOUTH VIEW LRT STATION": [{"code": "BP2", "line": "BPLRT", "seq": 2}],
+  "TECK WHYE LRT STATION": [{"code": "BP4", "line": "BPLRT", "seq": 4}],
+  "THANGGAM LRT STATION": [{"code": "SW4", "line": "SKLRT_SW", "seq": 4}],
+  "TONGKANG LRT STATION": [{"code": "SW7", "line": "SKLRT_SW", "seq": 7}],
+  "BUKIT BROWN MRT STATION": [{"code": "CC18", "line": "CC", "seq": 18}],
+}
+
+
+def station_centroids(df_exits: pd.DataFrame) -> pd.DataFrame:
+    """Collapse the per-exit table to one row per station: centroid = mean of all
+    exit coordinates, plus the count of distinct exits (BR-10)."""
+    df = df_exits.copy()
+    df["station_name"] = df["station_name"].astype(str).str.strip()
+    return (
+        df.dropna(subset=["station_name", "lat", "lon"])
+        .groupby("station_name", as_index=False)
+        .agg(
+            centroid_lat=("lat", "mean"),
+            centroid_lon=("lon", "mean"),
+            exits_count=("exit_code", "nunique"),
+        )
+    )
+
+
+def expand_station_lines(df_station_centroids: pd.DataFrame) -> pd.DataFrame:
+    """Expand each station to one row per line code via STATION_LINE_MAP; stations
+    absent from the map are dropped. line_id is a 1-based factorization of line,
+    in first-appearance order (BR-10)."""
+    rows = []
+    for _, r in df_station_centroids.iterrows():
+        station = r["station_name"]
+        for m in STATION_LINE_MAP.get(station, []):
+            rows.append(
+                {
+                    "station_name": station,
+                    "centroid_lat": r["centroid_lat"],
+                    "centroid_lon": r["centroid_lon"],
+                    "line": m["line"],
+                    "station_code": m["code"],
+                    "seq_in_line": m["seq"],
+                }
+            )
+
+    df_station_lines = pd.DataFrame(rows)
+    df_station_lines["line_id"] = pd.factorize(df_station_lines["line"])[0] + 1
+    return df_station_lines
