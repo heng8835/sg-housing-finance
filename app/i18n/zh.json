@@ -1215,7 +1215,6 @@
  "Rules last checked {0} — due for review, some figures may be out of date": "规则最后核对于 {0}——已到检讨期，部分数字可能已过时",
  "PUB's flood-prone areas are not included in this version.": "此版本不包括公用事业局的易淹水地区。",
  "Support this project": "支持这个项目",
- "It is free, with no ads and no tracking. If it helped you, you can support it here: {0}.": "本网站免费，没有广告，也不追踪用户。如果它对您有帮助，可以在这里支持我们：{0}。",
  "Make the sheet taller": "拉高面板",
  "Make the sheet full height": "面板全屏",
  "Make the sheet smaller": "缩小面板",
@@ -1442,5 +1441,6 @@
  "A bank bridging loan can cover this gap until the sale money comes in.": "在卖房款到账之前，可用银行的过渡贷款填补这段空档。",
  "and {0} more": "另有 {0} 个",
  "next change {0}": "下次变动 {0}",
- "Suggestions": "建议选项"
+ "Suggestions": "建议选项",
+ "It is free and private. If it helped you, you can support it here: {0}.": "本网站免费，并保护您的隐私。如果它对您有帮助，可以在这里支持我们：{0}。"
 }

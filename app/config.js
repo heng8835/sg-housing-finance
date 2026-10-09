@@ -19,4 +19,4 @@ export const BUILD_FEATURES = { btoData: false, floodData: false };
 export const BUILD_SHA = 'dev';
 // Owner's donation page (DEC-019: donations first) — e.g. a Ko-fi, Buy Me a Coffee or GitHub Sponsors URL (https only).
 // Empty = Learn → About shows no "Support this project" section. Add the page's host to tests/privacy/egress.test.js HOSTS.
-export const DONATE_URL = '';
+export const DONATE_URL = 'https://ko-fi.com/zhlim';

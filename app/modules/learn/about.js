@@ -96,7 +96,7 @@ export function aboutHtml({ policy = {}, hdb = null, rents = null, version = 'de
     ${btoOn && floodOn ? '' : `<h3>${t('Not in this version')}</h3>${btoOn ? '' : `<p>${t('BTO project details are not included in this version.')}</p>`}${floodOn ? '' : `<p>${t("PUB's flood-prone areas are not included in this version.")}</p>`}`}
     <h3>${t('Feedback')}</h3>
     <p>${t('Found a wrong number? Tell us on {0}.', [link(ISSUES_URL, t('GitHub Issues'))])} <b>${t('Never paste your income, CPF or savings.')}</b></p>
-    ${donate ? `<h3>${t('Support this project')}</h3><p>${t('It is free, with no ads and no tracking. If it helped you, you can support it here: {0}.', [link(donate, t('Support this project'))])}</p>` : ''}
+    ${donate ? `<h3>${t('Support this project')}</h3><p>${t('It is free and private. If it helped you, you can support it here: {0}.', [link(donate, 'Ko-fi ☕')])}</p>` : ''}
     <p class="hint about-version">${esc(t('App {0} · data up to {1}', [version, months.resale ? monthText(months.resale) : '—']))}</p>
     <p><button type="button" class="link" data-learn="">${t('← Learn')}</button></p>
   </div>`;

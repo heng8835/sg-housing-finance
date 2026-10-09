@@ -11,7 +11,7 @@
 // VERSION / DATA_VERSION are stamped by tools/build_sw_manifest.py — run it after any app change, before deploy.
 importScripts('sw-routes.js');
 
-const VERSION = 'e4d1ca51bc54';
+const VERSION = '0b2571a198bd';
 const DATA_VERSION = 'b81fd3b55619';
 
 const R = self.SWRoutes;

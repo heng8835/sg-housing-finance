@@ -46,7 +46,7 @@ GITIGNORE_TRAILER = "# written by tools/public_export.py (export bookkeeping, no
 # ---------------------------------------------------------------- what goes in (posix globs, relative to --src)
 INCLUDE = [
     "README.md", "LICENSE", "package.json", ".gitignore", ".gitattributes", ".dockerignore", "docker-compose.yml",
-    "serve.cmd", ".github/workflows/*.yml", ".github/ISSUE_TEMPLATE/*.yml", "DATA_LICENCES.md", "CHANGELOG.md",
+    "serve.cmd", ".github/workflows/*.yml", ".github/ISSUE_TEMPLATE/*.yml", ".github/FUNDING.yml", "DATA_LICENCES.md", "CHANGELOG.md",
     # app: runtime + source (content .md sources, README, Dockerfile)
     "app/index.html", "app/main.js", "app/config.js", "app/sw.js", "app/sw-routes.js", "app/manifest.webmanifest",
     "app/README.md", "app/Dockerfile", "app/icons/*", "app/core/**/*.js", "app/engine/**/*.js", "app/modules/**/*.js",

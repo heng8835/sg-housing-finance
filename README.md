@@ -204,6 +204,10 @@ Dataset by dataset, with terms: [`DATA_LICENCES.md`](DATA_LICENCES.md).
 Caveats: distances are straight-line; future MRT lines, major projects and former burial grounds are curated by
 hand and approximate; commute times are a model, not a journey planner.
 
+## Support
+
+SG Housing & Finance is free. If it helped you, you can support it on [Ko-fi](https://ko-fi.com/zhlim) ☕ — thank you!
+
 ## Feedback
 
 Found a wrong number or a data problem? [Open an issue](https://github.com/heng8835/sg-housing-finance/issues/new/choose)

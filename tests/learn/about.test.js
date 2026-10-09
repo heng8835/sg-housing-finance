@@ -147,7 +147,7 @@ test('rules date (go-live D1 = c): "Rules as of" before review_due, a warning af
 
 test('donation link (DEC-019): hidden while DONATE_URL is empty, https only, shown in About when set', async () => {
   const { donateUrl } = await import('../../app/core/version.js');
-  assert.equal(donateUrl(), '', 'repo default is empty');
+  assert.equal(donateUrl(), 'https://ko-fi.com/zhlim', 'the Ko-fi page set by the owner (DEC-019)');
   assert.equal(donateUrl('http://example.test'), '', 'https only');
   assert.equal(donateUrl('https://ko-fi.com/someone'), 'https://ko-fi.com/someone');
   assert.doesNotMatch(aboutHtml({ hdb: HDB, rents: RENTS }), /Support this project/);
