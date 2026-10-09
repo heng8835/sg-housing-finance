@@ -163,7 +163,7 @@ test('future value, switch off: supply = MOP wave only, says so; no BTO part, no
   assert.match(TIPS.supply(FUTURE_VALUE_PARAMS, policy, true), /BTO supply not included in this version, so the score is at most 4\/5 and marked partial/);
   assert.match(TIPS.supply(FUTURE_VALUE_PARAMS, policy), /upcoming BTO projects/);
   const off = howHtml({ policy, market: null, hdb: null, btoOff: true }), on = howHtml({ policy, market: null, hdb: null });
-  assert.doesNotMatch(off, /external BTO listing|BTO and curated/);
+  assert.doesNotMatch(off, /external BTO listing|external BTO listing|BTO and curated/);
   assert.match(on, /external BTO listing/);
 });
 
@@ -181,13 +181,16 @@ test('every HDB_BTO read in app/ is behind the switch (legacy.js, core/data.js);
   assert.match(legacy, /if \(!BTO_ON\) \{ delete layers\.bto; document\.querySelector\('#layers input\[data-l="bto"\]'\)/, 'layer + legend row removed');
 });
 
-test('switch off: no user-visible "external BTO listing" text is reachable (only the removed row tip and the gated source line)', () => {
+test('the BTO source is never named in app code; its neutral wording is only in the removed row tip and the gated source line', () => {
   const hits = [];
   const walk = (d) => { for (const n of readdirSync(d)) { const p = join(d, n); if (statSync(p).isDirectory()) { if (!['data', 'i18n'].includes(n)) walk(p); } else if (/\.(js|html|json)$/.test(n)) readFileSync(p, 'utf8').split('\n').forEach((l, i) => { if (/external BTO listing/i.test(l) && !/^\s*(\/\/|\/?\*)/.test(l)) hits.push({ p: p.slice(APP.length + 1).replace(/\\/g, '/'), l }); }); } };
   walk(APP);
-  assert.deepEqual(hits.map((h) => h.p).sort(), ['modules/explore/futurevalue-ui.js', 'modules/explore/legacy.js']);
-  assert.ok(hits.find((h) => h.p.endsWith('legacy.js')).l.includes(`{ k: '${BTO_ROW}',`), 'legacy: only the BTO row tip (row spliced out when off)');
-  assert.match(hits.find((h) => h.p.endsWith('futurevalue-ui.js')).l, /btoOff \? null : 'Upcoming BTO projects: external BTO listing scrape/, 'fv source line gated');
+  assert.deepEqual(hits, [], 'no source name in app code (the public export used to rewrite it, which broke the 中文 key)');
+  const neutral = []; const walk2 = (d) => { for (const n of readdirSync(d)) { const p = join(d, n); if (statSync(p).isDirectory()) { if (!['data', 'i18n'].includes(n)) walk2(p); } else if (/\.js$/.test(n)) readFileSync(p, 'utf8').split('\n').forEach((l) => { if (/external BTO listing/.test(l)) neutral.push({ p: p.slice(APP.length + 1).replace(/\\/g, '/'), l }); }); } };
+  walk2(APP);
+  assert.deepEqual(neutral.map((h) => h.p).sort(), ['modules/explore/futurevalue-ui.js', 'modules/explore/legacy.js']);
+  assert.ok(neutral.find((h) => h.p.endsWith('legacy.js')).l.includes(`{ k: '${BTO_ROW}',`), 'legacy: only the BTO row tip (row spliced out when off)');
+  assert.match(neutral.find((h) => h.p.endsWith('futurevalue-ui.js')).l, /btoOff \? null : 'Upcoming BTO projects: an external BTO listing/, 'fv source line gated');
   assert.doesNotMatch(withFeature('btoData', false, () => btoSection({ h: defaults().household, f: null, plan: defaults().plan, policy, today: '2026-10-07' })), /external BTO listing/i);
 });
 

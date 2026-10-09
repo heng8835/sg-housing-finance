@@ -161,7 +161,7 @@ export function howHtml({ open = false, params = FUTURE_VALUE_PARAMS, policy, ma
   if (lu) src.push(esc(t('Master Plan {0} land use: zones of the tracked kinds within {1} m of the block.', [lu.year, lu.radius_m])));
   const cat = market?.catalysts || [];
   if (cat.length) src.push(esc(`${t('Curated major projects (positions approximate):')} ${cat.map((c) => `${c.name} (${c.year ?? t('long-term')})`).join(', ')}`));
-  src.push(...['Future MRT stations: URA Master Plan positions; lines and years from LTA announcements.', btoOff ? null : 'Upcoming BTO projects: external BTO listing scrape; positions and unit counts approximate.', 'Rents: HDB renting-out records (data.gov.sg), declared rents.'].filter(Boolean).map((x) => esc(t(x))));
+  src.push(...['Future MRT stations: URA Master Plan positions; lines and years from LTA announcements.', btoOff ? null : 'Upcoming BTO projects: an external BTO listing; positions and unit counts approximate.', 'Rents: HDB renting-out records (data.gov.sg), declared rents.'].filter(Boolean).map((x) => esc(t(x))));
   const caveats = [
     'No driver predicts prices: these are signals that have tended to matter, not a forecast.',
     'Scores are relative signals for comparing flats, not absolute ratings, and there is deliberately no overall score — weigh the drivers yourself.',
