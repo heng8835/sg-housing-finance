@@ -6,10 +6,11 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, sep } from 'node:path';
-import { createStore, applySampleBoot, STORE_KEY, LEGACY_KEY, SAMPLE_KEY, SANDBOXED_KEYS } from '../../app/core/store.js';
+import { createStore, applySampleBoot, STORE_KEY, LEGACY_KEY, SAMPLE_KEY, FOLDS_KEY, SANDBOXED_KEYS } from '../../app/core/store.js';
+import { foldMemory } from '../../app/core/fold.js';
 
 const APP = fileURLToPath(new URL('../../app/', import.meta.url));
-const APP_KEYS = ['hdb-comparer', 'sghf:sample', 'sghf:v2'];
+const APP_KEYS = ['hdb-comparer', 'sghf:folds', 'sghf:sample', 'sghf:v2'];
 
 const memory = (init = {}) => {
   const m = new Map(Object.entries(init));
@@ -22,7 +23,7 @@ const sources = () => readdirSync(APP, { recursive: true })
   .map((f) => ({ f, text: readFileSync(join(APP, f), 'utf8') }));
 
 test('the app writes only the known localStorage keys', () => {
-  assert.deepEqual([STORE_KEY, LEGACY_KEY, SAMPLE_KEY].sort(), APP_KEYS);
+  assert.deepEqual([STORE_KEY, LEGACY_KEY, SAMPLE_KEY, FOLDS_KEY].sort(), APP_KEYS);
   const found = new Set();
   const setters = [];
   for (const { f, text } of sources()) {
@@ -49,7 +50,8 @@ test('Forget my data leaves no app key behind — listed after reset', () => {
   store.set('household.cash', 765432);
   store.set('ui.lang', 'zh');
   store.set('ui.textSize', 'large');
-  assert.deepEqual(keys(s), ['hdb-comparer', 'other-site:pref', 'sghf:sample', 'sghf:v2']);
+  foldMemory(s).set('hhLoan', true); // P8 M-14: remembered folds (layout only) go too
+  assert.deepEqual(keys(s), ['hdb-comparer', 'other-site:pref', 'sghf:folds', 'sghf:sample', 'sghf:v2']);
 
   store.reset();
   assert.deepEqual(keys(s), ['other-site:pref'], 'only foreign keys survive');

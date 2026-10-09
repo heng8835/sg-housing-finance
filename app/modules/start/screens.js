@@ -2,6 +2,7 @@
 // screen, the income split for two buyers, "No income from work". Pure string builders (node-testable); calm WP-A
 // classes only (.fields › label.f, .seg-field, .seg, .chips, .f-help, .hint, .link). Wired in index.js.
 import { t } from '../../core/i18n.js';
+import { flatTypeLabel } from '../../core/flattype.js';
 import { esc, money } from '../../core/dom.js';
 import { blockInput, blockName } from '../../core/blocksearch.js';
 import { CHILD_GOALS, SPLITS, HOME_FLAT_TYPES } from './answers.js';
@@ -58,7 +59,7 @@ function home(a, hdb) {
     const name = h.block && h.block.label ? h.block.label : h.block ? blockName(hdb, h.block.bid) : '';
     more = `<div class="fields st-fields">
         <label class="f wide"><span>${esc(t('Your block (optional)'))}</span>${blockInput({ cls: BLOCK_CLS, listId: BLOCK_LIST, value: name, placeholder: t('Search block or street') })}</label>
-        <label class="f"><span>${esc(t('Flat type'))}</span><select data-home-ft><option value="">—</option>${HOME_FLAT_TYPES.map((x) => `<option value="${x}"${x === h.flatType ? ' selected' : ''}>${esc(t(x))}</option>`).join('')}</select></label>
+        <label class="f"><span>${esc(t('Flat type'))}</span><select data-home-ft><option value="">—</option>${HOME_FLAT_TYPES.map((x) => `<option value="${x}"${x === h.flatType ? ' selected' : ''}>${esc(flatTypeLabel(x))}</option>`).join('')}</select></label>
       </div>
       ${a.goal === 'sellUpgrade' ? `<p class="f-help">${esc(t('You own an HDB flat, so you count as second-timers. Change it in Your household.'))}</p>` : ''}`;
   } else if (h.type === 'private') {

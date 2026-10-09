@@ -24,6 +24,7 @@ import { questionsFor, isFirstVisit, answersFrom, householdFrom, touchesHousehol
 import { questionHtml, doneHtml, pickedHint } from './view.js';
 import { BLOCK_CLS, BLOCK_LIST } from './screens.js';
 import { isPhone } from '../../core/spotlight.js';
+import { loadTownAliases } from '../../core/townalias.js'; // 中文 town names on the towns screen (S1a)
 
 const SHOW_DELAY_MS = 300; // after the map data has loaded (the guide's own offer waits 800 ms and for 'start:closed')
 const TAP_GUARD_MS = 400;  // after a tap moves on, a second tap within this time is ignored (no double step)
@@ -45,6 +46,7 @@ export function mountStart({ store, bus, policy = null, storage = globalThis.loc
 
   let i = 0, a = null, route = null, saved = null, finished = false, returnTo = null, guides = [], tapUntil = 0, paintedAt = null;
   loadGuideList().then((g) => { guides = g; });
+  if (currentLang() === 'zh') loadTownAliases(); // one cached same-origin fetch (also started by the map)
   const towns = () => (data.hdb ? data.hdb.towns.slice().sort() : []);
   const hubs = () => (data.commute && Array.isArray(data.commute.hubs) ? data.commute.hubs.map((h) => ({ id: h.id, name: h.name })) : []);
   const payoutAge = () => { try { return policy ? policy.get('cpf.age.life_payout') : null; } catch { return null; } };

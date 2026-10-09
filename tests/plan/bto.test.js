@@ -44,7 +44,7 @@ test('single fixture can\'t pick 4-room: only 2-room Flexi is enabled, with the 
     for (const ft of ['3 ROOM', '4 ROOM', '5 ROOM']) assert.match(sel, new RegExp(`<option value="${ft}" disabled>`), ft);
     assert.match(html, /Singles can buy a new 2-room Flexi flat only\./);
     assert.match(html, /elig\.rule\.single/);
-    assert.match(html, /4 ROOM is not open to your household for a new flat — showing 2-room Flexi\./);
+    assert.match(html, /4-room is not open to your household for a new flat — showing 2-room Flexi\./);
     assert.match(html, /data-bto-key="[^"]*\|2 ROOM"/, 'the price is asked for 2-room');
   }
   // a family keeps every type, no strip

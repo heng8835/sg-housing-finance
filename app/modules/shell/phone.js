@@ -106,10 +106,13 @@ export function mountPhone({ bus } = {}) {
 
   function paint() {
     app.dataset.phoneView = state.view;
+    landmark();
     sheet.dataset.size = state.size; panel.dataset.size = state.size; wrap.dataset.sheet = state.size; // panel: tour compat
     handle.setAttribute('aria-label', t(HANDLE_LABEL[state.size]));
     handle.setAttribute('aria-expanded', String(state.size !== 'peek'));
   }
+  // a11y 5a: on a phone page the map (<main>) is hidden, so the page panel is the main landmark until the map is back
+  function landmark() { if (mq.matches && state.view === 'page') panel.setAttribute('role', 'main'); else panel.setAttribute('role', 'complementary'); }
   function dispatch(ev) {
     const prev = state;
     state = reduce(state, ev);
@@ -268,7 +271,7 @@ export function mountPhone({ bus } = {}) {
   });
 
   let wasPhone = null; // matchMedia 'change' + a resize check (some emulators only fire resize)
-  const relayout = () => { if (mq.matches === wasPhone) return; wasPhone = mq.matches; place(wasPhone); kb(); };
+  const relayout = () => { if (mq.matches === wasPhone) return; wasPhone = mq.matches; place(wasPhone); kb(); landmark(); };
   mq.addEventListener?.('change', relayout);
   addEventListener('resize', relayout);
   relayout();

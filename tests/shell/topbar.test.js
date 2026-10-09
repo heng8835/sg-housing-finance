@@ -78,7 +78,10 @@ test('phone.css top bar: order lang · mode · You · Menu, 44 px targets, label
   assert.match(rule('#hhChip'), /margin-left: auto/);
   assert.match(rule('header .lang-switch button, header .mode-switch button'), /min-width: 44px;[\s\S]*min-height: 44px/);
   assert.match(rule('header .tb-item'), /min-width: 44px;[\s\S]*min-height: 44px/);
-  assert.match(css, /header h1, header \.sub, header \.stat, header \.spacer, header \.ts-switch, #learnBtn, #guideBtn \{ display: none; \}/);
+  assert.match(css, /header \.sub, header \.stat, header \.spacer, header \.ts-switch, #learnBtn, #guideBtn \{ display: none; \}/);
+  // a11y 5a: the h1 is hidden visually only — it stays the page's one level-1 heading for screen readers
+  assert.match(rule('header h1'), /position: absolute;[\s\S]*clip: rect\(0 0 0 0\)/);
+  assert.doesNotMatch(rule('header h1'), /display: none/);
   // px at each step: Normal root 16, Large 18, Larger 20 (capped at the Large size)
   const rem = (v, root) => { const m = v.match(/^calc\(([\d.]+)rem \/ (\d+)\)$/); return m ? (+m[1] / +m[2]) * root : parseFloat(v) * root; };
   const fs = (sel) => rule(sel).match(/font-size: ([^;]+);/)[1];

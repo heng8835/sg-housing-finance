@@ -3,6 +3,7 @@
 // Pure apart from t(): give it the household slice, the flat Afford is testing (core/typical effectiveFlat) and
 // the policy; it runs the same engine call as the Afford tab (planPurchase), so the numbers match that tab.
 import { planPurchase } from '../../engine/plan.js';
+import { withParents } from '../../core/parents.js';
 import { summarise } from '../../engine/household.js';
 import { esc, money, pct } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
@@ -62,13 +63,15 @@ export function fieldFor(need, h) {
  * Resolve live keys. Returns { values: { key: { text, missing: [needs] } }, needs: [unmet needs used] }.
  * Only computes the purchase plan when a flat with a price is known (and something asks for it).
  * sale = engine/salefunds.js saleInput(plan, year) — the home being sold, counted as the Afford tab counts it (A2).
+ * parentsKm = the flat's km to the parents' place (core/parents.js parentsKmFor; S1a: PHG per flat, as Afford) — null
+ * without a tagged place, and then the plan input is exactly as before.
  */
-export function resolveLive(keys, { household, flat, policy, sale = null }) {
+export function resolveLive(keys, { household, flat, policy, sale = null, parentsKm = null }) {
   const h = household || {}, miss = unmet(h, flat);
   const s = summarise(h);
   let plan = null;
   const ctx = { h, s, flat, get plan() {
-    if (!plan) plan = planPurchase({ household: h, flat: { price: flat.price, flatType: flat.flatType || '4 ROOM', remainingLease: flat.remainingLease ?? null, cov: flat.cov || 0 }, sale }, policy);
+    if (!plan) plan = planPurchase({ household: h, flat: withParents({ price: flat.price, flatType: flat.flatType || '4 ROOM', remainingLease: flat.remainingLease ?? null, cov: flat.cov || 0 }, parentsKm), sale }, policy);
     return plan;
   } };
   const values = {}, used = new Set();

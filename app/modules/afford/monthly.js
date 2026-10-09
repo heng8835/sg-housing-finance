@@ -122,7 +122,7 @@ function riskBlock(cost, risk, plan, mode = 'pro') {
   return `<p class="mc-risk">${line} ${term('sora', '')}</p>${hdb}
     <div class="pro-only">
       <p class="hint">${t('3-month compounded SORA from {0} to {1} ({2} daily readings), plus an assumed bank spread of {3}. Lowest SORA {4}, highest {5}.', [esc(risk.window.from), esc(risk.window.to), risk.window.observations, rate2(risk.spread), rate2(risk.sora.min), rate2(risk.sora.max)])}</p>
-      <table class="mini"><thead><tr><th></th><th>${t('Rate')}</th><th>${t('Instalment')}</th><th>${t('Total a month')}</th></tr></thead><tbody>
+      <table class="mini"><thead><tr><td></td><th>${t('Rate')}</th><th>${t('Instalment')}</th><th>${t('Total a month')}</th></tr></thead><tbody>
         ${at(t('SORA low'), risk.low, r.low)}${at(t('SORA median'), risk.median, r.median)}${at(t('SORA high'), risk.high, r.high)}${at(t('Your rate now'), risk.current, r.now)}
       </tbody></table>
     </div>`;

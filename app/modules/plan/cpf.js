@@ -11,9 +11,11 @@ import { missingFields, needPrompt } from '../../core/missing.js';
 import { householdLink } from '../../core/filllink.js';
 import { DEFAULT_WAGE_GROWTH, DEFAULT_BONUS_MONTHS, CPF_DEFAULTS } from '../../core/cpf-defaults.js';
 import { rangeOn, cpfRangeToggle, cpfRangeSlots, cpfRangeNote } from './cpfrange.js';
+import { basedOnHtml } from '../../core/focusflat.js';
 
 // modelling defaults, not rules (editable in the section) — shared with the scenario compare table
 export { DEFAULT_WAGE_GROWTH, DEFAULT_BONUS_MONTHS };
+const BASED_ON = ['age', 'income', 'cpfOa']; // P8 M-08: the household figures behind the projection, one-field quick edits
 const PR_YEARS = [['PR1', '1st year as PR'], ['PR2', '2nd year as PR'], ['PR3+', '3rd year or later']];
 
 const metTag = (ok, label) => `<span class="tag ${ok ? 'good' : 'neutral'}">${ok ? '✓' : '✕'} ${label}</span>`;
@@ -72,7 +74,9 @@ function buyerCard(b, i, { buyers, plan, settings, policy, year, mcOn, mode = 'p
   // Monte-Carlo range lines (Pro switch; '' when off — the KPIs above them are unchanged)
   const mc = cpfRangeSlots(mcOn, { buyers, i, plan, settings, defaults: CPF_DEFAULTS, year }, policy);
   const rng = (r, k) => (r && (k.startsWith('ra') ? k55(r) : r.life) ? mc.slot(k) : '');
-  return `<fieldset class="buyer"><legend>${name} · ${t('age {0}', [age])}</legend>
+  // wider screens: the card scrolls sideways when the rows are wide (#planRoot fieldset.buyer) — a tab stop, so the keyboard can
+  // scroll it too (a11y 5a, axe scrollable-region-focusable); phones do not scroll it
+  return `<fieldset class="buyer"${phone ? '' : ' tabindex="0"'}><legend>${name} · ${t('age {0}', [age])}</legend>
     ${prSel ? `<div class="fields">${prSel}</div>` : ''}
     <div class="kpis">
       <div class="kpi"><small>${t('Retirement Account at 55')}</small><b>${at55(without)}</b>${rng(without, 'ra55')}</div>
@@ -97,7 +101,7 @@ function payoutDelta({ h, plan, settings, policy, year }) {
     return `<div class="kpis"><div class="kpi"><small>${t('Household CPF LIFE you receive')}</small><b>${t('{0} a month', [money(r.without.monthly)])}<small>${t('no change: payouts have started')}</small></b>${missing}</div></div>`;
   }
   const v = r.delta === 0 ? t('no change') : t('≈ {0} a month', [`${r.delta < 0 ? '−' : '+'}${money(Math.abs(r.delta))}`]);
-  return `<div class="kpis"><div class="kpi"><small>${t('Household CPF LIFE from {0} if you buy this flat (estimate)', [r.atAge])}</small><b>${v}<small>${t('{0} → {1} a month vs not buying', [money(r.without.monthly), money(r.withBuy.monthly)])}</small></b>${missing}</div></div>`;
+  return `<div class="kpis"><div class="kpi"><small>${t('Household CPF LIFE from {0} if you buy this flat (estimate)', [r.atAge])}</small><b data-qe-live="${esc(t('CPF LIFE from {0}: {1}', [r.atAge, v]))}">${v}<small>${t('{0} → {1} a month vs not buying', [money(r.without.monthly), money(r.withBuy.monthly)])}</small></b>${missing}</div></div>`;
 }
 
 /** @param {{ h:object, f:object|null, tf:object|null, plan:object, policy:object, today:string }} ctx  tf = focus or typical flat */
@@ -120,13 +124,15 @@ export function cpfSection({ h, tf: f, plan: p, policy, today, mode = 'pro', pho
       : t('Estimates: income stays employed until {0}, rises by the pay rise above; CPF LIFE premiums, top-ups and the CPF LIFE set-aside are not modelled. Not a CPF quote — use the CPF planners for decisions.', [A65]);
   const sub = !plan ? t('Pick a flat (Afford this → on the map) to see what buying does to CPF.')
     : f.isDefault ? esc(t('With and without buying a typical {0} in {1} at {2}.', [ftWord(f.flatType), f.scope.label, money(f.price)]))
-      : t('With and without buying {0} at {1}.', [esc(f.label || t('this flat')), money(f.price)]);
+      : phone ? t('With and without buying this flat.') // the flat bar above names it (P8 review, nice-to-have 2)
+        : t('With and without buying {0} at {1}.', [esc(f.label || t('this flat')), money(f.price)]);
   return `${head}
     <p class="sec-sub">${sub}</p>${defaultNote(f)}
     ${payoutDelta({ h, plan, settings, policy, year })}
     ${working.length ? `<div class="fields pro-only">${field(t('Pay rise per year (%)'), pctIn('plan.cpf.wageGrowth', settings.wageGrowth, DEFAULT_WAGE_GROWTH * 100))}${field(t('Bonus (months of pay)'), numIn('plan.cpf.bonusMonths', settings.bonusMonths, `min="0" max="6" step="0.5" placeholder="${DEFAULT_BONUS_MONTHS}"`))}</div>
     ${cpfRangeToggle(mcOn)}` : ''}
     ${buyers.map(({ b, i }) => buyerCard(b, i, { buyers: all, plan, settings, policy, year, mcOn, mode, phone })).join('')}
+    ${basedOnHtml(h, BASED_ON, { id: 'cpfBased', live: '.kpis .kpi b' })}
     ${working.length ? cpfRangeNote(mcOn) : ''}
     <p class="hint">${foot}</p>
   </div>`;

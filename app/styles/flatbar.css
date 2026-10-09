@@ -1,0 +1,102 @@
+/* P8 8a — answer first (mobile-revamp-ideas.md M-01, M-08; owner Q2: phone and desktop, Q3: edits the real household).
+   The flat in focus bar in each page's .page-ctx slot (modules/shell/flatbar.js), the "Which flat?" and quick-edit
+   sheets (dialog.bsheet: a bottom sheet on phones, a small dialog on desktop; modules/household/quickedit.js) and the
+   "Based on your household" rows under an answer (core/focusflat.js). Existing tokens only; no transitions or
+   animations; phone rules inside the 767 px query. */
+
+/* ---------------------------------------------------------------- the bar */
+/* desktop: the page head stays hidden (the tab strip names the page) — only its context line shows */
+@media (min-width: 768px) {
+  .tab > .page-head.has-ctx { display: block; margin: 0 0 var(--sp-3); }
+  .tab > .page-head.has-ctx > .page-row { display: none; }
+}
+.page-ctx[hidden] { display: none; }
+.fbar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-card);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); }
+.fb-main { display: flex; align-items: center; gap: var(--sp-3); min-height: 40px; }
+.fb-t { flex: 1 1 auto; min-width: 0; margin: 0; line-height: 1.35; }
+.fb-t small { display: block; font-size: .857rem; color: var(--text-3); }
+.fb-t b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.fb-change { flex: none; }
+.fb-nav { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); padding-top: var(--sp-2); border-top: 1px solid var(--border-subtle); }
+.fb-pos { flex: 1 1 auto; text-align: center; color: var(--text-2); font-size: .929rem; }
+.fb-step { flex: none; min-width: 36px; padding: 4px 0; font-size: 1.143rem; line-height: 1; }
+.fb-step[aria-disabled="true"] { opacity: .45; cursor: default; }
+
+/* ---------------------------------------------------------------- "Based on your household" */
+.based-on { margin: var(--sp-3) 0 0; padding-top: var(--sp-1); border-top: 1px solid var(--border-subtle); }
+.bo-h { margin: var(--sp-2) 0 0; font-size: .857rem; color: var(--text-3); }
+.bo-row { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: 36px; padding: 2px 0; border: 0;
+  border-bottom: 1px solid var(--border-subtle); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.bo-row:last-child { border-bottom: 0; }
+.bo-t { flex: 1 1 auto; min-width: 0; color: var(--text-2); }
+.bo-v { font-weight: 600; text-align: right; }
+.bo-e { flex: none; color: var(--accent-ink); font-weight: 600; }
+.bo-row:hover .bo-e { text-decoration: underline; }
+
+/* ---------------------------------------------------------------- sheets */
+dialog.bsheet { width: min(420px, calc(100vw - 24px)); max-height: calc(100vh - 24px); padding: 0; border: 0; border-radius: var(--radius);
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow-pop); }
+dialog.bsheet[open] { display: flex; flex-direction: column; }
+dialog.bsheet::backdrop { background: rgba(20, 20, 18, .25); }
+dialog.bsheet.qe-near { position: fixed; margin: 0; width: min(340px, calc(100vw - 24px)); }
+.bs-head { flex: none; display: flex; align-items: center; gap: var(--sp-2); min-height: 48px; padding: 0 var(--sp-2) 0 var(--sp-4); border-bottom: 1px solid var(--border); }
+.bs-head h2 { flex: 1 1 auto; margin: 0; font-size: 1.072rem; font-weight: 650; }
+.bs-body { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+.bs-body .fields { grid-template-columns: 1fr; }
+.bs-foot { display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-3); }
+.qe-note { margin: 0; font-size: .857rem; color: var(--text-2); }
+.qe-note .link { font-size: inherit; }
+.wf-now { margin: 0; color: var(--text-2); font-size: .929rem; }
+.wf-h { margin: var(--sp-4) 0 var(--sp-1); font-size: .929rem; font-weight: 600; color: var(--text-2); }
+.wf-list .hint { margin: var(--sp-1) 0; }
+.wf-row { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: 48px; padding: 6px 0; border: 0;
+  border-bottom: 1px solid var(--border-subtle); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.wf-row::before { content: ''; flex: none; width: 18px; height: 18px; box-sizing: border-box; border: 2px solid var(--border-input); border-radius: 50%; }
+.wf-row[aria-checked="true"]::before { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--surface); }
+.wf-t { flex: 1 1 auto; min-width: 0; }
+.wf-t b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.wf-t small { display: block; color: var(--text-3); font-size: .857rem; }
+.wf-p { flex: none; font-weight: 600; }
+.wf-typed .fields { margin: var(--sp-2) 0; }
+.wf-map { display: block; width: 100%; margin-top: var(--sp-4); }
+/* Afford's own "Pick on the map →" link inside the typed fields: the sheet's [Pick a block on the map] does the same (P8-12) */
+.wf-dlg [data-act="pick-map"] { display: none; }
+
+/* ---------------------------------------------------------------- phone */
+@media screen and (max-width: 767px) {
+  .tab > .page-head > .page-ctx { margin-top: 8px; }
+  /* one compact block (P8-02): "For Fernvale 4-room · S$600,000" on one line, ‹ 1 of 3 › right under it, no rule */
+  .fbar { padding: 2px 4px 2px 14px; } /* ≤ 96 px with ‹ › at Normal: 2 + 46 + 44 + 2 + borders */
+  .fb-main { min-height: 46px; }
+  .fb-t small { display: inline; margin-right: .35em; font-size: .875rem; }
+  .fb-t b { display: inline; font-size: 1rem; }
+  .fb-change { min-width: 72px; min-height: 44px; font-size: .9375rem; }
+  .fb-nav { margin-top: 0; padding-top: 0; border-top: 0; }
+  .fb-step { min-width: 44px; min-height: 44px; font-size: 1.25rem; }
+  .fb-pos { font-size: .9375rem; }
+  .bo-h { font-size: .875rem; }
+  .bo-row { min-height: 44px; font-size: .9375rem; }
+
+  /* bottom sheet: the answer stays visible above it */
+  dialog.bsheet, dialog.bsheet.qe-near { position: fixed; inset: auto 0 var(--kb, 0px) 0; margin: 0; width: 100%; max-width: 100%;
+    max-height: calc(100dvh - var(--kb, 0px) - 48px); border-radius: 14px 14px 0 0; }
+  .bs-head { min-height: 52px; padding: 0 12px 0 16px; }
+  .bs-head h2 { font-size: 1.0625rem; }
+  .bs-head .btn { min-width: 64px; min-height: 44px; font-size: .9375rem; }
+  .bs-body { padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  /* the answer the quick edit changes, repeated at the top of the sheet while you type (P8-04) */
+  .qe-live { margin: 0 0 8px; font-size: 1rem; font-weight: 600; color: var(--text); }
+  .bs-foot .btn { flex: 1 1 0; min-height: 48px; font-size: 1rem; }
+  .qe-note { font-size: .9375rem; }
+  .qe-note .link { min-height: 44px; font-size: .9375rem; }
+  .wf-now, .wf-h { font-size: .9375rem; }
+  .wf-row { min-height: 56px; font-size: 1rem; }
+  .wf-row::before { width: 20px; height: 20px; }
+  .wf-t small { font-size: .875rem; }
+  .wf-goprice { min-height: 44px; }
+  .wf-map { min-height: 48px; font-size: 1rem; }
+  /* Rent: one line for "the flat above" instead of the Based on list (rent/index.js) */
+  .rb-ctx-line { margin: 4px 0 8px; font-size: .9375rem; color: var(--text-2); }
+  .rb-ctx-line .link { min-height: 44px; font-size: .9375rem; }
+}

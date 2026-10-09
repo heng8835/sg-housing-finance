@@ -173,6 +173,10 @@ python tools/fetch_family_health.py  # childcare vacancies, clinics
 python tools/build_commute.py      # commute estimates
 python tools/build_sw_manifest.py  # offline-copy manifest (after ANY change under app/)
 ```
+
+Or the whole chain in one go, with a change report and sanity checks: `python tools/refresh_all.py --dry-run`
+(plan + summary of the current data), then `python tools/refresh_all.py`. OneMap calls use a token when
+`ONEMAP_EMAIL` / `ONEMAP_PASSWORD` are set (environment only), and go out anonymously otherwise.
 </details>
 
 <details><summary><b>Repository layout</b></summary>

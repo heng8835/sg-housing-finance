@@ -2,6 +2,8 @@
    P-47, P-64). Loaded after phone.css. EVERY rule is inside @media screen and (max-width: 767px), so tablet and desktop do not
    change (tests/phone/pages-css.test.js); rem font sizes only, nothing under .875rem; tokens from base.css only. */
 @media screen and (max-width: 767px) {
+  /* a11y 5a: the page title in .page-head is the h2 here; the screen-reader-only copy is for wider screens */
+  .tab > .tab-h.desk-only { display: none; }
   /* ---------------------------------------------------------------- sticky card headers stick to the real top (R-08)
      the page's 16 px top padding moves from .tab (it inset the sticky area, so a strip of the rows above showed over
      the header) to the title row; an open fold's sub-line is not repeated in its sticky header (the content is below) */
@@ -43,7 +45,7 @@
   .sc-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
   .sc-acts .btn { min-height: 44px; font-size: .9375rem; }
   /* Delete on its own row at the end, away from Load / Rename */
-  .sc-acts [data-act="sc-delete"] { grid-column: 2; margin-top: 12px; color: var(--critical); }
+  .sc-acts [data-act="sc-delete"] { grid-column: 2; margin-top: 12px; color: var(--critical-ink); }
   .sc-item.editing .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   table.sc-table th, table.sc-table td { min-width: 0; }
   table.sc-table tbody th { max-width: 7.5rem; overflow-wrap: anywhere; }

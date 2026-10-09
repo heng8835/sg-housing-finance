@@ -28,3 +28,6 @@ parents' home) are unchanged; the B1 header note only appears with saved ticks (
 Fill links (Oct 2026): `filllinks_fixture.mjs` turns the three 7b files into `compare-phase7c.txt`, `-fv.txt`, `-nobto.txt` —
 empty-state cells that wait for an input show the fill-link text (`app/core/filllink.js`); the 7b files are historical
 since (built in the temp folder). Reviewed diff: `hdb-data-pipeline/docs/specs/fill-links-compare-diff.md`.
+Flat-type labels (S1a): `flattype_fixture.mjs` turns the three 7c files into `compare-phase7d.txt`, `-fv.txt`, `-nobto.txt` —
+HDB codes shown through `app/core/flattype.js` ("4 ROOM" → "4-room", "37 TO 39" → "storey 37–39", Storey row "37–39");
+labels only. The 7c files are historical since. Reviewed diff: `hdb-data-pipeline/docs/specs/flattype-labels-diff.md`.

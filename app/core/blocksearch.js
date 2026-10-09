@@ -1,36 +1,30 @@
 // Block autocomplete shared by Start here ("The home you own") and Rent & Buy ("Block (optional)") — Phase 7b B5 / B7.
-// Same matching as Plan → Sell then buy (modules/plan/salerange.js) and the Explore search: street words
-// abbreviated, "BLK" dropped, every typed word must start a word of "number street" (numbers exactly).
+// Same matching as Plan → Sell then buy and the Explore search (core/searchnorm.js, 7c C3): punctuation ignored, street
+// words abbreviated both ways, "BLK" dropped, every typed word must start a word of "number street" (numbers exactly).
 // Pure search + one small DOM binder (listbox with arrow keys, Enter, Escape, mouse). Reads data.js only.
 import { esc } from './dom.js';
+import { canon, tokens, hits, rankOf, titleCase } from './searchnorm.js';
 
 export const AC_MAX = 8; // suggestions shown (UI choice)
-
-const ABBR = [['AVENUE', 'AVE'], ['STREET', 'ST'], ['ROAD', 'RD'], ['DRIVE', 'DR'], ['CRESCENT', 'CRES'], ['CLOSE', 'CL'], ['NORTH', 'NTH'], ['SOUTH', 'STH'], ['CENTRAL', 'CTRL']];
-const titleCase = (s) => String(s).toLowerCase().replace(/(^|[\s/(-])([a-z])/g, (_, a, c) => a + c.toUpperCase());
 
 /** "123 Bishan St 12" for a data.js block. */
 export const blockName = (hdb, bid) => { const b = hdb?.blocks?.[bid]; return b ? `${b.b} ${titleCase(hdb.streets[b.s])}` : ''; };
 export const townTitle = (s) => titleCase(s || '');
 
-export function normQuery(s) {
-  let q = String(s || '').toUpperCase();
-  for (const [a, b] of ABBR) q = q.replace(new RegExp(`\\b${a}\\b`, 'g'), b);
-  return q.replace(/\bBLK\b|\bBLOCK\b/g, '').replace(/\s+/g, ' ').trim();
-}
-const wordHit = (str, toks) => { const words = str.split(/[^A-Z0-9]+/); return toks.every((k) => words.some((w) => (/^\d+$/.test(k) ? w === k : w.startsWith(k)))); };
+/** The typed text normalised like the data (core/searchnorm.js canon): "Blk 101 Bishan Street 12" → "101 BISHAN ST 12". */
+export const normQuery = canon;
 
 /** Up to `max` block indices matching every word of q; `town` (data.js town name) narrows the search; street-first first. */
 export function searchBlocks(hdb, q, { max = AC_MAX, town = null } = {}) {
-  const n = normQuery(q);
+  const n = canon(q);
   if (!hdb || !hdb.blocks || n.length < 2) return [];
   const ti = town ? hdb.towns.indexOf(town) : -1;
-  const toks = n.split(' '), res = [];
+  const toks = tokens(q), res = [];
   for (let i = 0; i < hdb.blocks.length && res.length < 40; i++) {
     const b = hdb.blocks[i];
     if (ti >= 0 && b.t !== ti) continue;
-    const addr = `${b.b} ${hdb.streets[b.s]}`.toUpperCase();
-    if (wordHit(addr, toks)) res.push({ i, first: addr.startsWith(toks[0]) ? 0 : 1 });
+    const addr = `${b.b} ${hdb.streets[b.s]}`;
+    if (hits(addr, toks)) res.push({ i, first: rankOf(addr, toks) });
   }
   return res.sort((x, y) => x.first - y.first).slice(0, max).map((x) => x.i);
 }

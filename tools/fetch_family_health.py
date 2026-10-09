@@ -110,12 +110,17 @@ LEGEND = {
 
 
 # ----------------------------------------------------------------------------- http
+# OneMap token (ONEMAP_EMAIL / ONEMAP_PASSWORD, see onemap_token.py) on OneMap requests only; anonymous without them.
+sys.path.insert(0, str(HERE))
+from onemap_token import attach, headers_for  # noqa: E402
+
 try:
     import requests  # noqa: F401
     _S = requests.Session()
     if PROXY:
         _S.proxies = {"http": PROXY, "https": PROXY}
     _S.headers.update({"User-Agent": "hdb-comparer/0.1 (personal research)", "Accept": "*/*"})
+    attach(_S)
 
     def _raw_get(url, params=None):
         r = _S.get(url, params=params, timeout=120)
@@ -126,7 +131,8 @@ except ImportError:
     def _raw_get(url, params=None):
         if params:
             url += ("&" if "?" in url else "?") + urllib.parse.urlencode(params)
-        req = urllib.request.Request(url, headers={"User-Agent": "hdb-comparer/0.1 (personal research)", "Accept": "*/*"})
+        req = urllib.request.Request(url, headers={"User-Agent": "hdb-comparer/0.1 (personal research)", "Accept": "*/*",
+                                                   **headers_for(url)})
         try:
             with _OPENER.open(req, timeout=120) as r:
                 return r.status, r.read()

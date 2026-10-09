@@ -3,6 +3,8 @@
 
 export const STORE_KEY = 'sghf:v2';
 export const LEGACY_KEY = 'hdb-comparer';
+// Which folded sections are open (core/fold.js rememberFolds, P8 M-14): layout only, not personal; Forget clears it.
+export const FOLDS_KEY = 'sghf:folds';
 // Named scenarios (Phase 6b): at most four snapshots with ids A–D, kept here (localStorage) only — never in a URL.
 export const SCENARIO_IDS = ['A', 'B', 'C', 'D'];
 export const MAX_SCENARIOS = SCENARIO_IDS.length;
@@ -185,7 +187,7 @@ export function createStore({ storage = null, key = STORE_KEY } = {}) {
      * unreadable one can be left here — guard() refuses while a sample is on; an 'exit' record would otherwise put
      * the forgotten data back at the next start). tests/core/forget.test.js lists the keys left afterwards.
      */
-    reset() { guard(); remove(key); remove(LEGACY_KEY); remove(SAMPLE_KEY); state = defaults(); notify(''); },
+    reset() { guard(); remove(key); remove(LEGACY_KEY); remove(SAMPLE_KEY); remove(FOLDS_KEY); state = defaults(); notify(''); },
   };
   return api;
 }

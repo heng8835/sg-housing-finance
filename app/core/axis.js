@@ -80,3 +80,26 @@ export function quarterTicks(firstQ, lastQ, plotW, { yearPx: yearRoom = YEAR_LAB
   }
   return { count, px, step, minor, major, end: { i: count - 1, year: b.year, q: b.q } };
 }
+
+/**
+ * Ticks for a quarter axis drawn evenly BY POSITION in `quarters` (the drawn labels, in order; x = i / (count − 1) ×
+ * plotW). S1a: HDB's quarter list can skip a quarter, so a calendar index (quarterTicks) can sit one quarter off after
+ * the gap; here each year tick is placed at the position of its own label ('2024-Q1'), and a year whose Q1 is missing
+ * from the list gets no tick. Same return shape and room rules as quarterTicks (i = position in `quarters`).
+ */
+export function quarterTicksAt(quarters, plotW, { yearPx: yearRoom = YEAR_LABEL_PX, endPx = END_LABEL_PX } = {}) {
+  const list = Array.isArray(quarters) ? quarters : [], count = list.length;
+  const a = parseQuarter(list[0]), b = parseQuarter(list[count - 1]);
+  if (!a || !b || b.year * 4 + b.q < a.year * 4 + a.q) return null;
+  const px = count > 1 ? plotW / (count - 1) : plotW;
+  const step = [1, 2, 5, 10].find((s) => s * px * 4 >= yearRoom) || 10;
+  const at = new Map(list.map((s, i) => [String(s), i]));
+  const minor = px >= MINOR_PX ? list.map((_, i) => i) : [];
+  const major = [];
+  for (let y = a.year; y <= b.year; y++) {
+    const i = at.get(`${y}-Q1`);
+    if (i == null) continue;
+    major.push({ i, year: y, label: y % step === 0 && (count - 1 - i) * px >= endPx });
+  }
+  return { count, px, step, minor, major, end: { i: count - 1, year: b.year, q: b.q } };
+}

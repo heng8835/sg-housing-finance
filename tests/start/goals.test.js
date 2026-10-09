@@ -159,7 +159,7 @@ test('B11 flat-type hint: one person or two at the senior hint age → 2- and 3-
   assert.deepEqual(flatTypesFor('buyResale', 2, { ages: [58, null] }), ['4 ROOM', '5 ROOM', 'EXECUTIVE']);
   const r = routeFor(blank({ goal: 'buyResale', buyers: 2, ages: [60, 57] }));
   assert.equal(r.picked, 'seniors');
-  assert.equal(pickedHint(r.picked, r.view.ft, 55), 'Picked for you (two of you, both 55 or older): 2 ROOM, 3 ROOM. Change any time.');
+  assert.equal(pickedHint(r.picked, r.view.ft, 55), 'Picked for you (two of you, both 55 or older): 2-room, 3-room. Change any time.');
   assert.equal(pickedHint(null, null, 55), '');
   assert.equal(routeFor(blank({ goal: 'retire' })).picked, null, 'retire leaves the map alone');
 });

@@ -7,6 +7,7 @@ import { bus } from './bus.js';
 import { esc, money } from './dom.js';
 import { t, currentLang } from './i18n.js';
 import { rentComps, areaRentComps } from '../engine/rent.js';
+import { flatTypeLabel } from './flattype.js';
 
 export const TYPICAL_MIN_N = 5;   // UI heuristic: fewer sales than this → widen the scope one step
 const DEBOUNCE_MS = 150;
@@ -43,11 +44,7 @@ const titleCase = (s) => String(s || '').toLowerCase().replace(/(^|[\s/(-])([a-z
 /** Town name for display ('ANG MO KIO' → 'Ang Mo Kio'). */
 export const townName = (town) => titleCase(town);
 /** Flat type in a sentence: '4-room', 'Executive' (中文: the dictionary name). */
-export function ftWord(ft) {
-  if (currentLang() !== 'en') return t(ft);
-  const m = /^(\d) ROOM$/.exec(ft || '');
-  return m ? `${m[1]}-room` : titleCase(ft);
-}
+export const ftWord = (ft) => flatTypeLabel(ft); // one shared display helper (core/flattype.js)
 /** 'Oct 2025' / '2025年10月'. */
 export function monthLabel(ym) {
   const [y, m] = String(ym || '').split('-').map(Number);

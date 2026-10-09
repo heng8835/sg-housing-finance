@@ -11,7 +11,7 @@ test('shortValue: rounded box labels per colour mode (display only)', () => {
 });
 
 test('value-label switch: button text per mode; legend reads "–" for grey / new boxes and adds the hint', () => {
-  assert.deepEqual(['price', 'budget', 'psf', 'count', 'rent', 'commute'].map(chipMetric), ['Price', 'Price', '$ per sqft', 'Sales', 'Rent', 'Minutes']);
+  assert.deepEqual(['price', 'budget', 'psf', 'count', 'rent', 'commute'].map(chipMetric), ['Price', 'Price', 'Price per sq ft', 'Sales', 'Rent', 'Minutes']);
   const scale = quantileScale([1, 2, 3, 4, 5]);
   const base = { scale, mode: 'price', label: 'L', fmt: String, t, simple: true, zoomedIn: true };
   const blockMode = legendHtml({ ...base, chipLabel: null });
@@ -43,8 +43,8 @@ test('legend ticks are rounded per measure', () => {
   assert.equal(roundTick(7.6, 'count'), 8);
 });
 
-test('text colour: dark on the two light steps, white on the three dark ones', () => {
-  assert.deepEqual(RAMP.map(textOn), ['#1b1b19', '#1b1b19', '#ffffff', '#ffffff', '#ffffff']);
+test('text colour: dark on the lightest step, white on the four darker ones (RAMP[1] darkened, a11y 5a / D9)', () => {
+  assert.deepEqual(RAMP.map(textOn), ['#1b1b19', '#ffffff', '#ffffff', '#ffffff', '#ffffff']);
   assert.equal(textOn('#1f9d6b'), '#1b1b19'); // budget green keeps dark text
 });
 

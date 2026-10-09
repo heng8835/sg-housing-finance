@@ -5,6 +5,7 @@
 // Bus: listens to 'samples:open' {} (picker), 'samples:load' {id} (guides: "Try it with the Young couple sample"),
 // 'samples:exit' {}. Sample ids: SAMPLE_IDS in ./data.js.
 import { t } from '../../core/i18n.js';
+import { flatTypeLabel } from '../../core/flattype.js';
 import { esc, money } from '../../core/dom.js';
 import { data } from '../../core/data.js';
 import { requestSample, requestSampleExit, userSnapshot } from '../../core/store.js';
@@ -30,7 +31,8 @@ export function mountSamples({ store, policy, bus, storage = window.localStorage
       <span class="sb-short">${t('Sample: {0}', [esc(t(s.name))])}</span>
       <div class="sb-actions"><button type="button" class="btn sm sb-other" data-smp="open">${t('Other samples')}</button><button type="button" class="btn sm primary sb-exit-long" data-smp="exit">${t('Exit sample')}</button><button type="button" class="btn sb-exit-short" data-smp="exit" aria-label="${esc(t('Exit sample'))}">${t('Exit')}</button></div>`;
     el.addEventListener('click', onClick);
-    document.body.prepend(el);
+    const skip = document.querySelector('.skip-link'); // a11y 5a: "Skip to content" stays the first stop
+    if (skip) skip.after(el); else document.body.prepend(el);
     document.body.classList.add('in-sample');
   }
 
@@ -42,7 +44,7 @@ export function mountSamples({ store, policy, bus, storage = window.localStorage
   function facts(s) {
     const h = s.household, sum = summarise(h);
     const who = h.buyers.map((b) => t('{0}, {1}', [t(CITIZEN[b.citizenship] || b.citizenship), b.age])).join(' · ');
-    const types = [...new Set(s.shortlist.map((f) => t(f.flatType)))].join(', ');
+    const types = [...new Set(s.shortlist.map((f) => flatTypeLabel(f.flatType)))].join(', ');
     return `<ul class="smp-facts">
       <li>${esc(who)}</li>
       <li>${t('Income {0} a month · CPF OA {1} · cash {2}', [money(sum.income || 0), money(sum.cpfOa), money(sum.cash)])}</li>

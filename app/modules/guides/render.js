@@ -22,19 +22,19 @@ export function listHtml(guides, done = {}) {
     <p class="g-log-link"><button type="button" class="link" data-guide-log>${esc(t('Rules and recent changes →'))}</button></p></section>`;
 }
 
-/** "Sources: hdb.gov.sg · mas.gov.sg" for the policy ids a step uses (title = id · status · from · retrieved). */
-export function sourcesHtml(ids, policy) {
+/** "Sources: hdb.gov.sg · mas.gov.sg" for the policy ids a step uses (title = id · status · from · retrieved; Simple: no id, no rules-file version). */
+export function sourcesHtml(ids, policy, { simple = false } = {}) {
   const hosts = new Map();
   for (const id of ids) {
     let p; try { p = policy.meta(id); } catch { continue; }
     if (!/^https?:/.test(p.source_url || '')) continue;
     const host = sourceHost(p.source_url);
     if (!hosts.has(host)) hosts.set(host, { url: p.source_url, rows: [] });
-    hosts.get(host).rows.push(t('{0}: {1}, from {2}, retrieved {3}', [p.id, t(p.status.toLowerCase()), p.effective_from, p.retrieved]));
+    hosts.get(host).rows.push(simple ? t('{0}, from {1}, retrieved {2}', [t(p.status.toLowerCase()), p.effective_from, p.retrieved]) : t('{0}: {1}, from {2}, retrieved {3}', [p.id, t(p.status.toLowerCase()), p.effective_from, p.retrieved]));
   }
   if (!hosts.size) return '';
   const links = [...hosts.entries()].map(([host, x]) => `<a href="${esc(x.url)}" target="_blank" rel="noopener" title="${esc(x.rows.join('\n'))}">${esc(host)}</a>`);
-  return `<p class="g-src">${esc(t('Sources'))}: ${links.join(' · ')} <small class="muted">· ${esc(t('rules file {0}', [policy.version]))}</small></p>`;
+  return `<p class="g-src">${esc(t('Sources'))}: ${links.join(' · ')}${simple ? '' : ` <small class="muted">· ${esc(t('rules file {0}', [policy.version]))}</small>`}</p>`;
 }
 
 /** The "add X in Household / pick a flat" box for values that are still "—". */
@@ -49,7 +49,7 @@ export function needsHtml(needs) {
 }
 
 /** One step of the reader. `live` = resolveLive result; `canShow` = the step has a target / fallback. */
-export function stepHtml(g, i, { policy, live }) {
+export function stepHtml(g, i, { policy, live, simple = false }) {
   const s = g.steps[i], n = g.steps.length, last = i === n - 1;
   const fill = (h) => fillLive(fillPolicy(h, policy), live.values);
   const dots = g.steps.map((_, k) => `<span class="g-dot${k === i ? ' on' : k < i ? ' past' : ''}"></span>`).join('');
@@ -61,7 +61,7 @@ export function stepHtml(g, i, { policy, live }) {
       <div class="md">${fill(s.body)}</div>
       ${needsHtml(live.needs)}
       ${s.target || (s.fallback && s.fallback.length) ? `<div class="actions"><button type="button" class="btn sm" data-guide-show>${esc(t('Show me in the app'))}</button></div>` : ''}
-      ${sourcesHtml(s.policy || [], policy)}
+      ${sourcesHtml(s.policy || [], policy, { simple })}
     </section>
     <div class="g-nav">
       <button type="button" class="btn sm" data-guide-step="${i - 1}"${i === 0 ? ' disabled' : ''}>${esc(t('Back'))}</button>

@@ -1,19 +1,23 @@
 /* HDB Resale Comparer — vanilla JS, Leaflet. Data from data.js (window.HDB_DATA) and
    optional poi.js (window.HDB_POI). All computation is client-side. */
 import { feature } from '../../core/features.js'; // DEC-015 feature switches
+import { LATE_FILES, isSettled } from '../../core/data-loader.js'; // S1b lazy data: files that arrive after the first map paint
 import { stampComparer } from '../../core/blockkey.js'; // stable block ids (go-live F2)
 import { loadTownAliases, zhTownSearch, zhTownRow } from '../../core/townalias.js'; // 7b B15: 中文 town names in the map search
 import { shareUrl, readShareHash } from './share.js'; // every URL built from user state (privacy test)
-import { buildPlaceIndex, searchPlaces, MISS_MIN } from '../../core/placesearch.js'; // Daily places search: our own data only
+import { buildPlaceIndex, searchPlaces, MISS_MIN } from '../../core/placesearch.js';
+import { canon, tokens, hits, rankOf, titleCase, tidyName } from '../../core/searchnorm.js'; // 7c C3: one search normaliser // Daily places search: our own data only
 import { remainingLease, coversToAge } from '../../engine/lease.js';
 import { summarise } from '../../engine/household.js';
 import { fillLink, householdLink, FLAT_INPUT } from '../../core/filllink.js'; // empty-state cells link to the missing input
 import { t, currentLang } from '../../core/i18n.js';
+import { flatTypeLabel, storeyLabel, storeyRange } from '../../core/flattype.js'; // S1a: '4 ROOM' → '4-room', '31 TO 33' → 'storey 31–33'
 import { COLOR as BLOCK_COLOR, CHIP_ZOOM, quantileScale, dotOptions as dotOpts, dotBand as dotBandOf, glyphScale, chipSize, placeChips, textWidth, installChipMarker, legendHtml, shortValue, chipMetric, syncChipLabel } from './blocks.js';
 import { createCard, wireSeg } from './card.js';
 import { mountPeriod, calcLabel } from './period.js';
 import { createSelection } from './selection.js';
 import { createMapSheet, peekSummary, peekLegend, kindLabel } from './mapsheet.js'; // phones: map sheet content (peek, Map settings, Blocks here, popups)
+import { flatsLine } from './mapsettings.js'; // P8 8c: phones, the "Which flats" line in Map settings (M-04)
 import { inPoly, polyAreaKm2, tooSmall, roundPts } from './areasheet.js'; // drawn-area maths shared by desktop and phones
 import { createCommute } from './commute.js';
 import { mountFamily } from './family.js';
@@ -21,12 +25,15 @@ import { createHexGrid } from './hexgrid.js'; import { createViews } from './vie
 import { createComparables, premiumFlag } from './comparables.js';
 import { createPriorities } from './priorities.js'; import { createPlaces } from './places.js'; // 7b B1 priorities, B12 daily-place kinds
 import { createCompareCards } from './cmpcards.js'; // phones: Compare as one card per flat inside My choices
+import { offerUndo } from '../../core/undo.js'; import { searchShortcuts, groupHead } from './searchshortcuts.js'; // P8 8d: M-17 Undo line, M-13 search shortcuts
 import { createFutureValue } from './futurevalue-ui.js';
+import { createQuickAdd } from './quickadd.js'; // P8 8b: M-05 quick add from a block
+import { presetChips, presetIdx } from './ftpresets.js'; // 7c C11: "2–3 room" / "4 room +" one tap
 import { createBrief, pickRows } from './brief.js'; import { createCpfLife } from './cpflife.js'; import { createHandoff, flashForm, FLASH_MS } from './handoff.js'; import { createMoney, SIMPLE_MONEY_KEYS } from './money.js'; import { createFamilyRows } from './familyrows.js';
 
 export function startExplore({ policy, store, bus }) {
   const D = window.HDB_DATA;
-  const POI = window.HDB_POI || { schools: [], hawkers: [] };
+  let POI = window.HDB_POI || { schools: [], hawkers: [] }; // late file (S1b): re-bound by bindLate()
   if (!D) { document.getElementById('dataInfo').textContent = t('data.js missing — run tools/build_data.py'); return; }
 
   // ------------------------------------------------------------------ helpers
@@ -41,10 +48,10 @@ export function startExplore({ policy, store, bus }) {
     yrs: (v) => v == null ? '—' : t('{0} y', [v.toFixed(1)]),
   };
   // display-only labels for data codes (data stays English; lookups keep using the codes)
-  const ftName = (i) => t(D.flat_types[i]);
+  const ftName = (i) => flatTypeLabel(D.flat_types[i]);
   const distTo = (d, place) => t('{d} to {place}', { d: fmt.m(d), place }); // "350 m to Northpoint"
-  const storeyName = (s) =>{ const m = String(s).match(/^(\d+) TO (\d+)$/); return m ? t('{0} TO {1}', [m[1], m[2]]) : s; };
-  const title = (s) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\bAve\b/g, 'Ave').replace(/\bSt\b/g, 'St');
+  const storeyName = storeyLabel;
+  const title = titleCase; // "St. Hilda's", "C'wealth" (7c C3)
   const median = (arr) => { if (!arr.length) return null; const a = arr.slice().sort((x, y) => x - y); const h = a.length >> 1; return a.length % 2 ? a[h] : (a[h - 1] + a[h]) / 2; };
   const haversine = (la1, lo1, la2, lo2) => { const R = 6371000, r = Math.PI / 180, dLa = (la2 - la1) * r, dLo = (lo2 - lo1) * r; const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(a)); };
   const nearest = (lat, lon, pts) => { let best = null, bd = Infinity; for (const p of pts) { const d = haversine(lat, lon, p.lat, p.lon); if (d < bd) { bd = d; best = p; } } return best ? { p: best, d: bd } : null; };
@@ -79,7 +86,8 @@ export function startExplore({ policy, store, bus }) {
   const simpleRows = (rows) => pickRows(rows, SIMPLE_KEYS, store.get('ui.mode')); // ./brief.js (same rule for the brief)
   store.subscribe('ui', () => renderCompare());
   // HDB rents (data/rents.js): block × flat type → [n, p25, med, p75, last, n24?, p25_24?, med24?, p75_24?]
-  const RENTS = window.HDB_RENTS || null;
+  let RENTS = window.HDB_RENTS || null; // late file (S1b): re-bound by bindLate()
+  const lateRents = { get blocks() { return RENTS ? RENTS.blocks : undefined; }, get towns() { return RENTS ? RENTS.towns : undefined; }, get quarters() { return RENTS ? RENTS.quarters : undefined; } }; // card: always current
   function blockRent(bi) {
     const r = RENTS && RENTS.blocks[String(bi)]; if (!r) return null;
     let w = 0, sum = 0;
@@ -102,19 +110,27 @@ export function startExplore({ policy, store, bus }) {
   const ROW_TERMS = { '$ per sqft': 'psf', 'Recent sales benchmark': 'fair-value', 'Premium vs. recent sales': 'fair-value', 'Over-priced? (vs comparable sales)': 'fair-value', 'Possible COV (if valued at recent sales)': 'cov', 'Remaining lease today': 'remaining-lease', 'Lease covers youngest owner to 95': 'lease-to-95', 'Lease in 10 years (when you may sell)': 'lease-decay' };
   const pct = (x) => `${+(x * 100).toFixed(1)}%`, pct0 = (x) => `${(x * 100).toFixed(0)}%`;
   const leaseYearsLeft = (b) => remainingLease(b.lease, today, LEASE_TERM);
-  const primarySchools = POI.schools.filter((s) => s.lvl === 'PRIMARY');
   const primaryLike = (s) => /^PRIMARY|MIXED LEVEL \(P/.test(s.lvl);
-  const secondarySchools = POI.schools.filter((s) => /^SECONDARY|MIXED LEVEL|JUNIOR COLLEGE|CENTRALISED/.test(s.lvl));
-  POI.schools.forEach((s) => { if (primaryLike(s) && s.lvl !== 'PRIMARY' && !primarySchools.includes(s)) primarySchools.push(s); }); // P1-S4 mixed schools count for P1 priority too
-  const BR = window.HDB_BUS || { routes: [], stops: {} };
+  // late data (S1b, core/data-loader.js LATE_FILES): poi.js, rents.js, bus_routes.js arrive after the first map paint;
+  // bindLate() (again on bus 'data:more') re-reads them — until then the lists are empty and rows say "Loading…"
+  const lateWait = (file) => LATE_FILES.includes(file) && !isSettled(file);
+  let primarySchools, secondarySchools, BR, MALLS, SUPERS, CC, EC, FUN, PARKS, SITES, BUS, FOOD;
+  function bindLate() {
+    POI = window.HDB_POI || { schools: [], hawkers: [] }; RENTS = window.HDB_RENTS || null;
+    primarySchools = POI.schools.filter((s) => s.lvl === 'PRIMARY');
+    secondarySchools = POI.schools.filter((s) => /^SECONDARY|MIXED LEVEL|JUNIOR COLLEGE|CENTRALISED/.test(s.lvl));
+    POI.schools.forEach((s) => { if (primaryLike(s) && s.lvl !== 'PRIMARY' && !primarySchools.includes(s)) primarySchools.push(s); }); // P1-S4 mixed schools count for P1 priority too
+    BR = window.HDB_BUS || { routes: [], stops: {} };
+    MALLS = POI.malls || []; SUPERS = POI.supermarkets || [];
+    CC = POI.childcare || []; EC = POI.eldercare || []; FUN = POI.funeral || []; PARKS = POI.parks || []; SITES = POI.sites || []; BUS = POI.bus || []; FOOD = POI.food || [];
+  }
+  bindLate();
   const FUT = window.HDB_FUTURE || { stations: [], lines: [] }; const FUTST = FUT.stations.filter((x) => x.future);
   // btoData switch (core/features.js, DEC-015): off → no BTO layer / legend row / popups / search hits / compare row,
   // future-value supply = MOP wave only; HDB_BTO is never read
   const BTO_ON = feature('btoData');
   const BTOP = BTO_ON ? (window.HDB_BTO || { projects: [] }).projects : [];
   const stopCode = (b) => (b.c || (String(b.n).match(/(\d{5})/) || [])[1] || '');
-  const MALLS = POI.malls || [], SUPERS = POI.supermarkets || [];
-  const CC = POI.childcare || [], EC = POI.eldercare || [], FUN = POI.funeral || [], PARKS = POI.parks || [], SITES = POI.sites || [], BUS = POI.bus || [], FOOD = POI.food || [];
   const FACING = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315 };
   const bearing = (la1, lo1, la2, lo2) => { const r = Math.PI / 180, dLo = (lo2 - lo1) * r, y = Math.sin(dLo) * Math.cos(la2 * r), x = Math.cos(la1 * r) * Math.sin(la2 * r) - Math.sin(la1 * r) * Math.cos(la2 * r) * Math.cos(dLo); return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360; };
   const angDiff = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
@@ -142,8 +158,8 @@ export function startExplore({ policy, store, bus }) {
   try { const saved = JSON.parse(localStorage.getItem('hdb-comparer') || 'null'); if (saved) S = Object.assign(defaults(), saved, { layers: Object.assign(defaults().layers, saved.layers || {}), profile: Object.assign(defaults().profile, saved.profile || {}), filt: Object.assign(defaults().filt, saved.filt || {}) }); if (saved && saved.layersV !== LAYERS_V) { S.layers = defaults().layers; S.layersV = LAYERS_V; } if (S.mTo >= NM) { S.mTo = NM - 1; S.mFrom = Math.max(0, NM - 12); } } catch (e) { /* ignore */ }
   const save = debounce(() => { try { localStorage.setItem('hdb-comparer', JSON.stringify(stampComparer(S, D))); /* + block|street keys (core/blockkey.js) */ } catch (e) { /* ignore */ } }, 200);
   // "Commute to…" colour mode + compare rows (commute.js); hub ids live in S → localStorage only
-  const commute = createCommute({ data: window.HDB_COMMUTE || null, getHubs: () => S.commuteHubs || [], setHubs: (ids) => { S.commuteHubs = ids; save(); }, onChange: () => { renderBlocks(); renderCompare(); },
-    getMax: () => S.commuteMax, setMax: (v) => { S.commuteMax = v; save(); }, active: () => S.colorBy === 'commute', blocks: D.blocks }); // B8 filter "Only show blocks within N min"
+  const makeCommute = () => createCommute({ data: window.HDB_COMMUTE || null, pending: lateWait('data/commute.js'), getHubs: () => S.commuteHubs || [], setHubs: (ids) => { S.commuteHubs = ids; save(); }, onChange: () => { renderBlocks(); renderCompare(); },
+    getMax: () => S.commuteMax, setMax: (v) => { S.commuteMax = v; save(); }, active: () => S.colorBy === 'commute', blocks: D.blocks }); let commute = makeCommute(); // S1b: re-made when commute.js arrives; B8 filter "Only show blocks within N min"
 
   // ------------------------------------------------------------------ aggregation
   // shared filter predicates (More filters): per-transaction and per-block
@@ -181,12 +197,12 @@ export function startExplore({ policy, store, bus }) {
   const coverPopups = () => { L.Popup.prototype.options.autoPanPaddingTopLeft = L.point(panelCover() + 10, 10); };
   L.DomEvent.disableClickPropagation(document.querySelector('.mapbar')); L.DomEvent.disableScrollPropagation(document.querySelector('.mapbar'));
   ['areaBox', 'panelToggle', 'drawnStrip'].forEach((id) => { const el = document.getElementById(id); L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el); });
-  L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Grey/{z}/{x}/{y}.png', { attribution: '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:14px;width:14px;vertical-align:middle"> <a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> &copy; <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">SLA</a> &copy; OpenStreetMap', minZoom: 11, maxNativeZoom: 19, maxZoom: 21 }).addTo(map); // OneMap tiles stop at 19 — upscale beyond
+  L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Grey/{z}/{x}/{y}.png', { attribution: '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" alt="" style="height:14px;width:14px;vertical-align:middle"> <a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> &copy; <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">SLA</a> &copy; OpenStreetMap', minZoom: 11, maxNativeZoom: 19, maxZoom: 21 }).addTo(map); // OneMap tiles stop at 19 — upscale beyond
   map.setMaxBounds([[1.15, 103.55], [1.50, 104.10]]);
   window.hdbMap = map; // debugging handle
   // phones (≤ 767 px): what the map sheet shows (./mapsheet.js); every call is a no-op on desktop
   const msheet = createMapSheet({ bus, map, canvas, hooks: {
-    fitChoices: () => $('fitChoices').click(), fitSg: () => $('fitSg').click(), hasArea: () => !!S.area, area: () => S.area, openBlock: (bi) => openBlock(bi), relayout: () => { renderLegend(); renderArea(); },
+    fitChoices: () => $('fitChoices').click(), fitSg: () => $('fitSg').click(), setLayers: (o) => { Object.assign(S.layers, o); applyLayers(); save(); } /* P8 8c: a layer group's switch (no zoom jump) */, hasArea: () => !!S.area, area: () => S.area, openBlock: (bi) => openBlock(bi), relayout: () => { renderLegend(); renderArea(); },
     // phones: "Area prices" (./areasheet.js) — finger drawing through the desktop draw mode, the same areaStats / S.area
     draw: { start: () => startDraw({ keep: true, ext: true }), stop: () => stopDraw(), commit: (pts) => commitPoly(pts) },
     areaInfo: () => { const A = S.area, base = { types: S.ft.length === D.flat_types.length ? t('All flat types') : S.ft.length > 2 ? t('{0} flat types', [S.ft.length]) : [...S.ft].sort((a, b) => a - b).map(ftName).join(', '), names: [...S.ft].sort((a, b) => a - b).map(ftName), all: S.ft.length === D.flat_types.length, period: calcLabel(S.calcM), k: fmt.k, pct: fmt.pct };
@@ -253,12 +269,14 @@ export function startExplore({ policy, store, bus }) {
   let blockAgg = [], blockMarkers = [], blockInfo = [], colorScale = null, openBis = new Set(); // blocks with an open card (./dock.js)
   const dotGroup = L.featureGroup().addTo(layers.blocks), chipGroup = L.featureGroup().addTo(layers.blocks);
 
-  function buildStaticLayers() {
+  const POI_LAYERS = ['schools', 'secondary', 'supermarkets', 'malls', 'hawkers', 'childcare', 'eldercare', 'funeral', 'parks', 'sites', 'bus', 'food'];
+  function buildStaticLayers(poiOnly = false) { // poiOnly: poi.js arrived after the first paint (S1b) → redraw its layers only
+    if (poiOnly) POI_LAYERS.forEach((k) => { if (layers[k] && !Object.values(fam.layers).includes(layers[k])) layers[k].clearLayers(); });
     const clickLines = t('click for lines');
-    D.mrt.stations.forEach((st, i) => { const m = glyph('mrt', st).bindTooltip(`<div class="poi-tip"><b>${esc(stn(st.n))}</b><br>${esc(st.codes.join(' · '))} · ${clickLines}</div>`); m.on('click', () => openStation(i)); m.addTo(layers.mrt); });
+    if (!poiOnly) D.mrt.stations.forEach((st, i) => { const m = glyph('mrt', st).bindTooltip(`<div class="poi-tip"><b>${esc(stn(st.n))}</b><br>${esc(st.codes.join(' · '))} · ${clickLines}</div>`); m.on('click', () => openStation(i)); m.addTo(layers.mrt); });
     const tip = (fn) => (p) => `<div class="poi-tip">${fn(p)}</div>`;
-    FUTST.forEach((st) => { const m = glyph('futmrt', st).bindTooltip(tip((x) => `<b>${esc(x.n)}</b> ${t('(future)')}<br>${x.lines.length ? x.lines.join(', ') + ' · ' : ''}${t(x.status)}${x.year ? ' · ' + x.year : ''}`)(st)); m.on('click', () => openFutureStation(st)); m.addTo(layers.futmrt); });
-    BTOP.forEach((p) => { const m = glyph('bto', p).bindTooltip(tip((x) => `<b>${esc(x.n)}</b><br>BTO · ${x.units ? t('{0} units', [x.units]) : ''}${x.approx ? ' · ' + t('location approx.') : ''}`)(p)); m.on('click', () => openBto(p)); m.addTo(layers.bto); });
+    if (!poiOnly) FUTST.forEach((st) => { const m = glyph('futmrt', st).bindTooltip(tip((x) => `<b>${esc(x.n)}</b> ${t('(future)')}<br>${x.lines.length ? x.lines.join(', ') + ' · ' : ''}${t(x.status)}${x.year ? ' · ' + x.year : ''}`)(st)); m.on('click', () => openFutureStation(st)); m.addTo(layers.futmrt); });
+    if (!poiOnly) BTOP.forEach((p) => { const m = glyph('bto', p).bindTooltip(tip((x) => `<b>${esc(x.n)}</b><br>BTO · ${x.units ? t('{0} units', [x.units]) : ''}${x.approx ? ' · ' + t('location approx.') : ''}`)(p)); m.on('click', () => openBto(p)); m.addTo(layers.bto); });
     primarySchools.forEach((p) => glyph('schools', p).bindTooltip(tip((x) => `<b>${esc(x.n)}</b><br>${esc(x.type || '')}`)(p)).addTo(layers.schools));
     secondarySchools.forEach((p) => glyph('secondary', p).bindTooltip(tip((x) => `<b>${esc(x.n)}</b><br>${esc(x.lvl.toLowerCase())} · ${esc(x.type || '')}`)(p)).addTo(layers.secondary));
     const L_SUPER = t('supermarket'), L_MALL = t('shopping mall'), L_HAWKER = t('Hawker centre'), L_ELDER = t('eldercare centre');
@@ -274,9 +292,9 @@ export function startExplore({ policy, store, bus }) {
     BUS.forEach((p) => { const m = glyph('bus', p).bindTooltip(`<div class="poi-tip"><b>${esc(p.n)}</b><br>${servicesAt(p).length ? servicesAt(p).map((x) => x.ref).join(', ') : clickServices}</div>`); m.on('click', () => openBusStop(p)); m.addTo(layers.bus); });
     FOOD.forEach((p) => glyph('food', p, { fillColor: p.t === 'cafe' ? '#c2410c' : GLYPH.food.color }).bindTooltip(tip((x) => `<b>${esc(x.n)}</b><br>${t(x.t.replace('_', ' '))}`)(p)).addTo(layers.food));
     // legend swatches in the layer list
-    document.querySelectorAll('#layers label.check').forEach((lbl) => { const k = lbl.querySelector('input').dataset.l; if (GLYPH[k]) { const sw = lbl.querySelector('.sw'); sw.outerHTML = swatch(k); } });
-    fam.decorate();
-    msheet.tapRows(['schools', 'secondary', 'supermarkets', 'malls', 'hawkers', 'childcare', 'polyclinics', 'clinics', 'eldercare', 'funeral', 'sites', 'food'].map((k) => layers[k])); // phones: tap → one-line row (no hover there)
+    if (!poiOnly) document.querySelectorAll('#layers label.check').forEach((lbl) => { const k = lbl.querySelector('input').dataset.l; if (GLYPH[k]) { const sw = lbl.querySelector('.sw'); sw.outerHTML = swatch(k); } });
+    if (!poiOnly) fam.decorate();
+    msheet.tapRows(['schools', 'secondary', 'supermarkets', 'malls', 'hawkers', 'childcare', 'polyclinics', 'clinics', 'eldercare', 'funeral', 'sites', 'food'].map((k) => layers[k]).filter((g) => !poiOnly || !Object.values(fam.layers).includes(g))); // phones: tap → one-line row (no hover there)
   }
   const valueKey = () => (S.colorBy === 'budget' ? 'price' : S.colorBy === 'count' ? 'n' : S.colorBy); // statsFor() calls the count `n`
   const dotOptions = (kind, fill, z) => dotOpts(kind, fill, z, canvas); // ./blocks.js
@@ -285,7 +303,7 @@ export function startExplore({ policy, store, bus }) {
   function renderBlocks() {
     blockAgg = aggregateBlocks();
     if (S.colorBy === 'budget' && !S.budgetMax) { S.colorBy = 'price'; syncColorBy(); showBanner(t('Open the Afford tab first — it works out your budget.'), S.profile.income == null ? { label: t('Set income →'), run: () => bus.emit('household:open', { field: 'buyers.0.income' }) } : { label: t('Open Afford →'), run: () => showTab('afford') }); } // budget mode needs a budget from Afford
-    if (S.colorBy === 'commute' && !commute.available) { S.colorBy = 'price'; syncColorBy(); } // commute.js missing → mode hidden
+    if (S.colorBy === 'commute' && !commute.available && !commute.pending) { S.colorBy = 'price'; syncColorBy(); } // commute.js missing → mode hidden
     commute.show(S.colorBy === 'commute');
     const key = valueKey();
     const rentVals = S.colorBy === 'rent' ? D.blocks.map((_, bi) => blockRent(bi)) : null;
@@ -378,12 +396,13 @@ export function startExplore({ policy, store, bus }) {
   function renderLegend(zoomedIn = map.getZoom() >= CHIP_ZOOM) {
     const chipOff = S.colorBy === 'commute' && !commute.hubs().length, chipLabel = chipValueOn() ? t(chipMetric(S.colorBy)) : null;
     syncChipLabel(document, { value: S.chipLabel, metric: t(chipMetric(S.colorBy)), off: chipOff, zoomedIn, offText: t('Choose a place first'), helpText: t('Boxes appear when you zoom in close.') });
-    msheet.legend({ summary: peekSummary({ mode: S.colorBy, period: calcLabel(S.calcM), types: [...S.ft].sort((a, b) => a - b).map(ftName), allTypes: S.ft.length === D.flat_types.length }), html: peekLegend({ mode: S.colorBy, scale: colorScale, budget: S.budgetMax ? { colors: BUDGET_COLORS } : null }) }); // phones: the one-line peek row (F4)
+    const ftP = { types: [...S.ft].sort((a, b) => a - b).map(ftName), allTypes: S.ft.length === D.flat_types.length, filt: S.filt }; // P8 8c: + filters in words, "Which flats" line (M-04)
+    msheet.legend({ summary: peekSummary({ mode: S.colorBy, period: calcLabel(S.calcM), ...ftP }), flats: flatsLine({ ...ftP, towns: [S.towns.length, D.towns.length] }), html: peekLegend({ mode: S.colorBy, scale: colorScale, budget: S.budgetMax ? { colors: BUDGET_COLORS } : null }) }); // phones: the one-line peek row (F4)
     const el = $('legend'), hx = hex.hint(map.getZoom()); if (!colorScale) { el.innerHTML = `<span class="muted">${t('No transactions match these filters.')}</span>`; return; }
     if (S.colorBy === 'commute') { el.innerHTML = commute.legend({ simple: document.body.classList.contains('simple'), zoomedIn, chipLabel, tap: msheet.phone() }) + hx; return; }
     if (S.colorBy === 'budget') { el.innerHTML = `<div class="key">${t('Median price vs your budget ({0}, from Afford)', [fmt.k(S.budgetMax)])}</div><div class="legend-row"><span><i style="background:${BUDGET_COLORS.within}"></i>${t('within budget')}</span><span><i style="background:${BUDGET_COLORS.near}"></i>${t('up to {0}% over', [Math.round(BUDGET_STRETCH * 100)])}</span><span><i style="background:${BUDGET_COLORS.over}"></i>${t('above')}</span></div><div class="hint">${t('Max-price filter set to budget + {0}%. Reset it under More filters.', [Math.round(BUDGET_STRETCH * 100)])}</div>${hx}`; return; }
     const f = S.colorBy === 'psf' || S.colorBy === 'rent' ? (v) => 'S$' + Math.round(v).toLocaleString() : S.colorBy === 'price' ? fmt.k : (v) => String(Math.round(v));
-    const metric = t({ psf: 'Median $ per sqft', price: 'Median resale price', count: 'Number of transactions', rent: 'Median monthly rent (HDB rental approvals)' }[S.colorBy]);
+    const metric = t({ psf: 'Median price per sq ft', price: 'Median resale price', count: 'Number of transactions', rent: 'Median monthly rent (HDB rental approvals)' }[S.colorBy]);
     const label = S.colorBy === 'rent' ? metric : t('{0} · last {1}', [metric, calcLabel(S.calcM)]); // rent: HDB rental approvals, not the price window
     el.innerHTML = legendHtml({ scale: colorScale, mode: S.colorBy, label, fmt: f, t, simple: document.body.classList.contains('simple'), zoomedIn, chipLabel, tap: msheet.phone() }) + hx;
   }
@@ -498,17 +517,23 @@ export function startExplore({ policy, store, bus }) {
     return { title: esc(b.label), sub: `${esc(title(D.towns[b.t]))} · ${t(D.zones[b.t])}`, town: title(D.towns[b.t]), facts, items, newYear: b.nt && b.yc ? b.yc + 5 : null, lease, mrt: mrt && { d: fmt.m(mrt.d), name: stn(mrt.p.n) } };
   }
   // block cards float in ./dock.js (up to 3, numbered pins); they follow every filter / window change (renderBlocks)
-  const card = createCard({ map, L, canvas, bus, D, TX, PSF, blockTx, txOk, filtActive, getS: () => S, getAgg: () => blockAgg, statsFor, median, fmtMonth, rents: RENTS, facts: blockFacts, panelCover, viewTo, period: () => per.info(), futureValue: (bi, ft) => fv.cardHtml(bi, ft), mode: () => store.get('ui.mode'), fvFacts: (bi, ft) => fv.factsFor(bi, ft),
+  const card = createCard({ map, L, canvas, bus, D, TX, PSF, blockTx, txOk, filtActive, getS: () => S, getAgg: () => blockAgg, statsFor, median, fmtMonth, rents: lateRents, facts: blockFacts, panelCover, viewTo, period: () => per.info(), futureValue: (bi, ft) => fv.cardHtml(bi, ft), mode: () => store.get('ui.mode'), fvFacts: (bi, ft) => fv.factsFor(bi, ft),
     cardSize: { get: () => S.ui && S.ui.cardSize, set: (s) => { S.ui.cardSize = { w: s.w, h: s.h }; save(); } }, onCards: (bis) => { openBis = new Set(bis); renderView(); },
     handoff: (bi) => ho.flat(bi), onAdd: (bi) => addFromBlock(bi), onAfford: (bi) => focusBlock(bi), onRent: (bi) => focusBlock(bi, 'rent'),
     commuteLine: (bi) => commute.cardLine(bi), schools: () => primarySchools, p1Bands: policy.get('p1.distance.bands_km'), budget: () => (S.budgetMax ? { max: S.budgetMax, stretch: BUDGET_STRETCH } : null) }); // B8 card line, B3 school fold + school card
   const ho = createHandoff({ D, TX, blockTx, getS: () => S, getAgg: () => blockAgg, txOk, median, lastMonthIdx, storeyMid, storeyChoices }); // ./handoff.js (A8)
   const sel = createSelection({ bus, D, getS: () => S, areaPred: () => areaPred(), areaLabel: () => (S.area.type === 'circle' ? t('{0} circle', [fmt.m(S.area.r)]) : t('drawn area ({0} km²)', [polyAreaKm2(S.area.pts).toFixed(2)])) });
-  function openBlock(bi, e) { if (picking || circling || drawing) return; if (e && msheet.blocksHere(e)) return; card.open(bi); } // phones: > 3 blocks within 30 px → "Blocks here" list (P-20)
+  function openBlock(bi, e) { if (picking || circling || drawing) return; if (e && msheet.blocksHere(e)) return; card.open(bi); if (!msheet.phone() && $('drawer').classList.contains('open')) openDrawer(false); } // 7c C5: the compare drawer folds so it never covers the card // phones: > 3 blocks within 30 px → "Blocks here" list (P-20)
 
   // ------------------------------------------------------------------ choices
   // "Add a flat from this block…" (./handoff.js): one type selected + sales of it → added; else the form, prefilled and highlighted
+  const qa = createQuickAdd({ D, TX, blockTx, lastMonthIdx, median, storeyMid, storeyChoices, getS: () => S, bus, phone: () => msheet.phone(), // P8 8b M-05
+    add: (c) => { c.id = S.nextId++; S.choices.push(c); renderChoices(); save(); return { id: c.id, n: S.choices.length }; },
+    undo: (id) => { const k = S.choices.findIndex((x) => x.id === id); if (k >= 0) { S.choices.splice(k, 1); renderChoices(); save(); } },
+    compare: () => { if (!msheet.phone()) return openDrawer(true); bus.emit('nav:goto', { tab: 'choices' }); $('choicesView')?.querySelector('button[data-v="compare"]')?.click(); },
+    storeyOptions: () => $('cStorey').innerHTML, facingOptions: () => $('cFacing').innerHTML });
   function addFromBlock(bi) {
+    if (qa.open(bi)) return; // P8 8b M-05: quick add (type + price); never-sold blocks keep the full form below
     const b = D.blocks[bi], { direct, row: r } = ho.add(bi);
     if (direct) { S.choices.push({ id: S.nextId++, bid: bi, ...r, name: b.label, url: '', facing: '' }); renderChoices(); save(); return showBanner(t('Added — edit in My choices'), { label: t('Open My choices →'), run: () => showTab('choices') }); }
     $('cId').value = ''; $('cAddr').value = b.label; $('cAddr').dataset.bid = bi; $('cFt').value = r.ft; if (r.storey != null) $('cStorey').value = r.storey;
@@ -533,13 +558,11 @@ export function startExplore({ policy, store, bus }) {
 
   // --- autocomplete over 9.7k blocks
   const acInput = $('cAddr'), acList = $('acList'); let acHi = -1, acItems = [];
-  const norm = (s) => s.toUpperCase().replace(/\bAVENUE\b/g, 'AVE').replace(/\bSTREET\b/g, 'ST').replace(/\bROAD\b/g, 'RD').replace(/\bDRIVE\b/g, 'DR').replace(/\bCRESCENT\b/g, 'CRES').replace(/\bCLOSE\b/g, 'CL').replace(/\bNORTH\b/g, 'NTH').replace(/\bSOUTH\b/g, 'STH').replace(/\bCENTRAL\b/g, 'CTRL').replace(/\bBLK\b|\bBLOCK\b/g, '').replace(/\s+/g, ' ').trim();
-  const wordHit = (str, toks) => { const words = str.toUpperCase().split(/[^A-Z0-9]+/); return toks.every((t) => words.some((w) => /^\d+$/.test(t) ? w === t : w.startsWith(t))); };
   function acSearch(q) {
-    q = norm(q); if (q.length < 2) return [];
-    const toks = q.split(' '); const res = [];
-    for (let i = 0; i < NB && res.length < 40; i++) { if (wordHit(D.blocks[i].addr, toks)) res.push(i); }
-    res.sort((x, y) => (D.blocks[x].addr.startsWith(toks[0]) ? 0 : 1) - (D.blocks[y].addr.startsWith(toks[0]) ? 0 : 1));
+    if (canon(q).length < 2) return [];
+    const toks = tokens(q); const res = [];
+    for (let i = 0; i < NB && res.length < 40; i++) { if (hits(D.blocks[i].addr, toks)) res.push(i); }
+    res.sort((x, y) => rankOf(D.blocks[x].addr, toks) - rankOf(D.blocks[y].addr, toks));
     return res.slice(0, 8);
   }
   function acRender() { acList.innerHTML = acItems.map((bi, k) => `<div data-i="${k}" class="${k === acHi ? 'hi' : ''}">${esc(D.blocks[bi].label)}<small>${esc(title(D.towns[D.blocks[bi].t]))}</small></div>`).join(''); acList.classList.toggle('open', acItems.length > 0); }
@@ -637,7 +660,7 @@ export function startExplore({ policy, store, bus }) {
     { sec: 'Lease & future value' },
     { k: 'Remaining lease today', f: (m) => `${fmt.yrs(m.leaseNow)}<small>${t('lease from {0}', [m.b.lease])}</small>`, v: (m) => m.leaseNow, best: 'max', tip: t('{0}-year lease counted from the block\'s lease start (January assumed). Older flats are cheaper but lose value faster as the lease shortens.', [LEASE_TERM]) },
     { k: 'Lease covers youngest owner to 95', f: (m) => m.coverTo95 == null ? householdLink(store.get('household'), 'age') : m.coverTo95 ? `<span class="tag good">✓ ${t('Yes')}</span>` : `<span class="tag warn">! ${t('No')}</span><small>${t('need {0} y, has {1} y', [CPF_AGE - S.profile.age, m.leaseNow.toFixed(0)])}</small>`, tip: t('If the remaining lease does not cover the youngest owner to age {0}, CPF use and the HDB loan LTV are pro-rated; with under {1} y left, CPF cannot be used at all.', [CPF_AGE, CPF_MIN_LEASE]) },
-    { k: 'Lease in 10 years (when you may sell)', f: (m) => m.lease10 == null ? '—' : `${fmt.yrs(m.lease10)}${m.lease10 < RESALE_WATCH_LEASE ? `<small style="color:var(--serious)">${t('full CPF only for buyers aged {0}+', [Math.ceil(CPF_AGE - m.lease10)])}</small>` : ''}`, v: (m) => m.lease10, best: 'max', tip: t('When you sell, a buyer gets full CPF use only if the lease covers them to {0}, so younger buyers face pro-rated CPF and HDB loans — a smaller pool and softer prices. With under {1} y left no buyer can use CPF.', [CPF_AGE, CPF_MIN_LEASE]) },
+    { k: 'Lease in 10 years (when you may sell)', f: (m) => m.lease10 == null ? '—' : `${fmt.yrs(m.lease10)}${m.lease10 < RESALE_WATCH_LEASE ? `<small style="color:var(--serious-ink)">${t('full CPF only for buyers aged {0}+', [Math.ceil(CPF_AGE - m.lease10)])}</small>` : ''}`, v: (m) => m.lease10, best: 'max', tip: t('When you sell, a buyer gets full CPF use only if the lease covers them to {0}, so younger buyers face pro-rated CPF and HDB loans — a smaller pool and softer prices. With under {1} y left no buyer can use CPF.', [CPF_AGE, CPF_MIN_LEASE]) },
     { k: 'Town price trend (same type)', f: (m) => `${t('1 y {0} · 3 y {1} · 5 y {2}', [fmt.pct(m.town1y, 0), fmt.pct(m.town3y, 0), fmt.pct(m.town5y, 0)])}<small>${t('median $psf change')}</small>`, v: (m) => m.town3y, best: 'max', tip: t('How median $psf for this flat type in this town moved. Past appreciation is not a guarantee, but shows demand.') },
     { k: 'Block price trend (3 y, all types)', f: (m) => m.blk3y == null ? `<span class="muted">${t('too few sales')}</span>` : fmt.pct(m.blk3y, 0), v: (m) => m.blk3y, best: 'max', tip: t('Median $psf change of this specific block over 3 years (needs ≥ 3 sales in each window).') },
     { k: 'Upcoming BTO supply within 1 km', f: (m) => BTOP.length ? `${m.bto1k.length === 1 ? t('{0} project', [m.bto1k.length]) : t('{0} projects', [m.bto1k.length])}${m.btoUnits ? ` · ${t('~{0} units', [m.btoUnits.toLocaleString()])}` : ''}<small>${m.bto1k.slice(0, 3).map((x) => esc(x.n)).join(', ')}${m.bto1k.length > 3 ? '…' : ''}</small>` : NA, v: (m) => m.btoUnits, tip: t('New flats being built nearby: they compete with you when you resell (after their 5-year MOP) but also bring new amenities. From the external BTO listing scrape — coverage and positions are approximate.') },
@@ -645,7 +668,7 @@ export function startExplore({ policy, store, bus }) {
     { sec: 'Location & convenience' },
     { k: 'Nearest MRT', f: (m) => m.mrt ? `${fmt.m(m.mrt.d)}<small>${esc(stn(m.mrt.p.n))} (${m.mrt.p.codes.join('/')})${m.exit ? ' · ' + t('nearest exit {0}', [fmt.m(m.exit.d)]) : ''}</small>` : '—', v: (m) => m.mrt ? m.mrt.d : null, best: 'min', tip: t('Straight-line distance to the station centre; walking is usually 20–30% longer. ≤ 500 m ≈ 6-min walk.') },
     { k: 'Nearest future MRT station', f: (m) => m.fmrt ? `${m.fmrt.d <= 800 ? '<span class="tag good">✓ ' : '<span class="tag neutral">'}${fmt.m(m.fmrt.d)}</span><small>${esc(m.fmrt.p.n)} · ${m.fmrt.p.lines.join('/') || t('safeguarded')} · ${t(m.fmrt.p.status)}${m.fmrt.p.year ? ' · ' + m.fmrt.p.year : ''}</small>` : NA, v: (m) => m.fmrt ? m.fmrt.d : null, best: 'min', tip: t('Stations under construction or planned (URA Master Plan 2025 positions; lines/years from LTA announcements). A new station within ~800 m historically lifts resale demand once it opens — a common "future value" driver.') },
-    { k: 'Primary schools within 1 km', f: (m) => primarySchools.length ? `${m.ps1.length}<small>${m.ps1.slice(0, 3).map((s) => esc(s.n)).join(', ')}${m.ps1.length > 3 ? '…' : ''}</small>` : `<span class="muted">${t('poi.js missing')}</span>`, v: (m) => m.ps1.length, best: 'max', tip: t('P1 registration gives priority to homes within 1 km, then 1–2 km. Matters most if the children are under 7.') },
+    { k: 'Primary schools within 1 km', f: (m) => primarySchools.length ? `${m.ps1.length}<small>${m.ps1.slice(0, 3).map((s) => esc(s.n)).join(', ')}${m.ps1.length > 3 ? '…' : ''}</small>` : `<span class="muted">${lateWait('data/poi.js') ? t('Loading…') : t('poi.js missing')}</span>`, v: (m) => m.ps1.length, best: 'max', tip: t('P1 registration gives priority to homes within 1 km, then 1–2 km. Matters most if the children are under 7.') },
     { k: 'Primary schools within 2 km', f: (m) => primarySchools.length ? `${m.ps2.length}` : '—', v: (m) => m.ps2.length, best: 'max', tip: t('Second priority band for P1 registration.') },
     { k: 'Nearest primary school', f: (m) => m.psN ? `${fmt.m(m.psN.d)}<small>${esc(m.psN.p.n)}</small>` : '—', v: (m) => m.psN ? m.psN.d : null, best: 'min' },
     { k: 'Nearest shopping mall', f: (m) => m.mallN ? `${fmt.m(m.mallN.d)}<small>${esc(m.mallN.p.n)}${m.malls1k.length > 1 ? ` · ${t('{0} malls within 1 km', [m.malls1k.length])}` : ''}</small>` : NA, v: (m) => m.mallN ? m.mallN.d : null, best: 'min', tip: t('OpenStreetMap shop=mall. Groceries, food courts, clinics and enrichment classes under one roof — a big daily convenience for families, and malls anchor resale demand.') },
@@ -665,7 +688,7 @@ export function startExplore({ policy, store, bus }) {
     { k: 'Cafés & eateries within 500 m', f: (m) => FOOD.length ? `${m.env.food500.length}<small>${t('{0} cafés', [m.env.cafe500.length])} · ${m.env.food500.slice(0, 3).map((f) => esc(f.n)).join(', ')}${m.env.food500.length > 3 ? '…' : ''}</small>` : NA, v: (m) => m.env.food500.length, best: 'max', tip: t('OpenStreetMap cafés, restaurants, fast food and food courts (coverage varies; hawker centres are a separate row).') },
     { sec: 'The flat itself' },
     { k: 'Floor area', f: (m) => `${t('{0} sqm · {1} sqft', [m.c.sqm, Math.round(m.sqft)])}<small>${m.townSqm ? (m.c.sqm >= m.townSqm ? t('at/above town median {0} sqm', [Math.round(m.townSqm)]) : t('below town median {0} sqm', [Math.round(m.townSqm)])) : ''}</small>`, v: (m) => m.c.sqm, best: 'max', tip: t('A family of 4 typically wants ≥ 90 sqm (4-room) — check against the town\'s typical size for this type.') },
-    { k: 'Storey', f: (m) => `${storeyName(D.storeys[m.c.storey])}<small>${t('{0} floor', [t(m.storeyLbl)])}</small>`, v: (m) => m.mid, best: 'max', tip: t('Higher floors: better views, breeze, less noise, usually resell better. Lower floors: cheaper, no lift wait, easier with strollers.') },
+    { k: 'Storey', f: (m) => `${storeyRange(D.storeys[m.c.storey])}<small>${t('{0} floor', [t(m.storeyLbl)])}</small>`, v: (m) => m.mid, best: 'max', tip: t('Higher floors: better views, breeze, less noise, usually resell better. Lower floors: cheaper, no lift wait, easier with strollers.') },
     { k: 'Flat type', f: (m) => ftName(m.c.ft) },
     { k: 'Listing', f: (m) => m.c.url ? `<a href="${esc(m.c.url)}" target="_blank" rel="noopener">${t('open ↗')}</a>` : fillLink({ target: 'flat', id: m.c.id, field: 'url', text: 'url' }) },
   ];
@@ -705,7 +728,7 @@ export function startExplore({ policy, store, bus }) {
     html += '</tbody></table>';
     body.innerHTML = html + comps.panel(ms) + fv.panel(ms);
     // wins summary into the header cells
-    body.querySelectorAll('thead th:not(.lbl)').forEach((th, i) => { const s = document.createElement('small'); s.style.color = 'var(--good)'; s.textContent = n > 1 ? prio.headerNote(i) ?? t('best in {0} of {1} measures', [wins[i], rows.filter((r) => r.v).length]) : ''; th.querySelector('.hd > div').appendChild(s); });
+    body.querySelectorAll('thead th:not(.lbl)').forEach((th, i) => { const s = document.createElement('small'); s.style.color = 'var(--good-ink)'; s.textContent = n > 1 ? prio.headerNote(i) ?? t('best in {0} of {1} measures', [wins[i], rows.filter((r) => r.v).length]) : ''; th.querySelector('.hd > div').appendChild(s); });
     const ph = prio.hint(ms); if (ph) $('drawerHint').textContent = ph; // 7b B1: "fits your ticks best" while ticks exist
   }
   // Flat brief (print one A4 page per flat) + Copy table (TSV) + Download CSV: ./brief.js
@@ -717,9 +740,12 @@ export function startExplore({ policy, store, bus }) {
   function renderChoices() {
     const el = $('choiceList');
     if (!S.choices.length) { el.innerHTML = `<div class="empty">${tapOr('Nothing yet. Add a flat above or click a block on the map.', 'Nothing yet. Add a flat below or tap a block on the map.')}</div>`; }
-    else el.innerHTML = S.choices.map((c, i) => { const m = metrics(c); return `<div class="card" style="border-left-color:${colorOf(i)}"><div class="t"><b>${i + 1}. ${esc(c.name)}</b><small>${esc(m.b.label)}</small></div><div class="m">${cards.ftLabel(D.flat_types[c.ft])} · ${cards.storeyLabel(D.storeys[c.storey])} · ${t('{0} sqm', [c.sqm])} · ${esc(title(D.towns[m.b.t]))}</div><div class="k"><span>${fmt.money(c.price)}</span><span><b>${fmt.psf(m.psf)}</b></span><span>${m.premium == null ? '' : t('{0} vs sales', [`<b style="color:${m.premium > 0.08 ? 'var(--serious)' : m.premium < -0.03 ? 'var(--good)' : 'inherit'}">${fmt.pct(m.premium, 0)}</b>`])}</span><span>${t('{0} lease', [fmt.yrs(m.leaseNow)])}</span>${m.mrt ? `<span>${t('{0} MRT', [fmt.m(m.mrt.d)])}</span>` : ''}</div><div class="a"><button class="btn sm primary" data-a="afford" data-id="${c.id}">${t('Afford')}</button><button class="btn sm" data-a="zoom" data-id="${c.id}">${t('Show on map')}</button><button class="btn sm" data-brief="${c.id}" aria-label="${esc(t('Flat brief for {0}', [c.name]))}">${t('Brief')}</button><button class="btn sm" data-a="edit" data-id="${c.id}">${t('Edit')}</button><button class="btn sm danger" data-a="del" data-id="${c.id}">${t('Remove')}</button></div></div>`; }).join('');
+    else el.innerHTML = S.choices.map((c, i) => { const m = metrics(c); return `<div class="card" style="border-left-color:${colorOf(i)}"><div class="t"><b>${i + 1}. ${esc(c.name)}</b><small>${esc(m.b.label)}</small></div><div class="m">${cards.ftLabel(D.flat_types[c.ft])} · ${cards.storeyLabel(D.storeys[c.storey])} · ${t('{0} sqm', [c.sqm])} · ${esc(title(D.towns[m.b.t]))}</div><div class="k"><span>${fmt.money(c.price)}</span><span><b>${fmt.psf(m.psf)}</b></span><span>${m.premium == null ? '' : t('{0} vs sales', [`<b style="color:${m.premium > 0.08 ? 'var(--serious-ink)' : m.premium < -0.03 ? 'var(--good-ink)' : 'inherit'}">${fmt.pct(m.premium, 0)}</b>`])}</span><span>${t('{0} lease', [fmt.yrs(m.leaseNow)])}</span>${m.mrt ? `<span>${t('{0} MRT', [fmt.m(m.mrt.d)])}</span>` : ''}</div><div class="a"><button class="btn sm primary" data-a="afford" data-id="${c.id}">${t('Afford')}</button><button class="btn sm" data-a="zoom" data-id="${c.id}">${t('Show on map')}</button><button class="btn sm" data-brief="${c.id}" aria-label="${esc(t('Flat brief for {0}', [c.name]))}">${t('Brief')}</button><button class="btn sm" data-a="edit" data-id="${c.id}">${t('Edit')}</button><button class="btn sm danger" data-a="del" data-id="${c.id}">${t('Remove')}</button></div></div>`; }).join('');
     renderPins(); renderCompare();
+    bus.emit('choices:list', { list: S.choices.map(choiceFocus) }); // P8 M-01: the flat bar's ‹ › and "Which flat?" (shell/flatbar.js)
   }
+  // the focus for one shortlisted flat: the Afford button here, and the flat bar's ‹ › / "Which flat?" rows (P8 M-01)
+  function choiceFocus(c) { const m = metrics(c); return { source: 'choice', choiceId: c.id, bid: c.bid, label: c.name, price: c.price, flatType: D.flat_types[c.ft], remainingLease: m.leaseNow, cov: m.cov || 0 }; }
   function renderPins() {
     layers.choices.clearLayers(); layers.rings.clearLayers();
     S.choices.forEach((c, i) => { const b = D.blocks[c.bid], col = colorOf(i);
@@ -730,24 +756,30 @@ export function startExplore({ policy, store, bus }) {
   $('shareChoices').addEventListener('click', async () => {
     if (!S.choices.length) return showBanner(t('Add flats to your shortlist first.'));
     const link = shareLink();
-    try { await navigator.clipboard.writeText(link); showBanner(t('Link copied — it contains only the flats (no names, income or CPF).')); }
-    catch { prompt(t('Copy this link:'), link); }
+    // 7c C6: say inline what the receiver sees; no prompt() when the clipboard is blocked — the link is shown to copy
+    const note = $('shareNote'), sees = esc(t("They'll see addresses, flat types and asking prices — not your names or money."));
+    try { await navigator.clipboard.writeText(link); note.innerHTML = `<b>${esc(t('Link copied ✓'))}</b> ${sees}`; note.hidden = false; }
+    catch { note.innerHTML = `${esc(t('Copy this link:'))} <input type="text" readonly class="share-link" aria-label="${esc(t('Share link'))}" value="${esc(link)}"> ${sees}`; note.hidden = false; note.querySelector('input').select(); }
   });
   $('printSummary').addEventListener('click', () => { openDrawer(true); setTimeout(() => window.print(), 300); });
   $('choiceList').addEventListener('click', (e) => { const btn = e.target.closest('button[data-a]'); if (!btn) return; const c = S.choices.find((x) => x.id === +btn.dataset.id); if (!c) return;
-    if (btn.dataset.a === 'afford') { const m = metrics(c); store.set('focus', { source: 'choice', choiceId: c.id, bid: c.bid, label: c.name, price: c.price, flatType: D.flat_types[c.ft], remainingLease: m.leaseNow, cov: m.cov || 0 }); showTab('afford'); return; }
-    if (btn.dataset.a === 'del') { S.choices = S.choices.filter((x) => x !== c); renderChoices(); save(); }
+    if (btn.dataset.a === 'afford') { store.set('focus', choiceFocus(c)); showTab('afford'); return; }
+    if (btn.dataset.a === 'del') { const at = S.choices.indexOf(c); S.choices = S.choices.filter((x) => x !== c); renderChoices(); save(); // M-17: Undo line, no confirm
+      offerUndo(t('Removed {0}.', [c.name]), () => { if (!S.choices.some((x) => x.id === c.id)) { S.choices.splice(Math.min(at, S.choices.length), 0, c); renderChoices(); save(); } }, { focusAfter: () => document.querySelector(`#choiceList [data-a="del"][data-id="${c.id}"]`) }); }
     else if (btn.dataset.a === 'edit') editChoice(c);
     else if (btn.dataset.a === 'zoom') { const b = D.blocks[c.bid]; bus.emit('phone:show-map'); viewTo([b.lat, b.lon], 16); openBlock(c.bid); } // phone: Map tab first (P-41)
   });
   $('choiceForm').addEventListener('submit', (e) => { e.preventDefault(); const c = choiceFromForm(); if (!c) return; const k = S.choices.findIndex((x) => x.id === c.id); if (k >= 0) S.choices[k] = c; else S.choices.push(c); resetForm(); renderChoices(); save(); openDrawer(true); });
   $('cReset').addEventListener('click', resetForm);
-  $('clearChoices').addEventListener('click', () => { if (S.choices.length && confirm(t('Remove all flats from the comparison?'))) { S.choices = []; renderChoices(); save(); } });
+  $('clearChoices').addEventListener('click', () => { if (!S.choices.length) return; const was = S.choices; S.choices = []; renderChoices(); save(); // M-17: Undo line instead of confirm()
+    offerUndo(was.length > 1 ? t('Removed all {0} flats.', [was.length]) : t('Removed {0}.', [was[0].name]), () => { S.choices = [...was, ...S.choices.filter((x) => !was.some((w) => w.id === x.id))]; renderChoices(); save(); }, { focusAfter: () => $('clearChoices') }); });
   $('cFt').addEventListener('change', () => { const bi = $('cAddr').dataset.bid; if (bi != null && bi !== '') { const same = blockTx[+bi].filter((i) => TX.ft[i] === +$('cFt').value && TX.m[i] >= lastMonthIdx - 23); if (same.length) { $('cSqm').value = Math.round(median(same.map((i) => TX.a[i]))); if (!$('cId').value) $('cPrice').value = Math.round(median(same.map((i) => TX.p[i])) / 1000) * 1000; } } });
 
   // ------------------------------------------------------------------ explore UI
-  function renderFtChips() { $('ftChips').innerHTML = D.flat_types.map((f, i) => `<button class="chip ${S.ft.includes(i) ? 'on' : ''}" data-i="${i}">${t(f)}</button>`).join(''); }
-  $('ftChips').addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (!b) return; const i = +b.dataset.i; S.ft = S.ft.includes(i) ? S.ft.filter((x) => x !== i) : [...S.ft, i]; renderFtChips(); renderBlocks(); save(); });
+  function renderFtChips() { $('ftChips').innerHTML = presetChips(D.flat_types, S.ft) + D.flat_types.map((f, i) => `<button class="chip ${S.ft.includes(i) ? 'on' : ''}" data-i="${i}">${flatTypeLabel(f)}</button>`).join(''); }
+  $('ftChips').addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (!b) return;
+    if (b.dataset.ftPreset) { const idx = presetIdx(D.flat_types, b.dataset.ftPreset); if (idx.length) { S.ft = idx; renderFtChips(); renderBlocks(); save(); $('ftChips').querySelector(`[data-ft-preset="${b.dataset.ftPreset}"]`)?.focus(); } return; }
+    const i = +b.dataset.i; S.ft = S.ft.includes(i) ? S.ft.filter((x) => x !== i) : [...S.ft, i]; renderFtChips(); renderBlocks(); save(); });
   $('ftFamily').addEventListener('click', () => { S.ft = familyFt.slice(); renderFtChips(); renderBlocks(); save(); });
   $('colorBy').addEventListener('change', (e) => { S.colorBy = e.target.value; renderBlocks(); save(); });
   wireSeg($('chipLabel'), (v) => { S.chipLabel = v; save(); renderView(); }); // box labels: block number ↔ value (only boxes + legend redraw)
@@ -765,7 +797,7 @@ export function startExplore({ policy, store, bus }) {
   $('towns').addEventListener('change', (e) => { const i = e.target; if (i.dataset.t != null) { const t = +i.dataset.t; S.towns = i.checked ? [...S.towns, t] : S.towns.filter((x) => x !== t); } else if (i.dataset.z) { const ts = townsByZone[i.dataset.z]; S.towns = i.checked ? [...new Set([...S.towns, ...ts])] : S.towns.filter((x) => !ts.includes(x)); } renderTowns(); renderBlocks(); save(); });
   $('townsAll').addEventListener('click', () => { S.towns = D.towns.map((_, i) => i); renderTowns(); renderBlocks(); save(); });
   $('townsNone').addEventListener('click', () => { S.towns = []; renderTowns(); renderBlocks(); save(); });
-  function applyLayers() { for (const k in layers) { const on = !!S.layers[k] && (!ZOOM_GATED[k] || map.getZoom() >= ZOOM_GATED[k]); if (on && !map.hasLayer(layers[k])) layers[k].addTo(map); if (!on && map.hasLayer(layers[k])) map.removeLayer(layers[k]); const cb = document.querySelector(`#layers input[data-l="${k}"]`); if (cb) cb.checked = !!S.layers[k]; } fam.sync(S.layers); }
+  function applyLayers() { for (const k in layers) { const on = !!S.layers[k] && (!ZOOM_GATED[k] || map.getZoom() >= ZOOM_GATED[k]); if (on && !map.hasLayer(layers[k])) layers[k].addTo(map); if (!on && map.hasLayer(layers[k])) map.removeLayer(layers[k]); const cb = document.querySelector(`#layers input[data-l="${k}"]`); if (cb) cb.checked = !!S.layers[k]; } fam.sync(S.layers); msheet.syncLayers(); /* P8 8c: group lines */ }
   map.on('zoomend', applyLayers);
   $('layers').addEventListener('change', (e) => { const k = e.target.dataset.l; S.layers[k] = e.target.checked; applyLayers(); save(); if (e.target.checked && ZOOM_GATED[k] && map.getZoom() < ZOOM_GATED[k]) { showBanner(t('{0} appear once you zoom in to street level (zoom {1}+) — zooming in now', [t(LAYER_NAMES[k]), ZOOM_GATED[k]])); const c = S.choices.length ? [D.blocks[S.choices[0].bid].lat, D.blocks[S.choices[0].bid].lon] : map.getCenter(); map.setView(c, ZOOM_GATED[k]); } });
 
@@ -837,7 +869,7 @@ export function startExplore({ policy, store, bus }) {
   // ------------------------------------------------------------------ tabs, drawer, misc
   function showTab(name) { document.querySelectorAll('.tabs button').forEach((b) => { b.classList.toggle('active', b.dataset.tab === name); b.setAttribute('aria-selected', String(b.dataset.tab === name)); if (b.dataset.tab === name) b.scrollIntoView?.({ inline: 'nearest', block: 'nearest' }); }); document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + name)); }
   document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) showTab(b.dataset.tab); });
-  function openDrawer(v) { const d = $('drawer'); const open = v == null ? !d.classList.contains('open') : v; d.classList.toggle('open', open); $('drawerToggle').textContent = open ? '▼' : '▲'; }
+  function openDrawer(v) { const d = $('drawer'); const open = v == null ? !d.classList.contains('open') : v; d.classList.toggle('open', open); const tg = $('drawerToggle'); tg.textContent = open ? '▼' : '▲'; tg.setAttribute('aria-expanded', String(open)); tg.setAttribute('aria-label', open ? t('Close the comparison') : t('Open the comparison')); } // 7c C4: a named toggle
   $('drawerBar').addEventListener('click', (e) => { if (!e.target.closest('button') || e.target.id === 'drawerToggle') openDrawer(); });
   $('copyTsv').addEventListener('click', (e) => { e.stopPropagation(); if (!S.choices.length) return; navigator.clipboard.writeText(brief.tsv()).then(() => showBanner(t('Comparison table copied — paste into Google Sheets or Excel.')), () => showBanner(t('Copy failed — your browser blocked clipboard access.'))); });
   $('fitSg').addEventListener('click', () => viewTo([1.3521, 103.8198], 12));
@@ -878,30 +910,35 @@ export function startExplore({ policy, store, bus }) {
   loadTownAliases(); // 7b B15
   function mSearch(q) {
     const zh = zhTownSearch(q, D.towns), town = (i) => ({ kind: 'town', ...zhTownRow(title(D.towns[i]), D.towns[i], t(D.zones[i])), i }); q = zh.rest; // 7b B15
-    const nq = norm(q); if (nq.length < 2) return zh.towns.map(town);
-    const toks = nq.split(' '), hit = (str) => wordHit(str, toks);
+    const nq = canon(q); if (nq.length < 2) return zh.towns.map(town);
+    const toks = tokens(q), hit = (str) => hits(str, toks); // punctuation + abbreviations both ways (core/searchnorm.js)
     const res = [];
     D.towns.forEach((tn, i) => { if (hit(tn) || zh.towns.includes(i)) res.push(town(i)); });
     D.mrt.stations.forEach((st) => { if (hit(stn(st.n) + ' ' + st.codes.join(' ') + ' MRT')) res.push({ kind: 'mrt', label: stn(st.n) + ' MRT', sub: st.codes.join(' · '), p: st }); });
-    POI.schools.forEach((sc) => { if (hit(sc.n)) res.push({ kind: 'school', label: sc.n, sub: sc.lvl.toLowerCase(), p: sc }); });
+    POI.schools.forEach((sc) => { if (hit(sc.n)) res.push({ kind: 'school', label: tidyName(sc.n), sub: sc.lvl.toLowerCase(), p: sc }); });
     SUPERS.forEach((m) => { if (hit(m.n + ' supermarket')) res.push({ kind: 'place', label: m.n, sub: t('supermarket'), p: m }); });
     MALLS.forEach((m) => { if (hit(m.n + ' mall')) res.push({ kind: 'place', label: m.n, sub: t('shopping mall'), p: m }); });
     FUTST.forEach((st) => { if (hit(st.n + ' MRT future')) res.push({ kind: 'mrt', label: st.year ? t('{0} MRT (future {1})', [st.n, st.year]) : t('{0} MRT (future)', [st.n]), sub: st.lines.join(', ') || t(st.status), p: st }); });
     BTOP.forEach((b) => { if (hit(b.n + ' BTO')) res.push({ kind: 'block', label: b.n + ' (BTO)', sub: b.units ? t('{0} units', [b.units]) : 'BTO', p: b }); });
     res.sort((x, y) => x.label.length - y.label.length); res.length = Math.min(res.length, 4);
-    for (let i = 0; i < NB && res.length < 10; i++) { if (hit(D.blocks[i].addr)) res.push({ kind: 'block', label: D.blocks[i].label, sub: title(D.towns[D.blocks[i].t]), i }); }
+    const bl = []; for (let i = 0; i < NB && bl.length < 40; i++) { if (hit(D.blocks[i].addr)) bl.push(i); } // 7c C3: best address match first
+    bl.sort((x, y) => rankOf(D.blocks[x].addr, toks) - rankOf(D.blocks[y].addr, toks)).slice(0, 10 - res.length).forEach((i) => res.push({ kind: 'block', label: D.blocks[i].label, sub: title(D.towns[D.blocks[i].t]), i }));
     return res;
   }
-  function mRender() { mList.innerHTML = mItems.map((r, k) => `<div data-i="${k}" class="${k === mHi ? 'hi' : ''}"><span class="kind ${r.kind}">${t(kindLabel(r.kind))}</span>${esc(r.label)}<small>${esc(r.sub)}</small></div>`).join(''); mList.classList.toggle('open', mItems.length > 0); }
+  // M-13: the empty search offers your flats, daily places and picked towns (./searchshortcuts.js, local data only)
+  const mShort = () => searchShortcuts({ choices: S.choices, places: S.workplaces, towns: S.towns, townCount: D.towns.length, townName: (i) => title(D.towns[i]), choiceSub: (c) => `${cards.ftLabel(D.flat_types[c.ft])} · ${fmt.money(c.price)}`, hasBlock: (bid) => !!D.blocks[bid] });
+  function mRender() { mList.innerHTML = mItems.map((r, k) => `${groupHead(mItems, k)}<div data-i="${k}" class="${k === mHi ? 'hi' : ''}"><span class="kind ${r.kind}">${t(kindLabel(r.kind))}</span>${esc(r.label)}<small>${esc(r.sub)}</small></div>`).join(''); mList.classList.toggle('open', mItems.length > 0); }
   function mPick(k) {
-    const r = mItems[k]; if (!r) return; mItems = []; mRender(); mIn.value = r.label; mIn.blur();
-    if (r.kind === 'block') { const b = D.blocks[r.i]; viewTo([b.lat, b.lon], 17); openBlock(r.i); }
+    const r = mItems[k]; if (!r) return; mItems = []; mRender(); mIn.value = r.label; if (msheet.phone()) mIn.blur(); // phone: drop the keyboard; wider: focus stays (a11y audit)
+    if (r.kind === 'block') { const b = D.blocks[r.i]; viewTo([b.lat, b.lon], 17); openBlock(r.i); focusCard(r.i); }
     else if (r.kind === 'town') { if (!S.towns.includes(r.i)) { S.towns.push(r.i); renderTowns(); renderBlocks(); save(); } if (msheet.phone()) bus.emit('sheet:size', 'peek'); if (townBounds[r.i]) fitTo(townBounds[r.i].pad(0.1)); }
     else if (r.kind === 'school' && primarySchools.includes(r.p)) { viewTo([r.p.lat, r.p.lon], 15); card.openSchool(r.p); if (!S.layers.schools) { S.layers.schools = true; applyLayers(); save(); } } // B3: school card (./schoolcard.js)
     else { viewTo([r.p.lat, r.p.lon], 16); if (!msheet.row(`<b>${esc(r.label)}</b> · ${esc(r.sub)} · ${t('tap a nearby blue block to add a flat')}`)) L.popup({ maxWidth: 260 }).setLatLng([r.p.lat, r.p.lon]).setContent(`<div class="pop"><h4>${esc(r.label)}</h4><div class="sub">${esc(r.sub)} · ${t('click a nearby blue block to add a flat')}</div></div>`).openOn(map); /* phone: one row at peek */ if (r.kind === 'school' && !S.layers.schools && r.p.lvl === 'PRIMARY') { S.layers.schools = true; applyLayers(); save(); } if (r.kind === 'school' && r.p.lvl === 'SECONDARY' && !S.layers.secondary) { S.layers.secondary = true; applyLayers(); save(); } }
   }
-  mIn.addEventListener('input', () => { mItems = mSearch(mIn.value); mHi = mItems.length ? 0 : -1; mRender(); });
-  mIn.addEventListener('focus', () => { if (mIn.value) { mItems = mSearch(mIn.value); mRender(); } });
+  // a11y audit: the picked block's card takes the focus (its title), so the keyboard does not fall back to the page
+  const focusCard = (key) => { const h = document.querySelector(`.bc-win[data-key="${key}"] .bc-wt`); if (!h) return; h.tabIndex = -1; h.focus({ preventScroll: true }); };
+  mIn.addEventListener('input', () => { const q = mIn.value.trim(); mItems = q ? mSearch(mIn.value) : mShort(); mHi = q && mItems.length ? 0 : -1; mRender(); });
+  mIn.addEventListener('focus', () => { mItems = mIn.value.trim() ? mSearch(mIn.value) : mShort(); if (!mIn.value.trim()) mHi = -1; mRender(); });
   mIn.addEventListener('keydown', (e) => { if (e.key === 'Escape') { mItems = []; mRender(); mIn.blur(); return; } if (!mItems.length) return; if (e.key === 'ArrowDown') { mHi = (mHi + 1) % mItems.length; mRender(); e.preventDefault(); } else if (e.key === 'ArrowUp') { mHi = (mHi - 1 + mItems.length) % mItems.length; mRender(); e.preventDefault(); } else if (e.key === 'Enter') { mPick(mHi); e.preventDefault(); } });
   mList.addEventListener('mousedown', (e) => { const d = e.target.closest('div[data-i]'); if (d) { mPick(+d.dataset.i); e.preventDefault(); } });
   mIn.addEventListener('blur', () => setTimeout(() => { mItems = []; mRender(); }, 150));
@@ -975,12 +1012,21 @@ export function startExplore({ policy, store, bus }) {
   const showTabOrig = showTab; showTab = (name) => { if ($('app').classList.contains('panel-hidden')) setPanelHidden(false); showTabOrig(name); };
 
   // ------------------------------------------------------------------ init
-  $('cFt').innerHTML = D.flat_types.map((f, i) => `<option value="${i}">${t(f)}</option>`).join('');
-  $('cStorey').innerHTML = storeyChoices.map(({ s, i }) => `<option value="${i}">${storeyName(s)}</option>`).join('');
+  $('cFt').innerHTML = D.flat_types.map((f, i) => `<option value="${i}">${flatTypeLabel(f)}</option>`).join('');
+  $('cStorey').innerHTML = storeyChoices.map(({ s, i }) => `<option value="${i}">${storeyRange(s)}</option>`).join('');
   function setFormDefaults() { const i4 = D.flat_types.indexOf('4 ROOM'); $('cFt').value = i4 >= 0 ? i4 : 0; $('cStorey').value = storeyChoices[Math.min(3, storeyChoices.length - 1)].i; }
   setFormDefaults();
-  $('dataInfo').textContent = `${t('{0} resale transactions', [D.row_count.toLocaleString()])} · ${D.months[0]} → ${D.months[NM - 1]} · ${t('{0} blocks', [D.blocks.length.toLocaleString()])}${POI.schools.length ? ` · ${t('{0} primary schools', [primarySchools.length])}` : ''}${FUTST.length ? ` · ${t('{0} future MRT', [FUTST.length])}` : ''}${CC.length ? ` · ${t('{0} childcare', [CC.length])}` : ''}${FOOD.length ? ` · ${t('{0} eateries', [FOOD.length.toLocaleString()])}` : ''} · ${t('built {0}', [D.generated_at.slice(0, 10)])}`;
+  const setDataInfo = () => { $('dataInfo').textContent = `${t('{0} resale transactions', [D.row_count.toLocaleString()])} · ${D.months[0]} → ${D.months[NM - 1]} · ${t('{0} blocks', [D.blocks.length.toLocaleString()])}${POI.schools.length ? ` · ${t('{0} primary schools', [primarySchools.length])}` : ''}${FUTST.length ? ` · ${t('{0} future MRT', [FUTST.length])}` : ''}${CC.length ? ` · ${t('{0} childcare', [CC.length])}` : ''}${FOOD.length ? ` · ${t('{0} eateries', [FOOD.length.toLocaleString()])}` : ''} · ${t('built {0}', [D.generated_at.slice(0, 10)])}`; };
+  setDataInfo();
   importShared(); createViews({ S, D, map, bus, save, per, fitTo, refresh: () => { renderFtChips(); renderTowns(); applyLayers(); syncColorBy(); syncFilters(); drawArea(); renderArea(); renderBlocks(); } }); // ./views.js saved map views + 'explore:view'
   buildStaticLayers(); renderFtChips(); renderTowns(); applyLayers(); syncColorBy(); syncFilters(); renderBlocks(); updateFormMeta(); renderWork(); renderChoices(); drawArea(); renderArea();
+  // S1b: a late data file arrived (main.js, bus 'data:more') → re-bind it and redraw what uses it
+  bus.on('data:more', ({ file }) => {
+    bindLate();
+    if (file === 'data/poi.js') { buildStaticLayers(true); applyLayers(); placeIdx = null; setDataInfo(); }
+    if (file === 'data/commute.js') commute = makeCommute();
+    if (file === 'data/commute.js' || (file === 'data/rents.js' && S.colorBy === 'rent')) renderBlocks(); else card.refresh();
+    renderCompare();
+  });
   msheet.start(); // phones: Map settings layout, "Area prices", + / − placement (and back at ≥ 768 px)
 }

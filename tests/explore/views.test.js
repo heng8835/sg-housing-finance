@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  MAX_VIEWS, captureView, cleanView, applyView, cleanArea, cleanViews, addView, renameView, deleteView, isFull,
+  MAX_VIEWS, captureView, cleanView, applyView, cleanArea, cleanViews, addView, renameView, deleteView, restoreView, isFull,
   viewSummary, viewsHtml, viewStrings,
 } from '../../app/modules/explore/views.js';
 
@@ -104,7 +104,7 @@ test(`at most ${MAX_VIEWS} views; rename / delete; blank names get a default`, (
 
 test('markup: list with Apply / Rename / Delete, full state disables Save; summary line', () => {
   const v = captureView(busyS(), { ...D, ...at });
-  assert.equal(viewSummary(cleanView(v)), '$ per sqft · 3 ROOM, 4 ROOM · 2 towns · circle · filters');
+  assert.equal(viewSummary(cleanView(v)), 'Price per sq ft · 3-room, 4-room · 2 towns · circle · filters');
   const one = addView([], v, 'East <b>', 'x').list;
   const html = viewsHtml(one);
   assert.match(html, /data-v="apply" data-id="v1"/);
@@ -125,4 +125,19 @@ test('中文: every saved-view string is translated; new keys appear once in zh-
   assert.deepEqual(viewStrings().filter((s) => dict[s] == null), []);
   const raw = read('zh-explore');
   for (const s of ['Saved views', 'Save this view', 'Apply', 'View {0}']) assert.equal(raw.split(`\n  "${s}":`).length - 1, 1, s);
+});
+
+test('M-17 undo: restoreView puts a deleted view back in its place, never twice and never past the cap', () => {
+  let list = [];
+  for (let i = 0; i < 3; i++) list = addView(list, {}, `V${i}`, 'x').list;
+  const gone = list[1];
+  const after = deleteView(list, gone.id);
+  const back = restoreView(after, gone, 1);
+  assert.deepEqual(back.map((x) => x.id), list.map((x) => x.id));
+  assert.deepEqual(restoreView(back, gone, 1).map((x) => x.id), back.map((x) => x.id), 'already there: unchanged');
+  assert.equal(restoreView(after, gone, 99).at(-1).id, gone.id, 'index past the end: appended');
+  let full = [];
+  for (let i = 0; i < MAX_VIEWS; i++) full = addView(full, {}, `F${i}`, 'x').list;
+  assert.equal(restoreView(full, { ...gone, id: 'v999' }, 0).length, MAX_VIEWS);
+  assert.deepEqual(restoreView(after, null, 0), after);
 });

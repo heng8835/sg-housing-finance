@@ -68,6 +68,9 @@ export const PIN_H = 38; // the numbered pin's height (pinIcon below): it is dra
  * `top` (under the search bar) and `bottom` (the sheet's top edge), all in map-container px. 0 when the whole pin is
  * already inside the band; else the pin is centred in it.
  */
+export const HALF_PCT = 55; // fallback for --sheet-half (styles/base.css; shell/phone.js HALF_SHARE)
+/** Where the map sheet's top edge sits at half height (viewport px): `wrap` = #mapwrap's rect, `pct` = --sheet-half. */
+export const halfTop = (wrap, pct) => wrap.bottom - Math.round(wrap.height * ((pct > 0 && pct <= 100 ? pct : HALF_PCT) / 100));
 export function panDelta(pinY, { top, bottom, pad = 8 }) {
   if (pinY - PIN_H >= top + pad && pinY <= bottom - pad) return 0;
   return Math.round(pinY - (top + bottom + PIN_H) / 2);
@@ -186,9 +189,12 @@ export function createDock(ctx) {
   function panToPin(c) {
     const b = ctx.at(c.key), sheet = document.getElementById('mapSheet'); if (!b || !sheet || !find(c.key)) return;
     const box = map.getContainer().getBoundingClientRect(), bar = map.getContainer().parentElement?.querySelector('.mapbar');
-    // the sheet may still be growing: use the larger of its height now and the half height it is heading to (50dvh)
-    const half = Math.round((globalThis.visualViewport?.height || innerHeight) / 2);
-    const top = bar ? Math.max(0, bar.getBoundingClientRect().bottom - box.top) : 0, bottom = Math.min(sheet.getBoundingClientRect().top, box.bottom - half) - box.top;
+    // the sheet may still be growing: use the higher of its top edge now and the half top it is heading to (S1a: half =
+    // --sheet-half, 55 % of #mapwrap — shell/phone.js HALF_SHARE — not 50 % of the viewport)
+    const wrap = document.getElementById('mapwrap'), wb = (wrap || map.getContainer()).getBoundingClientRect();
+    const share = wrap ? parseFloat(getComputedStyle(wrap).getPropertyValue('--sheet-half')) : NaN;
+    const top = bar ? Math.max(0, bar.getBoundingClientRect().bottom - box.top) : 0;
+    const bottom = Math.min(sheet.getBoundingClientRect().top, halfTop(wb, share)) - box.top;
     const dy = panDelta(map.latLngToContainerPoint([b.lat, b.lon]).y, { top, bottom });
     if (dy) map.panBy([0, dy], { animate: !matchMedia('(prefers-reduced-motion: reduce)').matches });
   }

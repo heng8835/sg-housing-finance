@@ -14,7 +14,8 @@ import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { field, selIn, notesFold } from './ui.js';
 import { btoPayFold } from './btopay.js';
-import { priceKey, typedPrice, priceInput, flatTypeChoice, flatTypeSelect, eligStrip, waitChoice, waitFields, rentNowOf, rentField, rentInfo, askFor } from './btoinputs.js';
+import { priceKey, typedPrice, priceInput, flatTypeChoice, flatTypeSelect, eligStrip, waitChoice, btoFieldSplit, rentNowOf, rentInfo, askFor } from './btoinputs.js';
+import { moreFold } from './morefold.js'; // Phase 8 M-16: essentials first
 
 // how "resale nearby" is measured (a UI choice, not a rule)
 const RESALE_KM = 1;
@@ -48,7 +49,7 @@ function kpisHtml(r, w, rentLine, resale, resaleLabel) {
  * Everything below the inputs, for both modes: the verdict (or what is still missing), the KPIs, payment stages and
  * notes. canCompare = resale prices are there to compare with; doneText = notice when the key date has passed.
  */
-function compareBlock({ h, p, policy, today, fold, choice, w, price, median, resale, resaleLabel, canCompare, doneText = null }) {
+function compareBlock({ h, p, policy, today, fold, choice, w, price, median, resale, resaleLabel, canCompare, doneText = null, more = '' }) {
   const r = compareBtoResale({ asOf: today, keyDate: w.keyDate, waitMonths: w.waitMonths, btoPrice: price, resalePrice: resale?.median ?? null, monthlyRent: rentNowOf(p, median) }, policy);
   const show = canCompare && price != null && !w.done && choice.gate.ok !== false;
   const verdict = verdictOf(r, show);
@@ -57,6 +58,7 @@ function compareBlock({ h, p, policy, today, fold, choice, w, price, median, res
     ${verdict ? `<p class="verdict"><span class="tag ${verdict[0]}">${verdict[1]}</span></p>` : ''}
     ${ask ? `<p class="hint">${ask}</p>` : ''}
     ${kpisHtml(r, w, rentInfo(p, median), resale, resaleLabel)}
+    ${more}
     ${w.done ? '' : btoPayFold({ price, flatType: choice.ft, keyDate: w.keyDate, h, plan: p, policy, fold })}
     ${notesFold(r.notes, 'btoNotes', fold)}`;
 }
@@ -69,17 +71,17 @@ function typedSection({ h, f, p, policy, today, fold, head, choice, paths }) {
   const resale = home ? data.resaleNear(home, ft, { km: RESALE_KM, months: RESALE_MONTHS }) : null;
   const rents = home ? data.rentsFor(f.bid) : { block: null, town: null };
   const median = home ? rentComps(rents.block, ft, policy, rents.town)?.med ?? null : null;
+  const split = btoFieldSplit({ p, w, median, ft }); // M-16: essentials first, the rest in "Make it more accurate"
   return `${head}
     <p class="hint">${t('BTO project details are not included in this version. Type the price for your flat type and the expected completion from HDB\'s sales brochure.')}</p>
     ${eligStrip(choice, paths)}
     <div class="fields">
       ${field(t('Flat type'), flatTypeSelect(choice))}
       ${field(t('BTO price you expect (S$)'), priceInput(key, price))}
-      ${waitFields(p, w)}
-      ${rentField(p, median, ft)}
+      ${split.first}
     </div>
     ${home ? '' : `<p class="hint">${t('Pick a flat on the map to compare with resale prices and rents around it.')}</p>`}
-    ${compareBlock({ h, p, policy, today, fold, choice, w, price, median, resale, resaleLabel: t('Resale within {0} km of your flat', [RESALE_KM]), canCompare: !!home, doneText: t('That key collection month has passed — enter the expected completion of a project still being built.') })}
+    ${compareBlock({ h, p, policy, today, fold, choice, w, price, median, resale, resaleLabel: t('Resale within {0} km of your flat', [RESALE_KM]), canCompare: !!home, doneText: t('That key collection month has passed — enter the expected completion of a project still being built.'), more: moreFold({ key: 'btoMore', items: split.more, sub: split.sub, fold }) })}
   </div>`;
 }
 
@@ -119,18 +121,18 @@ export function btoSection({ h, f, plan: p, policy, today, fold = () => '' }) {
   const rents = nb ? data.rentsFor(nb.bid) : { block: null, town: null };
   const median = rentComps(rents.block, ft, policy, rents.town)?.med ?? null;
   const past = projectKey != null && projectKey <= now;
+  const split = btoFieldSplit({ p, w, median, ft, projectTop: proj.top }); // M-16: essentials first
   return `${head}
     ${eligStrip(choice, paths)}
     <div class="fields">
       ${field(t('BTO project'), selIn('plan.btoId', opts, proj.n, 'text', false), 'wide')}
       ${field(t('Flat type'), flatTypeSelect(choice))}
       ${field(t('BTO price you expect (S$)'), priceInput(key, price))}
-      ${waitFields(p, w, proj.top)}
-      ${rentField(p, median, ft)}
+      ${split.first}
     </div>
     <p class="hint">${esc(proj.n)} · ${t('expected completion')}: ${esc(projectKey ? proj.top : t('not announced'))}${proj.pmin ? ` · ${t('launch prices {0}–{1} (all flat types)', [money(proj.pmin), money(proj.pmax)])}` : ''}${proj.url ? ` · <a href="${esc(proj.url)}" target="_blank" rel="noopener">${t('project page ↗')}</a>` : ''}</p>
     ${past ? `<p class="notice">${t('Expected completion has passed — these flats are probably completed and sold. Pick a project still being built.')}</p>` : ''}
     ${price ? '' : `<p class="hint">${t('Enter the BTO price for this flat type (from the HDB sales brochure) to compare.')}</p>`}
-    ${compareBlock({ h, p, policy, today, fold, choice, w, price, median, resale, resaleLabel: t('Resale within {0} km now', [RESALE_KM]), canCompare: true })}
+    ${compareBlock({ h, p, policy, today, fold, choice, w, price, median, resale, resaleLabel: t('Resale within {0} km now', [RESALE_KM]), canCompare: true, more: moreFold({ key: 'btoMore', items: split.more, sub: split.sub, fold }) })}
   </div>`;
 }

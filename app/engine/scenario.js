@@ -40,8 +40,13 @@ export function costInput({ plan, focus, household, market = null, policy = null
   };
 }
 
-/** planPurchase() flat input exactly as the Afford tab builds it from the focus / typical flat. */
-export const flatInput = (f) => ({ price: f.price, flatType: f.flatType || '4 ROOM', remainingLease: f.remainingLease ?? null, cov: f.cov || 0 });
+/** planPurchase() flat input exactly as the Afford tab builds it from the focus / typical flat. parentsKm (S1a, B12):
+ *  straight-line km to the tagged parents' place (core/parents.js parentsKmFor) — added only when known, like Afford's
+ *  withParents, so without a tagged place the input is identical. */
+export const flatInput = (f, parentsKm = null) => {
+  const x = { price: f.price, flatType: f.flatType || '4 ROOM', remainingLease: f.remainingLease ?? null, cov: f.cov || 0 };
+  return parentsKm == null ? x : { ...x, parentsKm };
+};
 
 // scope (typical flat: what the map showed) is kept so a loaded typical flat finds the same market rent again
 const FOCUS_KEYS = ['source', 'bid', 'choiceId', 'label', 'price', 'flatType', 'sqm', 'remainingLease', 'cov', 'annualValue', 'scope'];
@@ -91,15 +96,16 @@ const oaKnown = (h) => ((h && h.buyers) || []).some((b) => b && b.cpfOa != null 
 /**
  * Every compare-table number for one scenario.
  * @param {object} s  a snapshotOf() result (or one read back from storage)
- * @param {{ year:number, horizonYears:number, cpfDefaults:{ wageGrowth:number, bonusMonths:number } }} opts
+ * @param {{ year:number, horizonYears:number, cpfDefaults:{ wageGrowth:number, bonusMonths:number }, parentsKm?:number|null }} opts
+ *   parentsKm = this flat's km to the parents' place (PHG per flat, as Afford); null / absent = no place tagged
  * @returns {{ price:number, loanType:string, upfront:{ net:number, cash:number, cpf:number }, monthly:number,
  *   msr:number|null, tdsr:number|null, verdict:string, monthlyCost:{ total:number, noTax:boolean }|null,
  *   oaLeft:number|null, cpf55:object|null, rentBuy:{ advantage:number, breakEvenYear:number|null, year:number }|null, plan:object }}
  */
-export function scenarioResults(s, policy, { year, horizonYears, cpfDefaults }) {
+export function scenarioResults(s, policy, { year, horizonYears, cpfDefaults, parentsKm = null }) {
   const h = s.household, f = s.focus;
   // the sale saved with the scenario (Plan → Sell then buy), counted exactly as Afford counts it (A2)
-  const plan = planPurchase({ household: h, flat: flatInput(f), sale: saleInput(s.plan, year) }, policy);
+  const plan = planPurchase({ household: h, flat: flatInput(f, parentsKm), sale: saleInput(s.plan, year) }, policy);
   const c = plan.chosen, fund = c.funding;
   const rent = s.market && s.market.rent > 0 ? s.market.rent : null;
   let cost = null;

@@ -1,7 +1,9 @@
 // "Start here" markup (pure string builders, node-testable): one question per screen, then a short "You're set"
 // screen with the matching tour / guide. Calm WP-A classes: .fields › label.f, .seg, .chips › .chip, .btn, .link, .hint.
 // 7b B5: the screens follow the goal (answers.js questionsFor), EN · 中文 inside the dialog, no Next on tap screens.
-import { t, LANGS } from '../../core/i18n.js';
+import { t, LANGS, currentLang } from '../../core/i18n.js';
+import { zhTownName } from '../../core/townalias.js';
+import { flatTypeLabel } from '../../core/flattype.js';
 import { esc, money } from '../../core/dom.js';
 import { GOALS, RESIDENCY, INCOME_BANDS, AGE_MIN, AGE_MAX, goalById, incomeOf, questionsFor } from './answers.js';
 import { childPart, splitPart, goalScreen, noWorkChip, goalLines, screenStrings } from './screens.js';
@@ -38,6 +40,8 @@ const HELP = {
 export const TAP_SCREENS = ['goal', 'firstTimer'];
 
 export const titleCase = (s) => String(s).toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+/** Town name shown (S1a): 中文 = the owner-reviewed Chinese name (i18n/towns.zh.json via core/townalias.js), else 'Ang Mo Kio'. */
+export const townLabel = (town, lang = currentLang()) => (lang === 'zh' && zhTownName(town)) || titleCase(town);
 export const titleOf = (q, a) => (q === 'who' && WHO_TITLE[a && a.goal]) || TITLES[q];
 
 // phone overhaul §3.1: on a phone the dialog is a full-screen page and its close button says "Close" (44 px, sticky head)
@@ -83,7 +87,7 @@ function body(q, a, towns, opts) {
       return `<div class="st-list">${timerOptions(n).map(([v, l]) => `<button type="button" data-timer="${v}" ${pressed(a.firstTimer === v)}><span class="st-t">${esc(t(l))}</span></button>`).join('')}</div>`;
     case 'towns':
       if (!towns.length) return `<p class="hint">${esc(t('The town list appears once the map data has loaded.'))}</p>`;
-      return `<div class="chips st-towns" role="group" aria-labelledby="startTitle">${towns.map((x) => { const on = a.towns.includes(x); return `<button type="button" class="chip${on ? ' on' : ''}" aria-pressed="${on}" data-town="${esc(x)}">${esc(titleCase(x))}</button>`; }).join('')}</div>`;
+      return `<div class="chips st-towns" role="group" aria-labelledby="startTitle">${towns.map((x) => { const on = a.towns.includes(x); return `<button type="button" class="chip${on ? ' on' : ''}" aria-pressed="${on}" data-town="${esc(x)}">${esc(townLabel(x))}</button>`; }).join('')}</div>`;
     default: return goalScreen(q, a, opts);
   }
 }
@@ -139,8 +143,8 @@ export function summaryLines(a, h, route) {
   out.push(...goalLines(a));
   const v = route && route.view;
   if (v && (v.ft || v.towns)) {
-    const ft = v.ft ? v.ft.map((x) => t(x)).join(', ') : t('all flat types');
-    out.push(v.towns ? t('The map now shows {0} in {1}.', [ft, v.towns.map(titleCase).join(', ')]) : t('The map now shows {0}.', [ft]));
+    const ft = v.ft ? v.ft.map(flatTypeLabel).join(', ') : t('all flat types');
+    out.push(v.towns ? t('The map now shows {0} in {1}.', [ft, v.towns.map((x) => townLabel(x)).join(', ')]) : t('The map now shows {0}.', [ft]));
   }
   return out;
 }
@@ -183,7 +187,7 @@ export function doneHtml(a, h, route, { tourTitle = '', textSize = 'normal', pho
 const PICKED = { one: 'just you', seniors: 'two of you, both {0} or older', two: 'two of you' };
 export function pickedHint(picked, ft, seniorAge) {
   if (!picked || !Array.isArray(ft) || !ft.length) return '';
-  return t('Picked for you ({0}): {1}. Change any time.', [t(PICKED[picked], [seniorAge]), ft.map((x) => t(x)).join(', ')]);
+  return t('Picked for you ({0}): {1}. Change any time.', [t(PICKED[picked], [seniorAge]), ft.map(flatTypeLabel).join(', ')]);
 }
 
 /** Every English string this module shows (for the zh coverage test). */

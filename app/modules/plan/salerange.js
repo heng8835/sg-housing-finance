@@ -9,36 +9,18 @@ import { t } from '../../core/i18n.js';
 import { data } from '../../core/data.js';
 import { tieredComps, MIN_COMPS, SQFT_PER_SQM } from '../../core/comps.js';
 import { fairValue } from '../../engine/fairvalue.js';
+import { normQuery, blockName, townTitle as titleCase, searchBlocks as coreSearchBlocks } from '../../core/blocksearch.js';
 
 export const ROUND_TO = 1000;   // S$: suggested prices are rounded to the nearest thousand (UI choice)
 export const AC_MAX = 8;        // block suggestions shown
 const LIST_ID = 'sbBlockList';
 
-const titleCase = (s) => String(s).toLowerCase().replace(/(^|[\s/(-])([a-z])/g, (_, a, c) => a + c.toUpperCase());
-/** "123 Bishan St 12" for a data.js block. */
-export const blockName = (hdb, bid) => { const b = hdb?.blocks?.[bid]; return b ? `${b.b} ${titleCase(hdb.streets[b.s])}` : ''; };
 const median = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
 
-// same normalisation as the Explore autocomplete (legacy.js acSearch): street words abbreviated, "BLK" dropped
-const ABBR = [['AVENUE', 'AVE'], ['STREET', 'ST'], ['ROAD', 'RD'], ['DRIVE', 'DR'], ['CRESCENT', 'CRES'], ['CLOSE', 'CL'], ['NORTH', 'NTH'], ['SOUTH', 'STH'], ['CENTRAL', 'CTRL']];
-export function normQuery(s) {
-  let q = String(s || '').toUpperCase();
-  for (const [a, b] of ABBR) q = q.replace(new RegExp(`\\b${a}\\b`, 'g'), b);
-  return q.replace(/\bBLK\b|\bBLOCK\b/g, '').replace(/\s+/g, ' ').trim();
-}
-const wordHit = (str, toks) => { const words = str.split(/[^A-Z0-9]+/); return toks.every((k) => words.some((w) => (/^\d+$/.test(k) ? w === k : w.startsWith(k)))); };
-
+// same matching as every block / place search (core/searchnorm.js via core/blocksearch.js, 7c C3)
+export { normQuery, blockName };
 /** Up to `max` block indices whose "number street" matches every word of q (numbers exactly); street-first matches first. */
-export function searchBlocks(hdb, q, max = AC_MAX) {
-  const n = normQuery(q);
-  if (!hdb || n.length < 2) return [];
-  const toks = n.split(' '), res = [];
-  for (let i = 0; i < hdb.blocks.length && res.length < 40; i++) {
-    const b = hdb.blocks[i], addr = `${b.b} ${hdb.streets[b.s]}`.toUpperCase();
-    if (wordHit(addr, toks)) res.push({ i, first: addr.startsWith(toks[0]) ? 0 : 1 });
-  }
-  return res.sort((x, y) => x.first - y.first).slice(0, max).map((x) => x.i);
-}
+export const searchBlocks = (hdb, q, max = AC_MAX) => coreSearchBlocks(hdb, q, { max });
 
 /** The saved block ({ bid, label }) if it still names the same block in this data.js, else null. */
 export function resolveBlock(hdb, saved) {
@@ -91,21 +73,29 @@ export function rangeHtml(r, picked, mode = 'pro') {
   if (!picked) return `<p class="hint wide sb-range">${t('Pick your current block above to see what similar flats sold for recently.')}</p>`;
   if (!r) return `<p class="hint wide sb-range">${t('No sales of this flat type found for your block.')}</p>`;
   if (!r.enough) return `<p class="hint wide sb-range">${r.n ? t('Only {0} similar sales recently — too few for a range (at least {1} needed).', [r.n, MIN_COMPS]) : t('No similar sales in the last 24 months.')}</p>`;
-  const size = r.sqmTypical ? t('for {0} sqm, typical for this block — enter your floor area for a closer range', [r.sqm]) : t('for your {0} sqm', [r.sqm]);
+  const size = r.sqmTypical ? t('for {0} sqm, typical for this block — add your floor area under "Make it more accurate" for a closer range', [r.sqm]) : t('for your {0} sqm', [r.sqm]);
   return `<p class="hint wide sb-range"><span>${t(mode === 'simple' ? 'Similar recent sales: {0}–{1} (middle half of {2} sales)' : 'Similar recent sales: {0}–{1} (middle half, n={2})', [kShort(r.low), kShort(r.high), r.n])} · ${esc(scopeText(r))} · ${esc(size)}.</span>
     <button type="button" class="link" id="sbMedian" data-sb-median="${r.mid}">${t('Use median ({0})', [money(r.mid)])}</button><br>
     <small>${t('A guide from past sales, not a valuation: storey, condition and renovation are not adjusted. Nothing changes until you click.')}</small></p>`;
 }
 
-/** Block picker + floor area fields (inside the Sell then buy .fields grid). */
-export function blockFields(c, hdb = data.hdb) {
+/** Block picker (an essential of Sell then buy, Phase 8 M-16: it gives the "Use median" range). */
+export function blockPickField(c, hdb = data.hdb) {
   if (!hdb) return '';
   const bid = resolveBlock(hdb, c.block), name = bid != null ? blockName(hdb, bid) : '';
-  const typical = bid != null ? typicalSqm(hdb, bid, hdb.flat_types.indexOf(c.flatType)) : null;
-  const pick = `<label class="f"><span>${t('Your current block (optional)')}</span><span class="ac"><input type="text" id="sbBlock" class="sb-block" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="${LIST_ID}" autocomplete="off" value="${esc(name)}" placeholder="${esc(t('Search block or street'))}"><span class="ac-list" id="${LIST_ID}" role="listbox"></span></span></label>`;
-  const area = `<label class="f"><span>${t('Floor area (sqm, optional)')}</span><input type="number" inputmode="decimal" data-p="plan.current.sqm" data-k="num" value="${c.sqm ?? ''}" min="0" step="1"${typical ? ` placeholder="${typical}"` : ''}></label>`;
-  return pick + area;
+  return `<label class="f"><span>${t('Your current block (optional)')}</span><span class="ac"><input type="text" id="sbBlock" class="sb-block" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="${LIST_ID}" autocomplete="off" value="${esc(name)}" placeholder="${esc(t('Search block or street'))}"><span class="ac-list" id="${LIST_ID}" role="listbox"></span></span></label>`;
 }
+
+/** Floor area (refines the range; in the "Make it more accurate" fold). Placeholder = the block's typical size. */
+export function areaField(c, hdb = data.hdb) {
+  if (!hdb) return '';
+  const bid = resolveBlock(hdb, c.block);
+  const typical = bid != null ? typicalSqm(hdb, bid, hdb.flat_types.indexOf(c.flatType)) : null;
+  return `<label class="f"><span>${t('Floor area (sqm, optional)')}</span><input type="number" inputmode="decimal" data-p="plan.current.sqm" data-k="num" value="${c.sqm ?? ''}" min="0" step="1"${typical ? ` placeholder="${typical}"` : ''}></label>`;
+}
+
+/** Block picker + floor area fields together (older layout; kept for callers that want both). */
+export const blockFields = (c, hdb = data.hdb) => blockPickField(c, hdb) + areaField(c, hdb);
 
 /** Range line for the current inputs (cached per block / type / size / data). */
 const cache = new Map();

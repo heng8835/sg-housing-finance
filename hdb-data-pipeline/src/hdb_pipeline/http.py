@@ -3,6 +3,8 @@
 One session is built once per pipeline run and passed to source modules —
 replacing the legacy notebooks' setproxy()-before-every-call pattern (DEC-004).
 Polite delays between scrape requests are a business rule (BR-08).
+OneMap calls carry the account token when ONEMAP_EMAIL / ONEMAP_PASSWORD are set (onemap_auth.py);
+without them they go out anonymously as before.
 """
 
 import time
@@ -12,6 +14,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from hdb_pipeline.config import Settings
+from hdb_pipeline.onemap_auth import OneMapAuth, shared
 
 USER_AGENT = "Mozilla/5.0 (compatible; hdb-data-pipeline/0.1)"
 
@@ -22,7 +25,8 @@ RETRY_STATUSES = (429, 500, 502, 503, 504)
 
 def make_session(settings: Settings) -> requests.Session:
     """Build a requests.Session with proxy (if configured), standard headers,
-    and GET retry/backoff on transient failures."""
+    GET retry/backoff on transient failures, and the OneMap token on OneMap
+    requests (only when the credentials are set; other hosts are untouched)."""
     session = requests.Session()
 
     if settings.proxy_url:
@@ -48,6 +52,7 @@ def make_session(settings: Settings) -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
+    session.auth = OneMapAuth(shared(proxy=settings.proxy_url))
 
     return session
 

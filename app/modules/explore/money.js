@@ -100,7 +100,7 @@ export const cells = {
     const f = p.chosen.funding;
     // A11: "short" only once the cash is known (Afford's cashShortLine) — before that, ask for it (fill link)
     const state = p.cashShort == null ? householdLink(h, 'cash')
-      : p.cashShort > 0 ? `<b style="color:var(--critical)">${t('short {0}', [k(p.cashShort)])}</b> · ${t('your cash {0}', [k(p.funds.cash)])}`
+      : p.cashShort > 0 ? `<b style="color:var(--critical-ink)">${t('short {0}', [k(p.cashShort)])}</b> · ${t('your cash {0}', [k(p.funds.cash)])}`
         : t('within your cash {0}', [k(p.funds.cash)]);
     return `${money(f.cashNeeded)}<small>${cashParts(f, p.chosen.loanType, mode).join(' + ')}</small><small>${state}</small>`;
   },

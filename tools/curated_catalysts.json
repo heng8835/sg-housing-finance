@@ -27,7 +27,8 @@
      "year": 2030, "status": "planned (early 2030s)", "source_url": "https://www.moh.gov.sg/newsroom/speech-by-mr-ong-ye-kung-minister-for-health-at-the-ministry-of-health-committee-of-supply-debate-2024-on-wednesday-6-march-2024/",
      "note": "MOH Committee of Supply 2024: new NUHS hospital in Tengah, completion in the early 2030s (year shown = earliest). Exact site not published - placed at Tengah town centre."},
     {"id": "bidadari", "name": "Bidadari estate (Bidadari Park, Woodleigh Mall)", "kind": "amenities", "lat": 1.3395, "lon": 103.8715, "approx": true, "km": 1.0,
-     "year": 2024, "status": "opened", "source_url": "https://en.wikipedia.org/wiki/Bidadari,_Singapore",
-     "note": "New HDB estate on the former cemetery: first flats 2019, Woodleigh Mall 2023, 10-ha Bidadari Park opened September 2024 (secondary source)."}
+     "year": 2024, "status": "opened", "source_url": "https://www.nparks.gov.sg/news/news-detail/opening-of-bidadari-park-and-alkaff-lake-marks-another-milestone-in-realising-the-vision-for-bidadari-estate",
+     "note": "New HDB estate on the former cemetery: first flats 2019, Woodleigh Mall 2023, 10-ha Bidadari Park opened September 2024 (secondary source).",
+     "source_note": "NParks release (3 Sep 2024): Bidadari Park and Alkaff Lake newly opened, on the former Bidadari Cemetery (sets year = 2024). URA 'Transformation of Bidadari into A Community in a Garden' (ura.gov.sg Ideas and Trends): 10 ha park, 12 BTO projects / 8,872 flats since the first launch in Nov 2015. First flats 2019 and Woodleigh Mall 2023 are not on an official page (secondary). Replaces Wikipedia, checked 2026-10-09."}
   ]
 }

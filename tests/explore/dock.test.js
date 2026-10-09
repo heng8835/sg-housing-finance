@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { placeCards, clampSize, defaultSize, availHeight, admit, lruVictim, MAX_CARDS, GAP, TOP, CASCADE, ZOOM_CLEAR } from '../../app/modules/explore/dock.js';
+import { readFileSync } from 'node:fs';
+import { placeCards, clampSize, defaultSize, availHeight, admit, lruVictim, MAX_CARDS, GAP, TOP, CASCADE, ZOOM_CLEAR, halfTop, HALF_PCT } from '../../app/modules/explore/dock.js';
 import { windowFor, migratePeriod } from '../../app/modules/explore/period.js';
 
 test('availHeight / clampSize: W 320 … min(640, mapW − 68), H 360 … availH', () => {
@@ -89,4 +90,13 @@ test('migratePeriod: defaults stay identical; a saved 24-month window stays 24; 
   const kept = migratePeriod({ calcM: 36, hist: { from: 2010, to: 2030 } }, months); // already migrated: clamped to the data
   assert.deepEqual([kept.calcM, kept.hist], [36, { from: 2017, to: 2026 }]);
   assert.equal(migratePeriod({ calcM: 7, hist: { from: 2018, to: 2020 } }, months).calcM, 12); // unknown option → default
+});
+
+test('halfTop (S1a): the half sheet is 55 % of #mapwrap (not 50 % of the viewport), so the pin sits just above it', () => {
+  const wrap = { top: 56, bottom: 756, height: 700 };            // map area under a 56 px top bar
+  assert.equal(halfTop(wrap, 55), 756 - 385);                    // 55 % of 700 = 385 px tall
+  assert.equal(halfTop(wrap, NaN), 756 - Math.round(700 * HALF_PCT / 100));
+  assert.equal(HALF_PCT, 55);
+  const css = readFileSync(new URL('../../app/styles/base.css', import.meta.url), 'utf8');
+  assert.match(css, /--sheet-half: 55%/);
 });

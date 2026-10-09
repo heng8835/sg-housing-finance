@@ -69,13 +69,13 @@ test('disclaimer line: panel footer + the end of every tab + the Compare drawer,
   assert.deepEqual(tabs, ['explore', 'afford', 'rent', 'plan', 'choices']);
   tabs.forEach((id, i) => {
     const start = html.indexOf(`id="tab-${id}"`);
-    const end = i + 1 < tabs.length ? html.indexOf(`id="tab-${tabs[i + 1]}"`) : html.indexOf('</aside>');
+    const end = i + 1 < tabs.length ? html.indexOf(`id="tab-${tabs[i + 1]}"`) : html.indexOf('<!-- /#panel -->');
     const part = html.slice(start, end);
     const line = part.lastIndexOf('class="disc-line inline tab-end"');
     assert.ok(line > 0, `${id}: disclaimer line`);
     assert.doesNotMatch(part.slice(line), /class="section/, `${id}: the line is the last thing in the tab`);
   });
-  const footer = html.slice(html.lastIndexOf('</div>', html.indexOf('</aside>')), html.indexOf('</aside>'));
+  const footer = html.slice(html.lastIndexOf('</div>', html.indexOf('<!-- /#panel -->')), html.indexOf('<!-- /#panel -->'));
   assert.match(footer, /<p class="disc-line" id="discLine"><span data-i18n>Educational estimates, not financial advice<\/span> · <button type="button" class="link" data-about data-i18n>About<\/button><\/p>/);
   assert.match(html, /id="cmpBody"><\/div>\s*<p class="disc-line inline cmp-disc">/);
   assert.equal((html.match(/data-about data-i18n>About</g) || []).length, 7, '5 tabs + footer + Compare drawer');

@@ -146,7 +146,7 @@ test('markup: every question renders, with Skip / Next and the sample link; the 
   const h = householdFrom(ans, defaults().household), route = routeFor(ans, GUIDES);
   const lines = summaryLines(ans, h, route);
   assert.match(lines[0], /2 buyers \(31, 29\) · Singapore Citizen · S\$9,500 a month · first-timers/);
-  assert.match(lines[1], /4 ROOM, 5 ROOM, EXECUTIVE in Bedok/);
+  assert.match(lines[1], /4-room, 5-room, Executive in Bedok/);
   const done = doneHtml(ans, h, route, { tourTitle: 'x' });
   assert.match(done, /data-st="tour"/);
   assert.match(done, /data-st="guide"/);
@@ -165,4 +165,14 @@ test('中文: every Start here string is translated; new keys appear once in zh.
     assert.equal(raw.split(`\n "${s}":`).length - 1, 1, `"${s}" appears more than once in zh.json`);
   }
   assert.doesNotThrow(() => JSON.parse(raw));
+});
+
+test('S1a: town buttons in 中文 show the Chinese town name (towns.zh.json), English unchanged', async () => {
+  const { townLabel } = await import('../../app/modules/start/view.js');
+  const { setTownAliases } = await import('../../app/core/townalias.js');
+  setTownAliases({ towns: { 'ANG MO KIO': ['宏茂桥'] } });
+  assert.equal(townLabel('ANG MO KIO', 'zh'), '宏茂桥');
+  assert.equal(townLabel('ANG MO KIO', 'en'), 'Ang Mo Kio');
+  assert.equal(townLabel('KALLANG/WHAMPOA', 'zh'), 'Kallang/Whampoa'); // no alias → English
+  setTownAliases({});
 });

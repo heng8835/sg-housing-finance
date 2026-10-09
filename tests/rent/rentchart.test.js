@@ -80,3 +80,13 @@ test('aria summary and keyboard / pointer helpers skip quarters without a figure
   assert.ok(m.pts[jumpPoint(m.pts, gapIdx - 1, 2)].v != null);
   assert.match(rangeSeg('10'), /data-rr="10" aria-checked="true"/);
 });
+
+test('S1a: a quarter missing from the HDB list does not shift the year ticks (placed by the quarter label)', () => {
+  const qs = quarters.filter((x) => x !== '2022-Q3'), v = qs.map((s, i) => 1500 + i * 20);
+  const m = rentChartModel({ q: v, quarters: qs, width: 600 });
+  assert.ok(m.ticks.major.length >= 9);
+  for (const j of m.ticks.major) assert.equal(m.pts[j.i].q, `${j.year}-Q1`);
+  const svg = rentChartSvg(m, 'aria');
+  const y2024 = m.ticks.major.find((j) => j.year === 2024);
+  assert.ok(svg.includes(`x1="${m.pts[y2024.i].x.toFixed(1)}"`));
+});

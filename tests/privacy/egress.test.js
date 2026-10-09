@@ -58,6 +58,8 @@ export const ALLOWED = [
   ['main.js', 'console', "console.warn('Guides not available:', err.message)", 'error text'],
   ['main.js', 'console', "console.warn('Block ids:', JSON.stringify({ derived: r.derived, dropped: r.comparer.dropped }))", 'data file names + a count of dropped flats'],
   ['main.js', 'console', "console.warn('Block ids:', err.message)", 'error text'],
+  ['main.js', 'console', "console.warn('Late data:', JSON.stringify(dropped))", 'S1b: names of derived data files dropped (block_sig mismatch)'],
+  ['main.js', 'console', "console.warn('Late data:', err.message)", 'error text'],
   ['modules/offline/index.js', 'console', "console.warn('Offline copy not available:', err.message)", 'error text'],
   ['modules/offline/index.js', 'console', "console.warn('Reset offline copy:', err.message)", 'error text'],
   ['modules/plan/cpfrange.js', 'console', "console.warn('Monte-Carlo range', err)", 'worker / engine error'],

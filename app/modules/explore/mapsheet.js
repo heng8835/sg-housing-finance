@@ -15,6 +15,7 @@
 // Pure helpers are exported for tests (tests/explore/mapsheet.test.js).
 import { t } from '../../core/i18n.js';
 import { createAreaSheet, uiStrings as areaStrings } from './areasheet.js';
+import { createMapSettings, filterWords } from './mapsettings.js'; // P8 8c: layer groups (M-03), "Which flats" line + Exact folds (M-04)
 
 export const PHONE_QUERY = '(max-width: 767px)';
 export const NEAR_PX = 30;        // P-20: blocks within this many px of a tap …
@@ -26,18 +27,20 @@ export const PHONE_TOLERANCE = 6; // px added to the canvas hit-test on phones (
 export const KIND_LABEL = { block: 'Block', mrt: 'MRT', school: 'School', town: 'Town', place: 'Place' };
 export const kindLabel = (k) => KIND_LABEL[k] || k;
 
-const MODE_SHORT = { price: 'Price', psf: '$ per sqft', count: 'Number of sales', budget: 'Within my budget', rent: 'Median rent', commute: 'Commute time' };
+const MODE_SHORT = { price: 'Price', psf: 'Price per sq ft', count: 'Number of sales', budget: 'Within my budget', rent: 'Median rent', commute: 'Commute time' };
 
 /**
  * The peek summary line (F4): "Price · last 1 year · 4 ROOM, 5 ROOM +2 more".
- * types: display names of the picked flat types; allTypes: every type picked; period: calcLabel ('1 year').
+ * types: display names of the picked flat types; allTypes: every type picked; period: calcLabel ('1 year');
+ * filt: S.filt — active "More filters" in words, "… · ≤ S$700k · lease ≥ 70 y" (M-04, no count badge).
  */
-export function peekSummary({ mode, period, types = [], allTypes = false, tr = t, maxTypes = 2 }) {
+export function peekSummary({ mode, period, types = [], allTypes = false, filt = null, tr = t, maxTypes = 2 }) {
   const parts = [tr(MODE_SHORT[mode] || MODE_SHORT.price)];
   if (period && mode !== 'rent' && mode !== 'commute') parts.push(tr('last {0}', [period]));
   if (allTypes) parts.push(tr('All flat types'));
   else if (!types.length) parts.push(tr('No flat types picked'));
   else parts.push(types.length > maxTypes ? tr('{0} flat types', [types.length]) : types.join(', ')); // one line at 360 px
+  if (filt) parts.push(...filterWords(filt, tr));
   return parts.join(' · ');
 }
 
@@ -116,6 +119,8 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
   const size = (s) => { if (phone()) bus?.emit('sheet:size', s); };
   // "Area prices" (./areasheet.js): map icon, Map settings row, finger drawing, the result view; its peek row is painted here
   const areaUi = createAreaSheet({ bus, map, phone, size, repaint: () => paintPeek(), hooks });
+  // Map settings, Phase 8 (./mapsettings.js): one switch + [Choose] per layer group, the "Which flats" line, Exact folds
+  const ms = createMapSettings({ hooks: { setLayers: (o) => hooks.setLayers?.(o) } });
 
   // ---- peek slot
   function paintPeek() {
@@ -159,7 +164,7 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
   map?.on?.('click', () => { const at = changes; setTimeout(() => { if (phone() && state.size !== 'peek' && collapseOnMap({ changedSince: changes !== at, busy: busy(), sincePush: performance.now() - pushedAt })) size('peek'); }, 0); });
 
   /** From renderLegend: { summary, html } (pure helpers above build both). */
-  function legend(L) { state.legend = L; paintPeek(); }
+  function legend(L) { state.legend = L; ms.flats(L.flats); paintPeek(); }
   /** One-line row at peek (tapped POI, search result). html is ours (already escaped). */
   function row(html) {
     if (!phone()) return false;
@@ -209,24 +214,9 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
   });
   const heads = QUESTIONS.map((q) => { const h = document.createElement('h3'); h.className = 'ms-q'; h.textContent = t(q.h); return { el: h, before: q.before }; });
   const layerList = $('layers');
-  let layerOrder = null; // desktop order of #layers' children, kept to put them back
-  const groupHeads = [];
   function groupLayersOn(on) {
     if (!layerList) return;
-    if (on) {
-      if (!layerOrder) layerOrder = [...layerList.children];
-      const rows = new Map([...layerList.querySelectorAll(':scope > label.check')].map((l) => [l.querySelector('input')?.dataset.l, l]));
-      const extra = [...layerList.children].filter((c) => !c.matches('label.check') && !c.matches('.ms-lg'));
-      groupLayers([...rows.keys()]).forEach((g) => {
-        if (g.h) { const h = document.createElement('h4'); h.className = 'ms-lg'; h.textContent = t(g.h); groupHeads.push(h); layerList.append(h); }
-        g.keys.forEach((k) => layerList.append(rows.get(k)));
-      });
-      extra.forEach((c) => layerList.append(c)); // the family-layer sources note goes last
-    } else if (layerOrder) {
-      groupHeads.splice(0).forEach((h) => h.remove());
-      layerOrder.forEach((c) => layerList.append(c));
-      layerOrder = null;
-    }
+    ms.layersOn(on, on ? groupLayers([...layerList.querySelectorAll(':scope > label.check input[data-l]')].map((i) => i.dataset.l)) : []);
     for (const [k, [desk, tap]] of Object.entries(TAP_NOTES)) {
       const note = layerList.querySelector(`input[data-l="${k}"]`)?.closest('label')?.querySelector('.xs');
       if (note) note.textContent = t(on ? tap : desk);
@@ -240,10 +230,12 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
     if (on) {
       pane.prepend(top); top.after(areaUi.row); // "Area prices ›" under the two zoom buttons
       heads.forEach(({ el, before }) => { const at = pane.querySelector(before)?.closest('.section'); if (at) at.before(el); });
+      heads[0]?.el.after(ms.sumEl); // "Which flats" → its one-line summary (M-04)
     } else {
-      top.remove(); heads.forEach(({ el }) => el.remove());
+      top.remove(); heads.forEach(({ el }) => el.remove()); ms.sumEl.remove();
     }
     groupLayersOn(on);
+    ms.filtersOn(on);
     map?.zoomControl?.setPosition(on ? 'bottomright' : 'topleft'); // 48 px + / − above the sheet (P-18)
     areaUi.place(on); // the area icon sits above + / − (desktop: the floating box exactly as before)
     if (canvas?.options) canvas.options.tolerance = on ? PHONE_TOLERANCE : 0;
@@ -258,7 +250,7 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
     mq.addEventListener?.('change', relayout); addEventListener('resize', relayout);
     relayout();
   }
-  return { phone, start, legend, row, pop, blocksHere, tapRows, areaRefresh: () => areaUi.refresh() };
+  return { phone, start, legend, row, pop, blocksHere, tapRows, areaRefresh: () => areaUi.refresh(), syncLayers: () => ms.syncLayers() };
 }
 
 /** Every English string this module shows (zh coverage). */

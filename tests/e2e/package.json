@@ -1,0 +1,13 @@
+{
+  "name": "sg-housing-finance-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser smoke test of the public build (Playwright). Own package so the app and npm test stay zero-dependency.",
+  "scripts": {
+    "test": "playwright test",
+    "list": "playwright test --list"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

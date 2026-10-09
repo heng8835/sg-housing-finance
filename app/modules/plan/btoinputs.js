@@ -5,6 +5,7 @@
 import { btoFlatTypes } from '../../engine/eligibility.js';
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
+import { flatTypeLabel } from '../../core/flattype.js';
 import { ftWord } from '../../core/typical.js';
 import { field, moneyIn, badge } from './ui.js';
 import { moneyInput, parseMoney, formatMoney } from '../../core/moneyinput.js';
@@ -43,12 +44,12 @@ export function flatTypeChoice(h, policy, { wanted = null, explicit = false, pat
   return { gate, ft, ok, restricted, swapped: explicit && !ok(want) ? want : null };
 }
 
-const ftName = (ft, restricted) => (restricted && ft === FLEXI ? t('2-room Flexi') : t(ft));
+const ftName = (ft, restricted) => (restricted && ft === FLEXI ? t('2-room Flexi') : flatTypeLabel(ft));
 
 export function flatTypeSelect(choice) {
   const opts = BTO_FLAT_TYPES.map((v) => {
     const on = choice.ok(v);
-    const label = on ? ftName(v, choice.restricted) : t('{0} — not open to your household', [t(v)]);
+    const label = on ? ftName(v, choice.restricted) : t('{0} — not open to your household', [flatTypeLabel(v)]);
     return `<option value="${v}"${v === choice.ft ? ' selected' : ''}${on ? '' : ' disabled'}>${esc(label)}</option>`;
   });
   return `<select data-p="plan.btoFt" data-k="text">${opts.join('')}</select>`;
@@ -65,7 +66,7 @@ export function eligStrip(choice, paths) {
   if (!choice.restricted) return '';
   const rule = g.ids.length ? ` <small class="pro-only">(${esc(t('Rule'))}: ${g.ids.map(esc).join(', ')})</small>${badge(g.status)}` : '';
   return `<p class="hint"><b>${t('Flat types for you')}:</b> ${why}${rule}</p>
-    ${choice.swapped ? `<p class="notice">${t('{0} is not open to your household for a new flat — showing {1}.', [t(choice.swapped), ftName(choice.ft, true)])}</p>` : ''}`;
+    ${choice.swapped ? `<p class="notice">${t('{0} is not open to your household for a new flat — showing {1}.', [flatTypeLabel(choice.swapped), ftName(choice.ft, true)])}</p>` : ''}`;
 }
 
 /**
@@ -111,6 +112,20 @@ export function rentField(p, median, ft) {
 export function rentInfo(p, median) {
   if (rentNowOf(p, null) != null) return t('your rent now: {0}/month', [money(+p.rentNow)]);
   return median != null ? t('{0}/month nearby median', [money(median)]) : t('no rent figure — enter your rent now');
+}
+
+/**
+ * Phase 8 M-16 essentials first: which inputs a first answer needs and which only refine it (fold "Make it more
+ * accurate (N)", ./morefold.js). The wait is an essential unless the project's expected completion gives it (mode
+ * 'project'); "Your rent now" is an essential only when there is no nearby median to use while it is blank. Same
+ * fields and store paths as before — only where they show changes. sub = what is used for the folded ones.
+ * @returns {{ first:string, more:string[], sub:string }}
+ */
+export function btoFieldSplit({ p, w, median, ft, projectTop = null }) {
+  const wait = waitFields(p, w, projectTop), rent = rentField(p, median, ft);
+  const waitFirst = w.mode !== 'project', rentFirst = median == null;
+  const sub = [waitFirst ? '' : t('keys expected {0}', [projectTop || '']), rentFirst ? '' : rentInfo(p, median)].filter(Boolean).join(' · ');
+  return { first: `${waitFirst ? wait : ''}${rentFirst ? rent : ''}`, more: [waitFirst ? '' : wait, rentFirst ? '' : rent], sub: sub ? t('Using {0}', [sub]) : '' };
 }
 
 /** Prompt when a typed price can't be compared yet (wait or rent unknown). */

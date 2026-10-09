@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="styles/card.css">
 <link rel="stylesheet" href="styles/brief.css">
 <link rel="stylesheet" href="styles/offline.css">
+<link rel="stylesheet" href="styles/fewer.css"><!-- P8 8b: "Make it more accurate" folds, quick add from a block -->
 <link rel="stylesheet" href="styles/textsize.css">
 <!-- phone (≤ 767 px) layout, loaded last: every rule is inside @media (max-width: 767px) (tests/phone/css-floor.test.js) -->
 <link rel="stylesheet" href="styles/phone.css">
@@ -33,8 +34,11 @@
 <link rel="stylesheet" href="styles/phone-pages.css">
 <!-- household page "About you" (spec phone-topbar-area-household.md §4; phone rules inside the 767 px query) -->
 <link rel="stylesheet" href="styles/household.css">
+<!-- P8 8a: flat in focus bar, "Which flat?" / quick-edit sheets, "Based on your household" rows -->
+<link rel="stylesheet" href="styles/flatbar.css">
 </head>
 <body>
+<a class="skip-link" href="#panel" data-i18n>Skip to content</a><!-- a11y 5a: core/a11y.js bindSkipLink focuses the open page -->
 <div id="app">
   <header>
     <h1 data-i18n>SG Housing &amp; Finance</h1>
@@ -47,22 +51,24 @@
     <button type="button" class="tb-item" id="phoneMenu" hidden aria-haspopup="dialog" aria-label="Menu" data-i18n-attr="aria-label"><svg class="tb-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16M4 12h16M4 17.5h16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="tb-w" data-i18n>Menu</span></button>
   </header>
 
-  <aside id="panel">
+  <!-- a11y 5a: a div with an explicit role, so phones can make it the main landmark (modules/shell/phone.js) -->
+  <div id="panel" role="complementary">
     <div class="tabs" role="tablist" aria-label="Panels" data-i18n-attr="aria-label">
-      <button data-tab="explore" class="active" role="tab" id="tabbtn-explore" aria-controls="tab-explore" aria-selected="true"><span class="tl-long" data-i18n>Explore</span><span class="tl-short" hidden data-i18n="Map (phone tab)">Map</span></button>
-      <button data-tab="afford" role="tab" id="tabbtn-afford" aria-controls="tab-afford" aria-selected="false"><span class="tl-long" data-i18n>Afford</span><span class="tl-short" hidden data-i18n="Afford (phone tab)">Afford</span></button>
-      <button data-tab="rent" role="tab" id="tabbtn-rent" aria-controls="tab-rent" aria-selected="false"><span class="tl-long" data-i18n>Rent &amp; Buy</span><span class="tl-short" hidden data-i18n="Rent (phone tab)">Rent</span></button>
-      <button data-tab="plan" role="tab" id="tabbtn-plan" aria-controls="tab-plan" aria-selected="false"><span class="tl-long" data-i18n>Plan</span><span class="tl-short" hidden data-i18n="Plan (phone tab)">Plan</span></button>
-      <button data-tab="choices" role="tab" id="tabbtn-choices" aria-controls="tab-choices" aria-selected="false"><span class="tl-long" data-i18n>My choices</span><span class="tl-short" hidden data-i18n="Choices (phone tab)">Choices</span><span class="badge" id="choiceCount">0</span></button>
+      <button data-tab="explore" class="active" role="tab" id="tabbtn-explore" aria-label="Explore the map" data-i18n-attr="aria-label" aria-controls="tab-explore" aria-selected="true"><span class="tl-long" data-i18n>Explore</span><span class="tl-short" hidden data-i18n="Map (phone tab)">Map</span></button>
+      <button data-tab="afford" role="tab" id="tabbtn-afford" aria-label="Afford" data-i18n-attr="aria-label" aria-controls="tab-afford" aria-selected="false"><span class="tl-long" data-i18n>Afford</span><span class="tl-short" hidden data-i18n="Afford (phone tab)">Afford</span></button>
+      <button data-tab="rent" role="tab" id="tabbtn-rent" aria-label="Rent &amp; Buy" data-i18n-attr="aria-label" aria-controls="tab-rent" aria-selected="false"><span class="tl-long" data-i18n>Rent &amp; Buy</span><span class="tl-short" hidden data-i18n="Rent (phone tab)">Rent</span></button>
+      <button data-tab="plan" role="tab" id="tabbtn-plan" aria-label="Plan" data-i18n-attr="aria-label" aria-controls="tab-plan" aria-selected="false"><span class="tl-long" data-i18n>Plan</span><span class="tl-short" hidden data-i18n="Plan (phone tab)">Plan</span></button>
+      <button data-tab="choices" role="tab" id="tabbtn-choices" aria-label="My choices" data-i18n-attr="aria-label" aria-describedby="choiceCount" aria-controls="tab-choices" aria-selected="false"><span class="tl-long" data-i18n>My choices</span><span class="tl-short" hidden data-i18n="Choices (phone tab)">Choices</span><span class="badge" id="choiceCount">0</span></button>
     </div>
 
     <!-- ============ EXPLORE ============ -->
     <div class="tab active" id="tab-explore" role="tabpanel" aria-labelledby="tabbtn-explore">
+      <h2 class="sr-only tab-h" data-i18n>Explore</h2>
       <div class="section">
         <h3><span class="on-desk" data-i18n>Colour blocks by</span><span class="on-phone" hidden data-i18n>What the colours show</span></h3>
         <div class="radios" id="colorBy">
           <label><input type="radio" name="colorBy" value="price" checked> <span data-i18n>Median price</span></label>
-          <label><input type="radio" name="colorBy" value="psf"> <span data-i18n>$ per sqft</span></label>
+          <label><input type="radio" name="colorBy" value="psf"> <span data-i18n>Price per sq ft</span></label>
           <label><input type="radio" name="colorBy" value="count"> <span data-i18n>Number of transactions</span></label>
           <label title="Set a budget in the Afford tab first" data-i18n-attr="title"><input type="radio" name="colorBy" value="budget"> <span data-i18n>Within my budget</span></label>
           <label><input type="radio" name="colorBy" value="rent"> <span data-i18n>Median rent</span></label>
@@ -70,8 +76,8 @@
         </div>
         <div id="commutePick" hidden style="margin:10px 0 0 6px;padding-left:12px;border-left:2px solid var(--border)"></div>
         <div class="legend" id="legend" style="margin-top:10px"></div>
-        <div class="calc-win"><label for="calcWin" data-i18n>Prices from the last</label>
-          <select id="calcWin" aria-describedby="calcWinHelp"><option value="12" data-i18n>1 year</option><option value="24" data-i18n>2 years</option><option value="36" data-i18n>3 years</option><option value="60" data-i18n>5 years</option></select>
+        <div class="calc-win"><span class="f-label" id="calcWinLbl" data-i18n>Prices from the last</span>
+          <div class="seg" id="calcWin" role="radiogroup" aria-labelledby="calcWinLbl" aria-describedby="calcWinHelp"><button type="button" role="radio" data-v="12" aria-checked="true" class="on" data-i18n>1 year</button><button type="button" role="radio" data-v="24" aria-checked="false" tabindex="-1" data-i18n>2 years</button><button type="button" role="radio" data-v="36" aria-checked="false" tabindex="-1" data-i18n>3 years</button><button type="button" role="radio" data-v="60" aria-checked="false" tabindex="-1" data-i18n>5 years</button></div>
           <p class="f-help" id="calcWinHelp"></p></div>
         <div class="seg-field" id="chipLabelField" style="margin-top:12px">
           <span class="f-label" id="chipLabelLbl" data-i18n>Labels on the boxes</span>
@@ -154,15 +160,16 @@
     </div>
 
     <!-- ============ AFFORD ============ -->
-    <div class="tab" id="tab-afford" role="tabpanel" aria-labelledby="tabbtn-afford"><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Afford</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><p class="page-ctx" hidden></p></div><div id="affordRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+    <div class="tab" id="tab-afford" role="tabpanel" aria-labelledby="tabbtn-afford"><h2 class="sr-only tab-h desk-only" data-i18n>Afford</h2><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Afford</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><div class="page-ctx" hidden></div></div><div id="affordRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
 
     <!-- ============ RENT & RULES ============ -->
-    <div class="tab" id="tab-rent" role="tabpanel" aria-labelledby="tabbtn-rent"><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Rent &amp; Buy</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><p class="page-ctx" hidden></p></div><div id="rentRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
-    <div class="tab" id="tab-plan" role="tabpanel" aria-labelledby="tabbtn-plan"><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Plan</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><p class="page-ctx" hidden></p></div><div id="planRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+    <div class="tab" id="tab-rent" role="tabpanel" aria-labelledby="tabbtn-rent"><h2 class="sr-only tab-h desk-only" data-i18n>Rent &amp; Buy</h2><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Rent &amp; Buy</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><div class="page-ctx" hidden></div></div><div id="rentRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
+    <div class="tab" id="tab-plan" role="tabpanel" aria-labelledby="tabbtn-plan"><h2 class="sr-only tab-h desk-only" data-i18n>Plan</h2><div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>Plan</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><div class="page-ctx" hidden></div></div><div id="planRoot"></div><p class="disc-line inline tab-end"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p></div>
 
     <!-- ============ CHOICES ============ -->
     <div class="tab" id="tab-choices" role="tabpanel" aria-labelledby="tabbtn-choices">
-      <div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>My choices</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><p class="page-ctx" hidden></p></div>
+      <h2 class="sr-only tab-h desk-only" data-i18n>My choices</h2>
+      <div class="page-head" hidden><div class="page-row"><h2 class="page-t" data-i18n>My choices</h2><button type="button" class="btn page-tour" data-i18n>Tour</button></div><div class="page-ctx" hidden></div></div>
       <!-- phone page head: title + Tour (proxies the .tour-link of this tab, shell/phone.js) + .page-ctx (reserved,
            empty: future "flat in focus" line). phone: List | Compare (placeholder; the Compare-cards slice wires it and sets data-ready to show it) -->
       <div class="seg choices-view" id="choicesView" role="radiogroup" aria-label="Show my choices as" data-i18n-attr="aria-label" hidden><button type="button" role="radio" data-v="list" aria-checked="true" class="on" data-i18n>List</button><button type="button" role="radio" data-v="compare" aria-checked="false" tabindex="-1" data-i18n>Compare</button></div>
@@ -193,6 +200,7 @@
       </div>
       <div class="section">
         <h3><span data-i18n>Your shortlist</span> <button class="link" id="shareChoices" title="Copy a link with these flats only — no names, income or CPF" data-i18n data-i18n-attr="title">share link</button><button class="link" id="clearChoices" style="margin-left:8px" data-i18n>remove all</button></h3>
+        <p class="f-help share-note" id="shareNote" role="status" aria-live="polite" hidden></p>
         <div id="choiceList"></div>
       </div>
       <div class="section">
@@ -218,19 +226,19 @@
 
     <!-- 7b disclaimer line (O14): fixed panel footer at >= 768 px; phones get the .tab-end copy at the end of each tab -->
     <p class="disc-line" id="discLine"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p>
-  </aside>
+  <!-- /#panel --></div>
 
   <main id="mapwrap">
     <div id="map"></div>
     <button id="panelToggle" title="Hide / show side panel (\ key)" aria-label="Hide or show the side panel" data-i18n-attr="title,aria-label">◀</button>
     <div class="mapbar">
-      <div class="ac msearch"><input type="text" id="mSearch" placeholder="Search block, street, town, MRT or school…" data-i18n-attr="placeholder" autocomplete="off"><div class="ac-list" id="mList"></div></div>
+      <div class="ac msearch"><input type="text" id="mSearch" placeholder="Search block, street, town, MRT or school…" aria-label="Search the map" data-i18n-attr="placeholder,aria-label" autocomplete="off"><div class="ac-list" id="mList"></div></div>
       <button class="btn" id="clearRoutes" style="display:none" data-i18n>Clear all lines</button>
       <button class="btn" id="fitChoices" data-i18n>Zoom to choices</button>
       <button class="btn" id="fitSg" data-i18n>Singapore</button>
     </div>
     <div class="banner" id="banner"></div>
-    <div id="cardDock" aria-label="Block cards" data-i18n-attr="aria-label"></div>
+    <div id="cardDock" role="region" aria-label="Block cards" data-i18n-attr="aria-label"></div>
     <p id="cardLive" class="bc-live" aria-live="polite"></p>
     <div id="drawnStrip" style="display:none"></div>
     <div class="areabox" id="areaBox">
@@ -256,7 +264,7 @@
         <button class="btn sm" id="copyTsv" data-i18n>Copy table</button>
         <button class="btn sm" id="csvDownload" title="Save the shortlist as a CSV file on this device (opens in Excel, one column per flat)" data-i18n data-i18n-attr="title">Download CSV</button>
         <button class="btn sm" id="printSummary" title="Print or save as PDF: comparison + Afford summary" data-i18n data-i18n-attr="title">Print</button>
-        <button class="btn sm" id="drawerToggle">▲</button>
+        <button class="btn sm" id="drawerToggle" aria-label="Open the comparison" data-i18n-attr="aria-label" aria-expanded="false" aria-controls="cmpBody">▲</button>
       </div>
       <div class="body" id="cmpBody"></div>
       <p class="disc-line inline cmp-disc"><span data-i18n>Educational estimates, not financial advice</span> · <button type="button" class="link" data-about data-i18n>About</button></p>

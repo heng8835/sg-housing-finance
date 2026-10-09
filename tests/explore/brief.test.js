@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   pickRows, stripCell, isEmptyCell, briefSections, leaseNotes, tableLines, tsvText, csvCell, csvText, BOM,
-  fitLevels, chooseLevel, trimFlags, FLAGS_SHORT, nearby, locatorSvg, legendHtml, headerButton, briefHtml, fitNote, HEADER_KEYS, LEASE_KEYS,
+  fitLevels, chooseLevel, trimFlags, FLAGS_SHORT, nearby, locatorSvg, placeLabels, LABEL_GAP, legendHtml, headerButton, briefHtml, fitNote, HEADER_KEYS, LEASE_KEYS,
 } from '../../app/modules/explore/brief.js';
 
 const ROWS = [
@@ -115,6 +115,21 @@ test('nearby + locator SVG: stations within 2 km (else nearest), schools within 
   assert.match(svg, /Near &lt;A&gt;/);
   for (const [, x, y] of svg.matchAll(/<rect x="([\d.-]+)" y="([\d.-]+)" width="7"/g)) assert.ok(+x >= 0 && +x <= 240 && +y >= 0 && +y <= 240, `${x},${y}`);
   assert.match(legendHtml(near), /MRT \/ LRT: Near &lt;A&gt; 44\d m/);
+});
+
+test('locator labels (S1a): a name close to a placed one is dropped (nearest kept), its square stays', () => {
+  const p = placeLabels([{ x: 100, y: 100, name: 'Fernvale' }, { x: 104, y: 106, name: 'Layar' }, { x: 60, y: 200, name: 'Far' }]);
+  assert.deepEqual(p.map((x) => x.show), [true, false, true]);
+  // anchors further apart than the gap, but the first name's box runs into the second → dropped too
+  assert.deepEqual(placeLabels([{ x: 100, y: 100, name: 'Fernvale' }, { x: 100 + LABEL_GAP + 8, y: 101, name: 'Layar' }]).map((x) => x.show), [true, false]);
+  assert.deepEqual(placeLabels([{ x: 100, y: 60, name: 'A' }, { x: 100, y: 60 + LABEL_GAP + 1, name: 'B' }]).map((x) => x.show), [true, true]);
+  const c = { lat: 1.3925, lon: 103.876 };
+  // ~35 m apart on the ground ≈ 3.5 SVG units: the nearer station keeps its name, the other only its square
+  const mrt = [{ name: 'Layar', lat: 1.3928, lon: 103.8790, m: 330 }, { name: 'Fernvale', lat: 1.3925, lon: 103.8787, m: 300 }];
+  const svg = locatorSvg({ centre: c, mrt, schools: [] });
+  assert.match(svg, />Fernvale</);
+  assert.doesNotMatch(svg, />Layar</);
+  assert.equal(svg.match(/width="7"/g).length, 2);
 });
 
 test('headerButton: no text node (dump / TSV unchanged), label in data-label + aria-label', () => {

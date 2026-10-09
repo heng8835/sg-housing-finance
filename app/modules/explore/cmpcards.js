@@ -9,6 +9,7 @@
 // folds (F6: details[data-fold] + keepFolds), "Share this list" / "Remove all" as buttons under the list.
 import { t } from '../../core/i18n.js';
 import { esc } from '../../core/dom.js';
+import { flatTypeLabel, storeyLabel as storeyText, FLATTYPE_STRINGS } from '../../core/flattype.js';
 import { keepFolds } from '../../core/fold.js';
 
 export const PHONE_QUERY = '(max-width: 767px)';
@@ -20,15 +21,10 @@ export const VIEWS = ['list', 'compare'];
 /** Phones in Simple mode (P-44): these row labels in plain words; Pro and the desktop table keep the table's label. */
 export const PHONE_PLAIN_LABELS = { '$ per sqft': 'Price per sq ft' };
 export const phoneLabel = (r, label, simple) => (simple && PHONE_PLAIN_LABELS[r.k] ? t(PHONE_PLAIN_LABELS[r.k]) : label(r));
-/** R-16: phones show data codes in sentence case, like the block card ("4-room · storey 31–33"); display only, the
- *  stored codes and the desktop table's rows are unchanged. */
-const FT_PHONE = { '1 ROOM': '1-room', '2 ROOM': '2-room', '3 ROOM': '3-room', '4 ROOM': '4-room', '5 ROOM': '5-room', EXECUTIVE: 'Executive',
-  'MULTI-GENERATION': 'Multi-generation' };
-export const ftPhone = (code) => t(FT_PHONE[code] || code);
-export const storeyPhone = (s) => { const m = String(s).match(/^(\d+) TO (\d+)$/); return m ? t('storey {0}–{1}', [+m[1], +m[2]]) : String(s); };
-/** The desktop wording (legacy ftName / storeyName). */
-const ftDesk = (code) => t(code);
-const storeyDesk = (s) => { const m = String(s).match(/^(\d+) TO (\d+)$/); return m ? t('{0} TO {1}', [m[1], m[2]]) : s; };
+/** R-16 / S1a: data codes in sentence case, like the block card ("4-room · storey 31–33"), via core/flattype.js;
+ *  display only, the stored codes are unchanged. */
+export const ftPhone = flatTypeLabel;
+export const storeyPhone = storeyText;
 /** Compare card sub line: "block · 4-room · storey 31–33" (label already escaped). */
 export const headLine = (label, ft, storey) => [label, ftPhone(ft), storeyPhone(storey)].join(' · ');
 /** "At a glance": this many flags show; the rest sit in a "Show N more" fold (R-15). */
@@ -122,7 +118,7 @@ export function cardsHtml(ms, model, o = {}) {
 export const uiStrings = () => ['Best of {0}', 'best in {0} of {1} measures', 'At a glance', 'Key numbers', 'All rows ({0})', 'Afford', 'Brief',
   'Flat brief for {0}', 'Flat {0} of {1}', 'No flats yet. Add one under List, or tap a block on the map.', 'Previous flat', 'Next flat',
   'Compare', 'Share this list', 'Remove all', 'share link', 'remove all', 'Your shortlist', 'Your flats ({0})', ...Object.values(PHONE_PLAIN_LABELS),
-  'Show {0} more', 'Show fewer', 'storey {0}–{1}', ...Object.values(FT_PHONE)];
+  'Show {0} more', 'Show fewer', ...FLATTYPE_STRINGS];
 
 // ------------------------------------------------------------------ DOM (phones)
 /**
@@ -134,7 +130,7 @@ export const uiStrings = () => ['Best of {0}', 'best in {0} of {1} measures', 'A
 export function createCompareCards({ body, rerender } = {}) {
   const $ = (id) => document.getElementById(id);
   const tab = $('tab-choices'), seg = $('choicesView'), bar = $('drawerBar'), list = $('choiceList');
-  if (!body || !tab || !seg || !bar || !list || typeof matchMedia !== 'function') return { on: () => false, render() {}, view: () => 'list', head: headLine, ftLabel: ftDesk, storeyLabel: storeyDesk, reveal: () => null };
+  if (!body || !tab || !seg || !bar || !list || typeof matchMedia !== 'function') return { on: () => false, render() {}, view: () => 'list', head: headLine, ftLabel: ftPhone, storeyLabel: storeyPhone, reveal: () => null };
   const mq = matchMedia(PHONE_QUERY), folds = keepFolds(body), pageFolds = keepFolds(tab);
   const addSec = $('choiceForm')?.closest('.section'), listSec = list.closest('.section'), daySec = $('workForm')?.closest('.section');
   const share = $('shareChoices'), clear = $('clearChoices'), clearStyle = clear?.getAttribute('style');
@@ -284,7 +280,6 @@ export function createCompareCards({ body, rerender } = {}) {
     if (listHead()) listHead().textContent = t('Your flats ({0})', [n]);
     paintView(); restore();
   }
-  // R-16: the list's flat type / storey in sentence case on phones; the desktop wording at ≥ 768 px
-  const ftLabel = (code) => (mq.matches ? ftPhone(code) : ftDesk(code)), storeyLabel = (s) => (mq.matches ? storeyPhone(s) : storeyDesk(s));
-  return { on: () => mq.matches, render, view, head: headLine, ftLabel, storeyLabel, reveal };
+  // R-16 / S1a: the list's flat type / storey in sentence case (phone and desktop, core/flattype.js)
+  return { on: () => mq.matches, render, view, head: headLine, ftLabel: ftPhone, storeyLabel: storeyPhone, reveal };
 }

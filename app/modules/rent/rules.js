@@ -5,6 +5,7 @@ import { pathways } from '../../engine/eligibility.js';
 import { rentOutCheck, tenancyStampDuty, rentalYield } from '../../engine/landlord.js';
 import { esc, money, pct } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
+import { flatTypeLabel } from '../../core/flattype.js';
 import { moneyInput } from '../../core/moneyinput.js';
 import { missingFields, needPrompt } from '../../core/missing.js';
 
@@ -12,7 +13,7 @@ import { missingFields, needPrompt } from '../../core/missing.js';
 const OK = { true: ['good', '✓', 'Yes'], false: ['critical', '✕', 'No'], conditional: ['info', '?', 'Depends'] };
 export const term = (id, text) => `<span data-term="${id}">${text}</span>`;
 export const badge = (status) => (status && status !== 'VERIFIED' ? ` <span class="tag ${status === 'ASSUMPTION' ? 'neutral' : 'warn'}" title="${esc(t('How sure we are about this rule'))}">${esc(t(status.toLowerCase()))}</span>` : '');
-export const ftLabel = (ft) => t(ft);
+export const ftLabel = flatTypeLabel; // S1a: one shared display helper
 
 const foldHead = (title, sub) => `<summary><span class="fold-t">${title}</span><span class="fold-s">${sub}</span></summary>`;
 

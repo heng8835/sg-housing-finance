@@ -3,28 +3,16 @@
 // typed here leaves the browser (OneMap's search API needs a per-owner token, so a public static site cannot use it).
 // Pure: buildPlaceIndex() once from data.js / poi.js / family.js shapes, then searchPlaces() per keystroke.
 import { zhTownSearch, zhTownRow } from './townalias.js';
+import { canon, prep, wordHit, titleCase, tidyName } from './searchnorm.js';
 
 export const PLACE_MAX = 8;   // suggestions shown (UI choice)
 export const PLACE_MIN = 2;   // characters before searching
 export const MISS_MIN = 3;    // characters before "Not found" is shown
 
 // long word → the short form HDB street names use; applied to the query AND the index, so either spelling matches
-const SHORT = {
-  AVENUE: 'AVE', STREET: 'ST', ROAD: 'RD', DRIVE: 'DR', CRESCENT: 'CRES', CLOSE: 'CL', NORTH: 'NTH', SOUTH: 'STH',
-  CENTRAL: 'CTRL', BUKIT: 'BT', JALAN: 'JLN', LORONG: 'LOR', UPPER: 'UPP', TANJONG: 'TG', KAMPONG: 'KG',
-  COMMONWEALTH: 'CWEALTH', TERRACE: 'TER', HEIGHTS: 'HTS', GARDENS: 'GDNS', GARDEN: 'GDN', PLACE: 'PL', PARK: 'PK',
-  MARKET: 'MKT',
-};
-const LONG = Object.fromEntries(Object.entries(SHORT).map(([l, s]) => [s, l])); // prefix typing: "buk" → BUKIT
-const DROP = new Set(['BLK', 'BLOCK']);
+// (one shared normaliser: core/searchnorm.js, 7c C3)
+export { canon };
 
-/** "Blk 406 Ang Mo Kio Avenue 10" → "406 ANG MO KIO AVE 10" (upper case, punctuation out, long words shortened). */
-export function canon(s) {
-  return String(s || '').toUpperCase().replace(/['’`.]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim()
-    .split(' ').filter((w) => w && !DROP.has(w)).map((w) => SHORT[w] || w).join(' ');
-}
-
-const titleCase = (s) => String(s || '').toLowerCase().replace(/(^|[\s/(-])([a-z])/g, (_, a, c) => a + c.toUpperCase());
 const stationName = (n) => titleCase(String(n).replace(/\s*(MRT|LRT)\s+STATION\s*$/i, ''));
 const isLrt = (n) => /LRT\s+STATION\s*$/i.test(String(n));
 
@@ -33,9 +21,8 @@ const RANK = { town: 0, mrt: 1, street: 2, school: 3, mall: 4, polyclinic: 5, ha
 
 function entry(rank, { label, sub, lat, lon, kind }, key, base, extra = '') {
   const k = canon(key), b = canon(base);
-  const words = new Set(`${k} ${b} ${canon(extra)}`.split(' ').filter(Boolean));
-  for (const w of [...words]) if (LONG[w]) words.add(LONG[w]);
-  return { label, sub, lat: +lat, lon: +lon, kind, rank, key: k, base: b, words: [...words] };
+  const words = prep(`${k} ${b} ${canon(extra)}`).words; // + long forms: prefix typing "buk" → BUKIT
+  return { label, sub, lat: +lat, lon: +lon, kind, rank, key: k, base: b, words };
 }
 const okPos = (p) => p && Number.isFinite(+p.lat) && Number.isFinite(+p.lon);
 
@@ -73,7 +60,7 @@ export function buildPlaceIndex({ hdb, poi = null, family = null, t = (s) => s, 
   }
   for (const sc of poi?.schools || []) {
     if (!okPos(sc)) continue;
-    out.push(entry(RANK.school, { label: sc.n, sub: String(sc.lvl || '').toLowerCase(), lat: sc.lat, lon: sc.lon, kind: 'school' }, sc.n, sc.n, 'SCHOOL SCH'));
+    out.push(entry(RANK.school, { label: tidyName(sc.n), sub: String(sc.lvl || '').toLowerCase(), lat: sc.lat, lon: sc.lon, kind: 'school' }, sc.n, sc.n, 'SCHOOL SCH'));
   }
   const simple = (list, rank, sub, extra) => { for (const p of list || []) if (okPos(p) && p.n) out.push(entry(rank, { label: p.n, sub, lat: p.lat, lon: p.lon, kind: 'place' }, p.n, p.n, extra)); };
   simple(poi?.malls, RANK.mall, t('shopping mall'), 'MALL SHOPPING');
@@ -89,8 +76,6 @@ export function buildPlaceIndex({ hdb, poi = null, family = null, t = (s) => s, 
   return { entries: out, towns };
 }
 
-// every typed word starts some word of the place (numbers: whole word only, so "40" never finds block 406)
-const wordHit = (words, toks) => toks.every((k) => words.some((w) => (/^\d+$/.test(k) ? w === k : w.startsWith(k))));
 // looser: every typed word (3+ letters) sits inside some word ("point" → Northpoint)
 const inside = (words, toks) => toks.every((k) => (/^\d+$/.test(k) || k.length < 3 ? words.includes(k) : words.some((w) => w.includes(k))));
 

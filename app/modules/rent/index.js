@@ -24,21 +24,23 @@ import { buyGate, rbVerdict } from './buygate.js';
 import { drawChart, signedMoney } from './chart.js';
 import { drawRentChart } from './rentchart.js';
 import { runMc, mcResult, MC_DRAWS_RENTBUY } from '../../core/mc.js';
-import { MC_FLAG, rangeToggle, rangeBlock } from './range.js';
+import { MC_FLAG, rangeToggle, rangeBlock, leaseDrift, rangeCollapsed } from './range.js';
 import { rentTypeField, amountField, roomBody, windowLine, rentCompared, rentToCompare } from './room.js';
 import { rentPlace, placeFields, changePlaceLink, bindPlace } from './place.js';
 import { sharedRent, bindSharedRent } from '../../core/rentshare.js';
 import { parseMoney, bindMoneyInputs } from '../../core/moneyinput.js';
+import { basedOnHtml } from '../../core/focusflat.js';
 
 const phoneMq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null; // phone overhaul §3.6
 const isPhone = () => !!(phoneMq && phoneMq.matches);
 
 const FLAT_TYPES = ['2 ROOM', '3 ROOM', '4 ROOM', '5 ROOM', 'EXECUTIVE'];
+const BASED_ON = ['income', 'cash', 'cpfOa']; // P8 M-08: the household figures behind "Rent or buy?", one-field quick edits
 const VERDICT = { below: 'Below the usual range', fair: 'Fair', above: 'Above the usual range', 'well-above': 'Well above the usual range', unknown: 'Not enough data' };
 
 export function mountRent({ store, policy, bus, el }) {
   // basis: null = automatic (the most recent of block / area), else the user's choice in "Based on"
-  const local = { placeOpen: false, horizon: 10, scenario: 'base', basis: null, chart: {}, lo: { ownerCitizenship: 'SC', flatClass: 'standard', mopMet: true, mode: 'room', roomsLet: 1, occupants: 3, months: 12, tenants: 'other', rent: null } };
+  const local = { placeOpen: false, basisOpen: false, horizon: 10, scenario: 'base', basis: null, chart: {}, lo: { ownerCitizenship: 'SC', flatClass: 'standard', mopMet: true, mode: 'room', roomsLet: 1, occupants: 3, months: 12, tenants: 'other', rent: null } };
   const focus = () => store.get('focus');
   const rent = () => sharedRent(store.get('plan')); // { type, amount, town, bid, label } — the shared figure
   const setRent = (patch) => store.set('plan.rent', { ...(store.get('plan.rent') || {}), ...patch });
@@ -88,6 +90,11 @@ export function mountRent({ store, policy, bus, el }) {
       c.comps = typicalRent({ flatType: ft, scope }, policy);
       Object.assign(c, typicalFor(ft, scope, win));
     }
+    // 7c C8: a priced flat in focus (a shortlisted flat, Afford this →) is the flat "Rent or buy?" compares, whatever
+    // place the rent figures come from — unless the user picked a drawn area or the typical flat in "Based on"
+    if (f && f.price > 0 && !(local.basis === 'area' || local.basis === 'typical') && c.price !== f.price) {
+      Object.assign(c, { price: f.price, lease: f.remainingLease ?? null, priceDefault: false, priceScope: null, buyLabel: f.label || null });
+    }
     c.income = summarise(h).income;
     return c;
   }
@@ -116,11 +123,15 @@ export function mountRent({ store, policy, bus, el }) {
     const showPlace = c.basis !== 'block' || local.placeOpen;
     const place = showPlace ? placeFields(rentPlace(store.get('plan')), data.hdb ? data.hdb.towns.slice().sort() : []) : '';
     const placeLink = showPlace ? '' : changePlaceLink();
+    // P8 M-01, phones: the flat bar above names the block — one line instead of the "Based on" list until asked for
+    const ctx = isPhone() && c.basis === 'block' && !local.placeOpen && !local.basisOpen
+      ? `<p class="rb-ctx-line">${t('Rents around the flat above')} <button type="button" class="link" data-act="rent-basis">${t('Other places')}</button></p>`
+      : `${basisField(c)}${placeLink}`;
     // a room: the user's own figure — no median, no verdict, no chart, no yield (DEC-016 Q3)
     if (room) {
       trend = null;
       const need = needPrompt(missingFields(h, ['income']), 'rbShare', { compact: true });
-      return `${head}${rentTypeField(rt.type)}${basisField(c)}${placeLink}
+      return `${head}${rentTypeField(rt.type)}${ctx}
         <div class="fields">${place}${amountField('room', asking)}</div>
         ${roomBody(asking, c.income, need)}</div>`;
     }
@@ -135,7 +146,7 @@ export function mountRent({ store, policy, bus, el }) {
     const none = c.basis === 'typical' && !c.town && !comps
       ? `<p class="hint">${t('Pick a town or draw an area to get a typical rent')} <button type="button" class="link" data-act="pick-map">${t('Pick on the map →')}</button></p>`
       : `<p class="hint">${t('No rental records for this flat type here.')}</p>`;
-    return `${head}${rentTypeField(rt.type)}${basisField(c)}${placeLink}
+    return `${head}${rentTypeField(rt.type)}${ctx}
       <div class="fields">${place}
         <label class="f"><span>${t('Flat type')}</span><select id="rtFt">${FLAT_TYPES.map((x) => `<option value="${x}"${x === ft ? ' selected' : ''}>${ftLabel(x)}</option>`).join('')}</select></label>
         ${amountField('whole', asking, comps ? Math.round(comps.med) : null, isPhone())}
@@ -152,9 +163,10 @@ export function mountRent({ store, policy, bus, el }) {
   // ---------------------------------------------------------------- rent vs buy
   // Monte-Carlo range (Pro, off by default): the worker runs once per input; the render that finds it finished draws the bands
   const mcFailed = new Set(), mcWaiting = new Set();
-  function mcState(x) {
+  function mcState(x, lease) {
     if (store.get(MC_FLAG) !== true || store.get('ui.mode') !== 'pro') return { state: 'off', out: null };
-    const args = { x }, opts = { n: MC_DRAWS_RENTBUY }, key = JSON.stringify(args);
+    const drift = leaseDrift(lease, x.horizonYears); // 7c C8: an old lease loses value as it runs down (UI assumption)
+    const args = drift ? { x, leaseDrift: drift } : { x }, opts = { n: MC_DRAWS_RENTBUY }, key = JSON.stringify(args);
     const out = mcResult('rentbuy', args, opts);
     if (out) return { state: 'done', out };
     if (mcFailed.has(key)) return { state: 'error', out: null };
@@ -176,21 +188,21 @@ export function mountRent({ store, policy, bus, el }) {
     if (!rentNow) return `${head}<p class="hint">${room ? t('Enter your room rent above to compare.') : t('Enter a rent above to compare.')}</p></div>`;
     const plan = planPurchase({ household: h, flat: { price: c.price, flatType: ft, remainingLease: c.lease } }, policy);
     const vs = `${money(c.price)} ${t('vs')} ${money(rentNow)}/${t('month')}`;
-    const sub = `<p class="sec-sub">${c.priceDefault ? `${esc(t('Typical {0} in {1}', [ftWord(ft), c.priceScope.label]))} · ` : ''}${vs}</p>
+    const sub = `<p class="sec-sub">${c.priceDefault ? `${esc(t('Typical {0} in {1}', [ftWord(ft), c.priceScope.label]))} · ` : c.buyLabel ? `${esc(c.buyLabel)} · ` : ''}${vs}</p>
       <p class="hint rb-rent">${esc(rentCompared(rt.type, rentNow, typed))}</p>`;
     // eligibility and cash before any winner (Phase 7 A6): a path the household can't take gets no comparison
     const gate = buyGate(plan, policy, { household: h, price: c.price, rent: rentNow, rentIsAsking: typed, room });
-    if (gate.blocked) return `${head}${sub}${gate.html}</div>`;
+    if (gate.blocked) return `${head}${sub}${gate.html}${basedOnHtml(h, BASED_ON, { id: 'rbBased', live: '.verdict .tag' })}</div>`;
     const o = plan.chosen;
     const mc = monthlyCost({ flatType: ft, price: c.price, loan: { amount: o.loan, rate: o.rate, years: o.tenure || 1 }, marketMonthlyRent: rentNow }, policy);
     const owner = mc.total - (mc.items.find((i) => i.id === 'mortgage')?.monthly || 0);
     const sc = scenarios(policy);
     const x = { horizonYears: local.horizon, buy: { price: c.price, flatType: ft, loanType: o.loanType, loanAmount: o.loan, rate: o.rate, tenure: o.tenure || 1, upfrontCash: o.funding.cashNeeded, upfrontCpf: o.funding.cpfUsed, monthlyOwnerCosts: owner }, rent: { monthlyRent: rentNow }, assumptions: sc[local.scenario] };
     const res = rentVsBuy(x, policy);
-    const range = mcState(x);
+    const range = mcState(x, c.lease);
     const last = res.series.at(-1), diff = last.buyNetWorth - last.rentNetWorth;
     const beText = res.breakEvenYear != null ? t('Buying overtakes renting in year {0}.', [res.breakEvenYear]) : t('Buying does not overtake renting within this period.');
-    rb = { res, bands: range.out ? range.out.bands : null, aria: `${t('Net worth over {0} years: buying ends at {1}, renting and investing at {2}.', [last.year, signedMoney(last.buyNetWorth), signedMoney(last.rentNetWorth)])} ${beText}` };
+    rb = { res, bands: range.out && !rangeCollapsed(range.out) ? range.out.bands : null, aria: `${t('Net worth over {0} years: buying ends at {1}, renting and investing at {2}.', [last.year, signedMoney(last.buyNetWorth), signedMoney(last.rentNetWorth)])} ${beText}` };
     const money3 = (s) => `<td>${signedMoney(s.buyNetWorth)}</td><td>${signedMoney(s.rentNetWorth)}</td><td>${signedMoney(s.buyNetWorth - s.rentNetWorth)}</td>`;
     // phone (AC1): 4 money columns ran to 380 px at 360 px / A++ — the year becomes a row of its own, the same cells under it
     const table = isPhone()
@@ -206,13 +218,14 @@ export function mountRent({ store, policy, bus, el }) {
         <label class="f"><span>${t('Price outlook')}</span><select id="rbS">${Object.entries(sc).map(([k, v]) => `<option value="${k}"${k === local.scenario ? ' selected' : ''}>${t(k)} (${(v.priceGrowth * 100).toFixed(0)}%/${t('yr')})</option>`).join('')}</select></label>
       </div>
       ${rbVerdict(diff, gate)}
+      ${basedOnHtml(h, BASED_ON, { id: 'rbBased', live: '.verdict .tag' })}
       <p class="hint">${gate.noWinner ? '' : `${beText} `}${store.get('ui.mode') === 'simple' ? t('Monthly owner costs (property tax, town council fees, utilities, insurance)') : t('Monthly owner costs (tax, S&CC, utilities, insurance)')}: ${money(owner)}.</p>
       ${res.flags.map((x) => `<p class="hint">• ${esc(t(x))}</p>`).join('')}
       ${rangeToggle(store.get(MC_FLAG) === true)}
       <div class="rb-chart"></div>
       ${rangeBlock(range.state, range.out)}
       <details class="fold-inline" data-fold="rbTable"${folds.attr('rbTable', false)}><summary>${t('Show as a table')}</summary>${table}</details>
-      <p class="hint">${t('Net worth = home equity (after selling costs and CPF refund) vs savings invested by the renter. Assumptions are editable in the rules file; not a forecast.')}</p></div>`;
+      <p class="hint">${store.get('ui.mode') === 'pro' ? t('Net worth = home equity (after selling costs and CPF refund) vs savings invested by the renter. Assumptions are editable in the rules file; not a forecast.') : t('Net worth = home equity (after selling costs and CPF refund) vs savings invested by the renter. The growth and return figures are fixed assumptions (Learn → Rules and recent changes); not a forecast.')}</p></div>`;
   }
 
   function render() {
@@ -247,6 +260,7 @@ export function mountRent({ store, policy, bus, el }) {
   el.addEventListener('click', (e) => {
     const ctx = e.target.closest('#rbCtx button[data-v]');
     if (ctx) { if (ctx.dataset.v !== chosen(options())) { local.basis = ctx.dataset.v; render(); el.querySelector(`#rbCtx [data-v="${ctx.dataset.v}"]`)?.focus(); } return; }
+    if (e.target.closest('[data-act="rent-basis"]')) { local.basisOpen = true; render(); el.querySelector('#rbCtx [aria-checked="true"]')?.focus(); return; }
     if (e.target.closest('[data-act="rent-place"]')) { local.placeOpen = true; render(); el.querySelector('#rtTown')?.focus(); return; }
     const b = e.target.closest('#rtType button[data-rt]');
     if (!b || b.dataset.rt === rent().type) return;

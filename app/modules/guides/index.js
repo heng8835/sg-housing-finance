@@ -8,6 +8,7 @@ import { t, currentLang } from '../../core/i18n.js';
 import { esc } from '../../core/dom.js';
 import { isoDay } from '../../core/place.js';
 import { effectiveFlat } from '../../core/typical.js';
+import { parentsKmFor } from '../../core/parents.js';
 import { resolveLive, fieldFor } from './live.js';
 import { saleInput } from '../../engine/salefunds.js';
 import { listHtml, stepHtml, quizHtml } from './render.js';
@@ -57,14 +58,16 @@ export async function mountGuides({ store, policy, bus }) {
   function liveFor(g, i) {
     let flat = null;
     try { flat = effectiveFlat(store, undefined, { prefer: store.get('plan.current.owns') ? 'largest' : null }); } catch { /* map data not loaded yet */ }
-    return resolveLive(g.steps[i].live || [], { household: store.get('household'), flat, policy, sale: saleInput(store.get('plan'), new Date().getFullYear()) });
+    const household = store.get('household');
+    return resolveLive(g.steps[i].live || [], { household, flat, policy, sale: saleInput(store.get('plan'), new Date().getFullYear()), parentsKm: flat ? parentsKmFor(household, flat) : null });
   }
 
   function body() {
-    if (view.kind === 'log') return logHtml(policy, { today: isoDay(new Date()), status: view.status });
+    if (view.kind === 'log') return logHtml(policy, { today: isoDay(new Date()), status: view.status, simple: store.get('ui.mode') !== 'pro' }); // 7c C9
+    const simple = store.get('ui.mode') !== 'pro';
     const g = byId[view.id];
     if (view.kind === 'quiz') return quizHtml(g, view.answers || [], { policy, tourTitle: g.use_case || null });
-    return stepHtml(g, view.i, { policy, live: liveFor(g, view.i) });
+    return stepHtml(g, view.i, { policy, live: liveFor(g, view.i), simple });
   }
 
   function render({ keepScroll = false } = {}) {

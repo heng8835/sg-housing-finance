@@ -22,7 +22,7 @@ export const USE_CASES = [
         body: 'Colour the map by price, or by “Within my budget” once Afford has your budget.' },
       { target: '#mSearch', title: 'Find a block',
         body: 'Search a block, street or MRT. Click a block for recent sales, then “Afford this →”.' },
-      { target: '#afPrice', tab: 'afford', title: 'Afford',
+      { target: '#afPrice', tab: 'afford', fallback: ['[data-fb="change"]'], title: 'Afford', // phones (8a): the price is in the Which flat? sheet
         body: 'Afford checks a price against your household: instalment, cash vs CPF, grants.' },
       { target: '#affordVerdict', tab: 'afford', fallback: ['#afPrice'], title: 'Can you afford it?',
         body: 'The verdict and “Most you can pay” — then show flats within budget on the map.' },

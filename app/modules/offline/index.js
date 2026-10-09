@@ -5,6 +5,7 @@
 // unregisters an existing worker). The worker stores static app files only — nothing personal.
 import { t } from '../../core/i18n.js';
 import { esc } from '../../core/dom.js';
+import { toastHost } from '../../core/undo.js';
 import { swSupport, offlineBytes, lineFor, ownScopes, ownCaches } from './status.js';
 
 const UPDATE_CHECK_MS = 60 * 60 * 1000; // look for a new deploy at most hourly while the tab stays open
@@ -31,7 +32,7 @@ export function mountOffline({ bus, ready = Promise.resolve() }) {
       if (b?.dataset.sw === 'dismiss') hideToast();
       if (b?.dataset.sw === 'reload') { wantReload = true; b.disabled = true; worker.postMessage({ type: 'SKIP_WAITING' }); }
     });
-    (document.getElementById('app') || document.body).append(toast); // inside #app so it can follow --cover
+    toastHost().append(toast); // the shared spot (core/undo.js, P8 8d): inside #app, stacked with the Undo line
   }
   function watch(r) {
     if (r.waiting) offer(r.waiting);

@@ -9,6 +9,7 @@
 // Pure parts are exported for node tests; createFutureValue() wires legacy.js (browser).
 import { t } from '../../core/i18n.js';
 import { esc } from '../../core/dom.js';
+import { flatTypeLabel } from '../../core/flattype.js';
 import { scorecard, RATIONALES, DRIVERS } from '../../engine/futurevalue.js';
 import { futureValueFacts } from '../../engine/futurevalue-facts.js';
 import { FUTURE_VALUE_PARAMS } from './futurevalue-params.js';
@@ -54,7 +55,7 @@ const FMT = {
   g: (v) => String(r1(v)),                          // up to 1 decimal (0.8, 1, 4.5)
   d1: (v) => r1(v).toFixed(1),                      // yields (6.1)
   sp: (v) => { const x = r1(v); return (x > 0 ? '+' : '') + x.toFixed(1); }, // signed % / pp (+15.9)
-  town: (v) => titleCase(v), ft: (v) => t(String(v)), model: (v) => titleCase(v),
+  town: (v) => titleCase(v), ft: (v) => flatTypeLabel(v), model: (v) => titleCase(v),
 };
 /** Format of each {n} placeholder per rationale template (engine args are raw numbers / codes). */
 export const ARG_FORMATS = {
@@ -179,7 +180,7 @@ export function howHtml({ open = false, params = FUTURE_VALUE_PARAMS, policy, ma
 /** Block-card fold body: the 8 drivers compactly. */
 export function cardListHtml(card, { ftName, asOfLabel = '', params = FUTURE_VALUE_PARAMS, market = 'ok', mode = 'pro' }) {
   const items = DRIVERS.map((id, k) => `<li><span class="bc-fv-k">${esc(driverLabel(id, mode))}</span>${cellHtml(card.drivers[k], { params, market, mode })}</li>`).join('');
-  return `<p class="bc-scope">${esc(t('{0} in this block · sales to {1}', [t(ftName), asOfLabel]))}</p><ul class="bc-fv">${items}</ul>`
+  return `<p class="bc-scope">${esc(t('{0} in this block · sales to {1}', [flatTypeLabel(ftName), asOfLabel]))}</p><ul class="bc-fv">${items}</ul>`
     + `<p class="bc-cap">${esc(t('1–5 per driver, no overall score: relative signals, not a price forecast. Add the flat to your choices to compare it; the scoring notes are under the comparison table.'))}</p>`;
 }
 

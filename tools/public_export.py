@@ -3,6 +3,8 @@
     python tools/public_export.py --out ../sg-housing-finance-public            # first export (folder new or empty)
     python tools/public_export.py --out ../sg-housing-finance-public --clean    # replace an earlier export
     python tools/public_export.py --out DIR --src DIR --denylist FILE           # other source tree (tests)
+    (CI: the private repo's publish workflow runs --clean into a fresh clone of the public repo - recognised by the
+    .gitignore trailer below - with the denylist from a secret, then commits and pushes there.)
 
 What it does - and never does (no git: the owner runs `git init` + one squashed commit in --out):
   1. reads the denylist (gitignored tools/public_denylist.txt; format in tools/public_denylist.example.txt):
@@ -39,6 +41,7 @@ import stage_site  # noqa: E402
 ROOT = HERE.parent
 DENYLIST = HERE / "public_denylist.txt"
 MARKER = ".public-export.json"
+GITIGNORE_TRAILER = "# written by tools/public_export.py (export bookkeeping, not part of the repo)"
 
 # ---------------------------------------------------------------- what goes in (posix globs, relative to --src)
 INCLUDE = [
@@ -83,6 +86,8 @@ EXCLUDE = [
     "hdb-data-pipeline/docs/STATE.yml", "hdb-data-pipeline/docs/AUDIT_LOG.md", "hdb-data-pipeline/docs/DECISION_LOG.md",
     "hdb-data-pipeline/docs/NEXT_SESSION.md", "hdb-data-pipeline/docs/PROJECT_STATUS.md",
     "hdb-data-pipeline/docs/specs/**", "HANDOFF.md",
+    # private-repo automation (S4): the monthly refresh PR and the publish job name the private repo and its secrets
+    ".github/workflows/data-refresh.yml", ".github/workflows/publish-public.yml",
 ]
 # reviewed exceptions to EXCLUDE: placeholders only, no values (docker-compose.yml points at the pipeline .env,
 # so the public repo ships the template; the secret scan below still runs on it)
@@ -102,7 +107,8 @@ REQUIRED = ["README.md", "LICENSE", "package.json", "app/index.html", "app/main.
             "app/core/data-loader.js", "app/policy/sg-policy.json"]
 # must NOT be in the output (checked after the copy, belt and braces)
 FORBIDDEN = ["app/data/bto.js", "app/data/flood.js", "tools/curated_flood_prone.json", "tools/fetch_bto.py", "hdb-data-pipeline/src/hdb_pipeline/sources/bto.py",
-             "**/.env", "**/secrets/**", "**/CLAUDE.md", "hdb-data-pipeline/docs/STATE.yml"]
+             "**/.env", "**/secrets/**", "**/CLAUDE.md", "hdb-data-pipeline/docs/STATE.yml",
+             ".github/workflows/data-refresh.yml", ".github/workflows/publish-public.yml"]
 PUBLIC_OFF = stage_site.PUBLIC_OFF
 
 # ---------------------------------------------------------------- secret-looking tokens
@@ -235,20 +241,35 @@ def transform(rel, data):
     return data, None
 
 
+def is_earlier_export(out):
+    """MARKER on disk (a local export), or - in a fresh clone of the public repo, where the gitignored MARKER is
+    absent - the .gitignore trailer this script appends (CI: .github/workflows/publish-public.yml)."""
+    if (out / MARKER).is_file():
+        return True
+    gi = out / ".gitignore"
+    if not ((out / ".git").exists() and gi.is_file()):
+        return False
+    text = gi.read_text(encoding="utf-8", errors="replace")
+    return GITIGNORE_TRAILER in text and MARKER in text.splitlines()
+
+
 def check_out(out, src, clean):
     """Refuse an --out inside / above the source, a non-empty folder that is not an earlier export, or a git repo
-    that is not an earlier export. An earlier export that is now the public repo's working copy (.git + MARKER) is
-    updated in place with --clean: everything but .git is replaced, so the owner commits the diff and pushes."""
+    that is not an earlier export. An earlier export that is now the public repo's working copy (.git + MARKER, or a
+    clone whose .gitignore ends with this script's trailer) is updated in place with --clean: everything but .git is
+    replaced, so the owner (or the publish workflow) commits the diff and pushes. A clone of an EMPTY repo (only .git)
+    counts as an empty folder."""
     out, src = Path(out).resolve(), Path(src).resolve()
     if out == src or src in out.parents or out in src.parents:
         raise SystemExit(f"error: --out must be outside the source repo (got {out})")
     if out.exists():
         if not out.is_dir():
             raise SystemExit(f"error: {out} exists and is not a folder")
-        if any(out.iterdir()):
-            if (out / ".git").exists() and not (out / MARKER).is_file():
+        if any(c.name != ".git" for c in out.iterdir()):
+            earlier = is_earlier_export(out)
+            if (out / ".git").exists() and not earlier:
                 raise SystemExit(f"error: {out} is a git repository that this script did not make - refusing to touch it")
-            if not (out / MARKER).is_file():
+            if not earlier:
                 raise SystemExit(f"error: {out} is not empty and is not an earlier export - refusing to touch it")
             if not clean:
                 raise SystemExit(f"error: {out} holds an earlier export - pass --clean to replace it")
@@ -311,7 +332,7 @@ def export(src, out, denylist, clean=False):
             copied.append(f"app/{build_sw_manifest.OUT}")
     gi = out / ".gitignore"
     with open(gi, "a", encoding="utf-8", newline="\n") as f:
-        f.write(f"\n# written by tools/public_export.py (export bookkeeping, not part of the repo)\n{MARKER}\n")
+        f.write(f"\n{GITIGNORE_TRAILER}\n{MARKER}\n")
     if ".gitignore" not in copied:
         copied.append(".gitignore")
     # 4. scan everything that is now in --out

@@ -74,7 +74,7 @@ test('中文: every new string has an entry (explore → zh-explore, plan → zh
   const ph = (s) => (s.match(/\{\d\}/g) || []).sort().join();
   const want = {
     'zh-explore.json': ['CPF LIFE at {0} (est.)', 'no change vs not buying', '≈ {0}/mo vs not buying', '{0} → {1}/mo (estimate)', 'no CPF LIFE for foreigners'],
-    'zh.json': ['no change', '≈ {0} a month', 'Household CPF LIFE from {0} if you buy this flat (estimate)', '{0} → {1} a month vs not buying'],
+    'zh.json': ['no change', '≈ {0} a month', 'Household CPF LIFE from {0} if you buy this flat (estimate)', '{0} → {1} a month vs not buying', 'CPF LIFE from {0}: {1}'],
     'zh-engine.json': Object.values(PAYOUT_REASONS),
   };
   for (const [file, keys] of Object.entries(want)) {

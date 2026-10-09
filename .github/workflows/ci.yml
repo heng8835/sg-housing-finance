@@ -1,12 +1,14 @@
 name: tests
 on: [push, pull_request]
+# Runner pinned to ubuntu-24.04 (not ubuntu-latest, which moves to 26.04 from 2026-10-19) so a runner-image
+# change never silently alters CI; bump deliberately. Actions on their node24 majors (checked 2026-10-09).
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults: { run: { working-directory: hdb-data-pipeline } }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "3.11" }
       - run: pip install -e .[dev]
       - run: pytest -q
@@ -17,12 +19,12 @@ jobs:
     # Also: the offline-copy manifest must be fresh, the privacy guarantee (go-live blocker 3) is shown as its own
     # step, and the public Pages build must stage cleanly (allow-list, BTO off, size budget). Python is for the
     # tools tests inside npm test (tests/tools/python-tools.test.js) and the two tools steps.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: "22" }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.11" }
       - name: offline-copy manifest is up to date
         run: python tools/build_sw_manifest.py --check
@@ -31,3 +33,35 @@ jobs:
       - run: npm test
       - name: public Pages build stages (runtime allow-list, btoData + floodData off, size budget)
         run: python tools/stage_site.py --public --out "$RUNNER_TEMP/_site"
+
+  e2e:
+    # Browser smoke test of the PUBLIC build (tests/e2e/smoke.spec.js): desktop 1280x800 + phone 375x812 (Chromium
+    # mobile emulation). Guard on every test: no console / page errors or CSP violations, only this site + cdnjs
+    # (Leaflet) + OneMap (tiles stubbed, never fetched), marker household never in a request. Playwright lives in its
+    # own package (tests/e2e/package.json, pinned + lockfile), so app/ and `npm test` stay zero-dependency. Part of the
+    # "tests" workflow, so pages.yml deploys only when it is green too. Report + traces uploaded on failure.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults: { run: { working-directory: tests/e2e } }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: "22", cache: npm, cache-dependency-path: tests/e2e/package-lock.json }
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.11" }
+      - run: npm ci
+      - name: install Chromium (+ system libraries)
+        run: npx playwright install --with-deps chromium
+      - name: stage the public build
+        run: python ../../tools/stage_site.py --public --out "$RUNNER_TEMP/e2e-site"
+      - name: browser smoke test (desktop + phone)
+        run: npx playwright test
+        env: { E2E_SITE: "${{ runner.temp }}/e2e-site", E2E_NO_STAGE: "1" }
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            tests/e2e/playwright-report/
+            tests/e2e/test-results/
+          retention-days: 14

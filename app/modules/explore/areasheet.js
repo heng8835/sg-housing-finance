@@ -88,7 +88,7 @@ export function areaView(info, { tr = t, k, pct }) {
   };
 }
 
-/** The picked flat types by name (review nice-to-have 4): "4 ROOM, 5 ROOM", or the first two + the rest as "+2".
+/** The picked flat types by name (review nice-to-have 4): "4-room, 5-room", or the first two + the rest as "+2".
  *  info.names: the picked types' display names (sorted); info.all: every type picked → info.types ("All flat types"). */
 export function typesText(info, tr = t) {
   const n = info.names;

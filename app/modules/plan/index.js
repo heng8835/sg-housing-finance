@@ -37,7 +37,19 @@ export function mountPlan({ store, policy, bus, el }) {
   const safe = (fn, c) => { try { return fn(c); } catch (err) { console.error(err); return `<div class="section"><p class="notice">${t('This part could not be calculated')}: ${err.message}</p></div>`; } };
   const sendRings = () => bus.emit('explore:rings', local.ringsOn ? ringsFor(store.get('focus'), policy) : null);
 
+  // 7c C4: a field's "change" fires as focus leaves it (Tab, or a tap on the next field). Rendering right then would
+  // replace the field being moved to, and focus would fall to <body>. So a render asked for during a change waits one
+  // tick: focus has landed by then, saveView() remembers that field and restore() puts focus back on its new copy.
+  let changing = false, pending = false;
+  el.addEventListener('change', () => { changing = true; setTimeout(() => { changing = false; }, 0); }, true);
   function render() {
+    if (changing) {
+      if (!pending) { pending = true; setTimeout(() => { pending = false; paint(); }, 0); }
+      return;
+    }
+    paint();
+  }
+  function paint() {
     const c = ctx();
     const restore = saveView(el);
     folds.snapshot();

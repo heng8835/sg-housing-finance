@@ -7,6 +7,7 @@
 // Pure parts are exported for node tests; createCard() wires the dock (browser).
 import { t, currentLang } from '../../core/i18n.js';
 import { esc, money } from '../../core/dom.js';
+import { flatTypeShort, storeyRange } from '../../core/flattype.js';
 import { trendSpec, yearlyStats, rentYearly, drawTrend } from './trend.js';
 import { createDock } from './dock.js';
 import { createMarketCharts } from './marketcharts.js';
@@ -18,12 +19,10 @@ import { phoneCardHtml, phoneSalesTable } from './cardphone.js'; // phones: the 
 
 export const ROWS_SHOWN = 8;
 export const REFRESH_MS = 120;
-const FT_SHORT = { '1 ROOM': '1-room', '2 ROOM': '2-room', '3 ROOM': '3-room', '4 ROOM': '4-room', '5 ROOM': '5-room', EXECUTIVE: 'Exec.', 'MULTI-GENERATION': 'Multi-gen' };
-
-/** Short flat-type name: 4-room, Exec., Multi-gen. */
-export const ftShort = (name) => t(FT_SHORT[name] || name);
+/** Short flat-type name: 4-room, Exec., Multi-gen (core/flattype.js). */
+export const ftShort = flatTypeShort;
 /** "10 TO 12" → "10–12", "01 TO 03" → "1–3". */
-export const storeyShort = (s) => { const m = String(s).match(/^(\d+) TO (\d+)$/); return m ? `${+m[1]}–${+m[2]}` : String(s); };
+export const storeyShort = storeyRange;
 /** Today's tile format (unchanged): S$612k. */
 /** Phones (R-05b): scroll an opened row's summary to the top of its scroller, just under the card's sticky header. */
 function rowToTop(d) {
@@ -256,7 +255,7 @@ export function createCard(ctx) {
     const items = (types) => blockTx[bi].filter((i) => TX.m[i] >= P.histFrom && TX.m[i] <= P.histTo && (!types || types.has(TX.ft[i]))).map((i) => ({ y: D.months[TX.m[i]].slice(0, 4), v: mode === 'psf' ? PSF[i] : TX.p[i] }));
     let series = yearlyStats(items(ftSet), median), all = false; // selected flat types, slider years, no "More filters"
     if (series.length < 2) { series = yearlyStats(items(null), median); all = true; }
-    const heading = t({ price: 'Median price by year', psf: 'Median $ per sqft by year', count: 'Sales per year' }[mode]);
+    const heading = t({ price: 'Median price by year', psf: 'Median price per sq ft by year', count: 'Sales per year' }[mode]);
     const yrs = [P.hist.from, P.hist.to];
     return { mode, series, enough: series.length >= 2, heading, caption: note + [all ? t('All flat types · {0}–{1}', yrs) : t('Selected flat types · {0}–{1}', yrs), ...tail].join(' · ') };
   }

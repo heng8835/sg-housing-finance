@@ -57,7 +57,8 @@ export async function mountLearn({ policy, bus }) {
   const ids = Object.keys(terms).sort((a, b) => terms[a].term.localeCompare(terms[b].term));
   function sources(term) {
     const rows = (term.policy_keys || []).map((k) => { try { return policy.meta(k); } catch { return null; } }).filter(Boolean);
-    return rows.length ? `<h3>${t('Rules this relies on')}</h3><ul>${rows.map((p) => `<li>${esc(p.id)}: ${typeof p.value === 'number' ? value(p.id) : t('table')} <small>(${esc(t(p.status.toLowerCase()))}, ${t('from')} ${esc(p.effective_from)}${p.source_url.startsWith('http') ? `, <a href="${esc(p.source_url)}" target="_blank" rel="noopener">${t('source')}</a>` : ''})</small></li>`).join('')}</ul>` : '';
+    // 7c C9: Simple shows no rule ids — a plain line + a link to the rules page; Pro keeps the list
+    return rows.length ? `<div class="pro-only"><h3>${t('Rules this relies on')}</h3><ul>${rows.map((p) => `<li>${esc(p.id)}: ${typeof p.value === 'number' ? value(p.id) : t('table')} <small>(${esc(t(p.status.toLowerCase()))}, ${t('from')} ${esc(p.effective_from)}${p.source_url.startsWith('http') ? `, <a href="${esc(p.source_url)}" target="_blank" rel="noopener">${t('source')}</a>` : ''})</small></li>`).join('')}</ul></div><p class="hint simple-only">${t('The numbers above come from dated rules on official pages.')} <button type="button" class="link" data-about-rules>${t('Rules and recent changes →')}</button></p>` : '';
   }
   function renderIndex(q = '') {
     const ql = q.trim().toLowerCase();
@@ -77,7 +78,8 @@ export async function mountLearn({ policy, bus }) {
         ${sources(term)}${term.source ? `<p class="hint">${t('Official page')}: <a href="${esc(term.source)}" target="_blank" rel="noopener">${esc(term.source.replace(/^https?:..(www\.)?/, '').split('/')[0])}</a></p>` : ''}
         <p><button type="button" class="link" data-learn="">${t('← All terms')}</button></p>` : `<div data-slot="guides"></div><p class="learn-tour"><button type="button" class="link" data-guide>${t('New here? Take a guided tour →')}</button></p><h3 class="learn-gloss">${t('Glossary')}</h3><div id="learnIndex">${renderIndex()}</div>
         <p class="learn-about"><button type="button" class="link" data-about>${t('About this app, sources and privacy →')}</button></p>`}
-      <p class="hint">${t("Educational content — not financial advice. Numbers in bold come from the app's dated rules file.")}</p></div>`;
+      <p class="hint pro-only">${t("Educational content — not financial advice. Numbers in bold come from the app's dated rules file.")}</p>
+      <p class="hint simple-only">${t('Educational content — not financial advice. Numbers in bold come from dated rules on official pages.')}</p></div>`;
     if (!sheet.open) sheet.showModal();
     sheet.querySelector('.drawer-body').scrollTop = 0;
     if (!term) sheet.querySelector('.drawer-head').insertAdjacentHTML('afterend', discLineHtml('inline learn-disc', rules)); // phone only (CSS)

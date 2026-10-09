@@ -1,0 +1,50 @@
+/* P8 8b — fewer fields (Phase 8 M-16, M-05; mobile-revamp-ideas.md §3). No new colours, badges, transitions or
+   animations; phone rules inside the 767 px query. */
+
+/* "Make it more accurate (N)" / "Order and timeline" / "More details (optional)": a fold inside a card
+   (modules/plan/morefold.js, modules/explore/quickadd.js) — a quiet rule above, the whole row is the target (≥ 44 px),
+   title + one muted line, chevron right (the .fold look from base.css without the card's negative margins) */
+details.p8-more { border-top: 1px solid var(--border-subtle); margin: var(--sp-3) 0 0; }
+details.p8-more + details.p8-more { margin-top: 0; }
+details.p8-more > summary { margin: 0; padding: var(--sp-3) 0; border-radius: 0; }
+details.p8-more > summary .fold-t { font-size: 1rem; font-weight: 600; }
+details.p8-more > .fold-body { padding: 0 0 var(--sp-3); }
+details.p8-more .fields { margin-bottom: var(--sp-2); }
+details.p8-more .tl-block > h4.sub:first-child { margin-top: var(--sp-2); }
+
+/* quick add from a block: desktop = a panel under the card's buttons; phones = a sheet view stacked on the card */
+.qa { border-top: 1px solid var(--border-subtle); margin-top: var(--sp-3); padding-top: var(--sp-3); }
+.qa-title { margin: 0 0 var(--sp-2); }
+.qa-l { margin: 0 0 6px; font-size: .929rem; font-weight: 600; color: var(--text-2); }
+.qa-types { margin: 0 0 var(--sp-3); }
+.qa-chip { display: inline-flex; flex-direction: column; align-items: flex-start; min-height: 44px; padding: 5px 14px; border-radius: var(--radius);
+  font: inherit; font-size: .929rem; line-height: 1.3; text-align: left; cursor: pointer; }
+.qa-chip small { font-size: .857rem; font-weight: 400; color: var(--text-3); }
+.qa-chip.on small { color: var(--accent-ink); }
+.qa-pricef { display: block; margin: 0 0 var(--sp-3); }
+.qa-pricef .f-help { display: block; margin: 4px 0 0; }
+.qa-err { margin: 0 0 var(--sp-3); }
+.qa-err[hidden] { display: none; }
+.qa-note { margin: 0 0 var(--sp-3); font-size: .929rem; color: var(--text-2); }
+.qa-acts { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-2); }
+.qa-acts .btn { min-height: 44px; }
+.qa-msg { margin: 0 0 var(--sp-3); font-size: 1.071rem; font-weight: 600; line-height: 1.5; color: var(--text); }
+.qa-done .hint { margin: 0; }
+
+@media screen and (max-width: 767px) {
+  details.p8-more > summary { min-height: 48px; }
+  details.p8-more > summary .fold-t { font-size: 1.0625rem; }
+  .qa { border-top: 0; margin: 0; padding: var(--sp-3) var(--sp-4) var(--sp-6); background: var(--surface); }
+  .qa-l { font-size: .9375rem; }
+  .qa-chip { min-height: 52px; padding: 6px 16px; font-size: 1rem; }
+  .qa-chip small { font-size: .875rem; }
+  .qa-acts .btn { min-height: 48px; flex: 1 1 auto; font-size: 1rem; }
+  /* P8-05: the buttons stay on screen at the bottom of the sheet (the block card's sticky footer) */
+  .qa-acts { position: sticky; bottom: 0; z-index: 1; margin: 0 -16px; padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface); border-top: 1px solid var(--border-subtle); }
+  /* in the sheet view: flush with the sheet's bottom edge (sticky stops at the view's 24 px bottom padding otherwise); a
+     focused field scrolls into view above the bar (scroll-padding) */
+  .qa.ms-view { scroll-padding-bottom: 80px; }
+  .qa.ms-view .qa-acts { bottom: calc(-1 * var(--sp-6)); }
+  .qa-msg { font-size: 1.0625rem; }
+}

@@ -29,6 +29,9 @@ from pathlib import Path
 
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from onemap_token import attach  # noqa: E402
+
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / "app" / "data" / "poi.js"
 CACHE = HERE / "poi_cache.json"
@@ -74,7 +77,7 @@ def session() -> requests.Session:
     if PROXY:
         s.proxies = {"http": PROXY, "https": PROXY}
     s.headers.update({"User-Agent": "hdb-comparer/0.1 (personal research)", "Accept": "*/*"})
-    return s
+    return attach(s)  # OneMap token on OneMap requests when ONEMAP_EMAIL / ONEMAP_PASSWORD are set (onemap_token.py)
 
 
 # ----------------------------------------------------------------------------- helpers

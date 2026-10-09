@@ -4,8 +4,10 @@
 // Rent & Buy and Plan tabs; nothing computed is stored. The card is this module's own element: the Afford tab
 // leaves a `data-slot="scenarios"` placeholder after its verdict and emits 'afford:painted' after each paint.
 import { scenarioResults, snapshotOf, focusFromSnapshot } from '../../engine/scenario.js';
-import { defaults, MAX_SCENARIOS } from '../../core/store.js';
+import { defaults, MAX_SCENARIOS, cleanScenarios } from '../../core/store.js';
+import { offerUndo } from '../../core/undo.js';
 import { CPF_DEFAULTS } from '../../core/cpf-defaults.js';
+import { parentsKmFor } from '../../core/parents.js';
 import { effectiveFlat, marketRentFor, townOfFlat, onTypicalChange } from '../../core/typical.js';
 import { saveView } from '../../core/fold.js';
 import { t } from '../../core/i18n.js';
@@ -52,7 +54,7 @@ export function mountScenarios({ store, policy, bus, root }) {
     const key = JSON.stringify([year, s.focus, s.household, s.plan, s.market]);
     if (!memo.has(key)) {
       let r = null;
-      try { r = scenarioResults(s, policy, { year, horizonYears: RENT_BUY_YEARS, cpfDefaults: CPF_DEFAULTS }); } catch (err) { console.warn('Scenario not calculated:', err.message); }
+      try { r = scenarioResults(s, policy, { year, horizonYears: RENT_BUY_YEARS, cpfDefaults: CPF_DEFAULTS, parentsKm: parentsKmFor(s.household, s.focus) }); } catch (err) { console.warn('Scenario not calculated:', err.message); }
       if (memo.size >= MEMO_MAX) memo.clear();
       memo.set(key, r);
     }
@@ -115,11 +117,13 @@ export function mountScenarios({ store, policy, bus, root }) {
       case 'sc-rename-save': finishRename(s.id, true); break;
       case 'sc-rename-cancel': finishRename(s.id, false); break;
       case 'sc-delete':
-        if (confirm(t('Delete scenario "{0}"? This cannot be undone.', [s.name]))) {
-          if (editing === s.id) editing = null;
-          store.deleteScenario(s.id);
-          say(t('Deleted {0}.', [s.name]));
-        }
+        // M-17 / Q7: deleted at once, with an Undo line instead of a confirm() box (the same id comes back
+        // unless a new scenario took it meanwhile — cleanScenarios keeps the first)
+        if (editing === s.id) editing = null;
+        store.deleteScenario(s.id);
+        say('');
+        offerUndo(t('Deleted {0}.', [s.name]), () => store.set('scenarios', cleanScenarios([...list(), s])),
+          { focusAfter: () => node.querySelector(`[data-act="sc-delete"][data-i="${s.id}"]`) });
         break;
       default:
     }

@@ -107,11 +107,19 @@ export function rentBuySpread(loanType, policy) {
 
 const years = (x) => Math.max(1, Math.floor(+x.horizonYears || 0));
 
-/** Random inputs of one rent-vs-buy future: per-year paths for every variable with a spread above zero. */
-export function rentBuyDraws(rng, { x, assumptions: a, spread: s }) {
+/**
+ * Random inputs of one rent-vs-buy future: per-year paths for every variable with a spread above zero.
+ * `leaseDrift` (optional, from the caller — a labelled UI assumption, 7c C8): per-year extra change in the home's value
+ * as an old lease runs down (index year − 1, e.g. −0.02), applied on top of each drawn price growth. Without it the
+ * draws are exactly as before (same random numbers in the same order).
+ */
+export function rentBuyDraws(rng, { x, assumptions: a, spread: s, leaseDrift }) {
   const H = years(x), path = (fn) => Array.from({ length: H }, fn);
   const d = { ...a };
-  if (s.priceGrowth > 0) d.priceGrowth = path(() => logGrowth(rng, a.priceGrowth, s.priceGrowth));
+  const drift = Array.isArray(leaseDrift) && leaseDrift.length ? leaseDrift : null;
+  const withDrift = (g, i) => (drift ? (1 + g) * (1 + (Number.isFinite(drift[i]) ? drift[i] : 0)) - 1 : g);
+  if (s.priceGrowth > 0) d.priceGrowth = path((_, i) => withDrift(logGrowth(rng, a.priceGrowth, s.priceGrowth), i));
+  else if (drift) d.priceGrowth = path((_, i) => withDrift(a.priceGrowth, i));
   if (s.rentGrowth > 0) d.rentGrowth = path(() => logGrowth(rng, a.rentGrowth, s.rentGrowth));
   if (s.investReturn > 0) d.investReturn = path(() => logGrowth(rng, a.investReturn, s.investReturn));
   const buy = x.buy || {};
@@ -131,16 +139,17 @@ export function rentBuyModel({ x, policy }, d) {
 
 /**
  * Rent vs buy over many futures. `x` = the rentVsBuy() input (its assumptions are the means).
- * @param {{ x:object, spread?:object }} args spread overrides the policy spreads (tests: zero spread)
+ * @param {{ x:object, spread?:object, leaseDrift?:number[] }} args spread overrides the policy spreads (tests: zero
+ *   spread); leaseDrift = per-year value drift of an old lease (see rentBuyDraws), null / absent = none
  * @param {{ n:number, seed:number, percentiles:number[] }} opts
  * @returns runMany() result + { buyAheadShare } = share of futures where buying ends ahead (diff ≥ 0) at the horizon
  */
-export function rentBuyRange({ x, spread }, policy, opts) {
+export function rentBuyRange({ x, spread, leaseDrift = null }, policy, opts) {
   const pol = memoPolicy(policy);
-  const inputs = { x, policy: pol, assumptions: resolveAssumptions(x, pol), spread: spread || rentBuySpread((x.buy || {}).loanType, pol) };
+  const inputs = { x, policy: pol, assumptions: resolveAssumptions(x, pol), spread: spread || rentBuySpread((x.buy || {}).loanType, pol), leaseDrift };
   const model = (inp, d) => { const m = rentBuyModel(inp, d); return { ...m, ahead: [m.diff[m.diff.length - 1] >= 0 ? 1 : 0] }; };
   const { bands: { ahead, ...bands }, mean, ...res } = runMany(model, inputs, rentBuyDraws, opts.n, opts.seed, opts);
-  return { ...res, bands, mean: { buy: mean.buy, rent: mean.rent, diff: mean.diff }, horizon: years(x), spread: inputs.spread, buyAheadShare: mean.ahead[0] };
+  return { ...res, bands, mean: { buy: mean.buy, rent: mean.rent, diff: mean.diff }, horizon: years(x), spread: inputs.spread, leaseDrift: leaseDrift || null, buyAheadShare: mean.ahead[0] };
 }
 
 // ---------------------------------------------------------------- CPF

@@ -8,7 +8,8 @@
       "radius_m": 700,
       "period": "1908–1972; exhumed 2001–2006",
       "note": "Christian, Muslim, Hindu and Sinhalese sections; site is now Bidadari estate (Woodleigh / Upper Aljunied / Bidadari Park Dr).",
-      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=bidadari-cemetery"
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=385bbadd-2c16-47e4-ba0d-a59411893d37",
+      "source_note": "NLB Infopedia 'Bidadari Cemetery': at the base of Mount Vernon, bounded by Bartley Rd and Upper Serangoon Rd; Christian, Muslim, Hindu and Sinhalese sections; opened 1908, last burial 1972; exhumed 2001-2006 for housing. (Replaces a dead NLB link, checked 2026-10-09.)"
     },
     {
       "name": "Mount Vernon Columbarium & crematorium (former)",
@@ -17,7 +18,8 @@
       "radius_m": 350,
       "period": "1962–2018",
       "note": "Closed 2018; land folded into the Bidadari development.",
-      "source": "https://en.wikipedia.org/wiki/Mount_Vernon_Columbarium"
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=4c6688a8-1661-4e1c-9aee-6b260fe03280",
+      "source_note": "NLB Infopedia 'Aljunied': Mount Vernon Crematorium at Upper Aljunied Rd opened 1962, closure announced 2003, cleared site for new housing. NEA (https://www.nea.gov.sg/our-services/after-death/mount-vernon-columbarium-relocation-programme): columbarium relocation programme ended December 2018. (Replaces Wikipedia, checked 2026-10-09.)"
     },
     {
       "name": "Kwong Wai Siew Peck San Theng Cemetery (former) — Bishan",
@@ -26,7 +28,8 @@
       "radius_m": 900,
       "period": "1870–1973; exhumed 1980s",
       "note": "Cantonese/Hakka cemetery over most of today's Bishan New Town (Bishan St 11–24, Sin Ming). The Peck San Theng temple/columbarium remains at Bishan St 22. Extent approximate: roughly Bishan St 11–25 south of Ang Mo Kio Ave 1.",
-      "source": "https://en.wikipedia.org/wiki/Bishan,_Singapore"
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=a0091427-7cb6-46c0-89f2-679e20330463",
+      "source_note": "NLB Infopedia 'Bishan': Kwong Wai Siew Peck San Theng founded 1870 on the site of Bishan New Town for Cantonese and Hakka immigrants; no new burials from 1973; land acquired 1979; graves exhumed 1982-1984; clan kept 3.2 ha for a temple and columbarium. Street-level extent is our own estimate. (Replaces Wikipedia, checked 2026-10-09.)"
     },
     {
       "name": "Tiong Bahru burial grounds (former)",
@@ -35,7 +38,8 @@
       "radius_m": 500,
       "period": "19th century – 1920s",
       "note": "'Tiong Bahru' = 'new cemetery' (Hokkien/Malay); the estate and Bukit Merah fringe were built over cleared burial land.",
-      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=tiong-bahru"
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=e3a8eeac-2e62-4ecf-a2e9-21987e9adc68",
+      "source_note": "NLB Infopedia 'Tiong Bahru': name from 'tiong' (cemetery) + 'bahru' (new); graves exhumed to Bukit Brown before the SIT estate was built (infrastructure by 1931, first block 1936). (Replaces a dead NLB link, checked 2026-10-09.)"
     },
     {
       "name": "Bukit Brown / Kopi Sua Cemetery (mostly intact)",
@@ -44,7 +48,8 @@
       "radius_m": 900,
       "period": "1922–1973 (still standing; partly cleared for Lornie Highway)",
       "note": "Large Chinese cemetery west of Thomson; no HDB directly inside but blocks along Thomson/Sime Rd sit near its edge.",
-      "source": "https://en.wikipedia.org/wiki/Bukit_Brown"
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=4d144626-6b4c-4ef3-a5c2-fb508100562c",
+      "source_note": "NLB Infopedia 'Bukit Brown Municipal Cemetery': opened 1 January 1922, closed 1973; hill known as Kopi Sua; LTA's 2011 dual four-lane road (MacRitchie Viaduct to Adam Flyover) cut through part of it. (Replaces Wikipedia, checked 2026-10-09.)"
     },
     {
       "name": "Jalan Kubor Cemetery (intact)",
@@ -53,7 +58,8 @@
       "radius_m": 200,
       "period": "early 1800s –",
       "note": "Historic Malay/Muslim cemetery in Kampong Glam, next to Victoria St / Kallang Rd flats.",
-      "source": "https://en.wikipedia.org/wiki/Jalan_Kubor_Cemetery"
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=c6f37686-b57a-46d6-a87f-ccc92dc3a83d",
+      "source_note": "NLB Infopedia 'Jalan Kubor Cemetery': oldest Muslim cemetery in Singapore, off Victoria Street near Kampong Glam; royal plot shown on an 1836 map; no longer in use, earmarked for housing since 1998. (Replaces Wikipedia, checked 2026-10-09.)"
     },
     {
       "name": "Old Kallang / Geylang Bahru Chinese cemeteries (former)",
@@ -62,7 +68,8 @@
       "radius_m": 400,
       "period": "cleared 1960s–70s",
       "note": "Several small clan burial grounds stood between Kallang Bahru and Geylang Bahru before the HDB estates; extent approximate.",
-      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=kallang"
+      "source": "https://www.nlb.gov.sg/main/article-detail?cmsuuid=kallang",
+      "source_note": "UNVERIFIED: this NLB link no longer resolves (404, checked 2026-10-09) and no official page was found that confirms these burial grounds. Re-source or remove."
     }
   ]
 }

@@ -244,6 +244,42 @@ class PublicExport(Temp):
             quiet(public_export.export, self.src, foreign, self.deny, clean=True)
         self.assertTrue((foreign / "keep.txt").exists())
 
+    def test_private_workflows_stay_private(self):  # S4: refresh PR + publish job name the private repo / its secrets
+        for name in ["ci.yml", "data-refresh.yml", "publish-public.yml"]:
+            write(self.src, f".github/workflows/{name}", f"name: {name}\n")
+        (manifest, problems), _ = self.run_export()
+        self.assertEqual(problems, [])
+        self.assertIn(".github/workflows/ci.yml", manifest["files"])
+        for name in ["data-refresh.yml", "publish-public.yml"]:
+            self.assertNotIn(f".github/workflows/{name}", manifest["files"])
+            self.assertIn(f".github/workflows/{name}", manifest["excluded"])
+            self.assertFalse((self.out / ".github/workflows" / name).exists())
+            self.assertTrue(public_export.match(f".github/workflows/{name}", public_export.FORBIDDEN))
+        for real in ["data-refresh.yml", "publish-public.yml"]:  # the real files in this repo are excluded too
+            self.assertTrue(public_export.match(f".github/workflows/{real}", public_export.EXCLUDE))
+
+    def test_fresh_clone_of_the_public_repo_is_updated_in_place(self):  # publish-public.yml: no MARKER in a clone
+        (manifest, problems), _ = self.run_export()
+        self.assertEqual(problems, [])
+        clone = self.tmp / "clone"
+        shutil.copytree(self.out, clone)
+        (clone / public_export.MARKER).unlink()  # gitignored: never in a clone
+        write(clone, ".git/HEAD", "ref: refs/heads/main\n")
+        (manifest, problems), _ = quiet(public_export.export, self.src, clone, self.deny, clean=True)
+        self.assertEqual(problems, [])
+        self.assertTrue((clone / ".git/HEAD").exists())
+        self.assertEqual((clone / ".gitignore").read_text(encoding="utf-8").count(public_export.MARKER), 1, "trailer not doubled")
+        # a clone of an EMPTY public repo (only .git) is fine; a clone without the trailer is foreign
+        empty = self.tmp / "empty"
+        write(empty, ".git/HEAD", "ref: refs/heads/main\n")
+        (manifest, problems), _ = quiet(public_export.export, self.src, empty, self.deny, clean=True)
+        self.assertEqual(problems, [])
+        foreign = self.tmp / "foreign2"
+        write(foreign, ".git/HEAD", "x")
+        write(foreign, ".gitignore", f"{public_export.MARKER}\n")  # the name alone is not the trailer
+        with self.assertRaises(SystemExit):
+            quiet(public_export.export, self.src, foreign, self.deny, clean=True)
+
     def test_out_must_be_outside_and_not_foreign(self):
         with self.assertRaises(SystemExit):
             quiet(public_export.export, self.src, self.src / "export", self.deny)

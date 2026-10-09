@@ -33,6 +33,9 @@ venv/
 graphify-out/
 .claude/
 .playwright-mcp/
+node_modules/
+tests/e2e/playwright-report/
+tests/e2e/test-results/
 Thumbs.db
 desktop.ini
 

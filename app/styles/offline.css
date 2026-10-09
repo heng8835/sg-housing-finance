@@ -1,4 +1,4 @@
-/* Offline copy (phase 6c, modules/offline): "Update available — Reload" toast + the Learn sheet line. */
+/* Offline copy (phase 6c, modules/offline): "Update available — Reload" toast + the Learn sheet line; P8 8d block at the end. */
 .sw-toast { position: fixed; z-index: 1300; left: calc(var(--cover, 0px) + var(--sp-4)); bottom: 60px; display: flex; align-items: center; gap: var(--sp-2);
   max-width: min(420px, calc(100vw - 2 * var(--sp-4))); padding: 6px 6px 6px var(--sp-4); border: 1px solid var(--border); border-radius: var(--radius-pill);
   background: var(--surface); color: var(--text); box-shadow: var(--shadow-pop); font-size: .929rem; }
@@ -15,3 +15,22 @@
 }
 .offline-line { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--border-subtle); }
 @media print { .sw-toast { display: none !important; } }
+
+/* P8 8d — one spot for small notices (core/undo.js toastHost): the update toast above and the Undo line (M-17)
+   nearest the bottom; same look as the update toast, no animation. Desktop: bottom left; phones: above the tab bar. */
+.toast-host { position: fixed; z-index: 1300; left: calc(var(--cover, 0px) + var(--sp-4)); bottom: 60px; display: flex; flex-direction: column;
+  align-items: flex-start; gap: var(--sp-2); max-width: min(420px, calc(100vw - 2 * var(--sp-4))); pointer-events: none; }
+.toast-host > * { pointer-events: auto; }
+.toast-host > .sw-toast { position: static; max-width: 100%; }
+.toast-host > .undo-line { order: 1; }
+.undo-line[hidden] { display: none; }
+.undo-line .btn { min-width: 64px; }
+/* M-13: while the map search is in use its list sits above the "Prices in view" box (z 600) */
+.mapbar:has(.ac-list.open) { z-index: 650; }
+.ac-list .ac-group { margin: 0; padding: 8px 10px 4px; font-size: .857rem; font-weight: 600; color: var(--text-2); }
+@media screen and (max-width: 767px) {
+  .toast-host { left: 8px; right: 8px; bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px); max-width: none; align-items: stretch; }
+  .toast-host > .sw-toast { left: auto; right: auto; bottom: auto; }
+  .ac-list .ac-group { padding: 12px 12px 4px; font-size: .875rem; }
+}
+@media print { .toast-host { display: none !important; } }

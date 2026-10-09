@@ -6,11 +6,13 @@
 //   compare-phase7a(-fv|-nobto).txt ─family_fixture→ compare-phase7a-family(-fv|-nobto).txt   (B2: "For the family")
 //   compare-phase7a-family(-fv|-nobto).txt ─phase7b_fixture→ compare-phase7b(-fv|-nobto).txt   (7b B13 premium flag; B1/B4/B12 asserted unchanged)
 //   compare-phase7b(-fv|-nobto).txt ─filllinks_fixture→ compare-phase7c(-fv|-nobto).txt   (fill links: empty-state cells = link text)
+//   compare-phase7c(-fv|-nobto).txt ─flattype_fixture→ compare-phase7d(-fv|-nobto).txt   (S1a: '4 ROOM' → '4-room', storey labels)
+// Since S1a the 7c files are historical too (built in the temp folder; committed copies unchanged).
 // Since the fill links the 7b files are historical too (built in the temp folder; committed copies unchanged).
 // Since 7b the 6b / 6d / 7a / 7a-family files are historical: the chain builds them in a temp folder as inputs and
 // writes only the 7b outputs (OUTPUTS). The committed compare-phase6*.txt / compare-phase7a*.txt stay as they were.
 // Usage: node tests/fixtures/gen/all.mjs [--out <dir>] [--check]
-//   --out    write the 7c files there instead of tests/fixtures
+//   --out    write the 7d files there instead of tests/fixtures
 //   --check  build into a temp folder and compare byte-for-byte with tests/fixtures; exit 1 on any difference
 // Values depend on app/data/*.js and the dates fixed in the generators (policy as of 7 Oct 2026, data to Sep 2026).
 import { spawnSync } from 'node:child_process';
@@ -21,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const FIX = fileURLToPath(new URL('..', import.meta.url));
-export const OUTPUTS = ['compare-phase7c.txt', 'compare-phase7c-fv.txt', 'compare-phase7c-nobto.txt'];
+export const OUTPUTS = ['compare-phase7d.txt', 'compare-phase7d-fv.txt', 'compare-phase7d-nobto.txt'];
 
 // The public build ships without the BTO scrape (DEC-015), and the chain needs it for the BTO-on files.
 if (!existsSync(fileURLToPath(new URL('../../../app/data/bto.js', import.meta.url)))) {
@@ -50,7 +52,8 @@ try {
   run('money_fixture.mjs', `in=${work}`, `out=${work}`);
   run('family_fixture.mjs', `in=${work}`, `out=${work}`); // B2: family rows come after the money rows
   run('phase7b_fixture.mjs', `in=${work}`, `out=${work}`); // 7b: B13 premium flag (B1 / B4 / B12 checked unchanged)
-  run('filllinks_fixture.mjs', `in=${work}`, `out=${out}`); // fill links: empty-state cells → link text (reviewed diff)
+  run('filllinks_fixture.mjs', `in=${work}`, `out=${work}`); // fill links: empty-state cells → link text (reviewed diff)
+  run('flattype_fixture.mjs', `in=${work}`, `out=${out}`); // S1a: flat type / storey labels in sentence case (reviewed diff)
   if (check) {
     const bad = OUTPUTS.filter((f) => !existsSync(join(FIX, f)) || !readFileSync(join(tmp, f)).equals(readFileSync(join(FIX, f))));
     for (const f of OUTPUTS) console.log(`${bad.includes(f) ? 'DIFFERS' : 'same   '} ${f}`);

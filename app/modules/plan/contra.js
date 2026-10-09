@@ -30,6 +30,9 @@ const STEP = {
   'buy-new-flat': ['New flat: key collection', 'Timing follows the sales exercise and construction (not modelled).'],
 };
 
+// 7c C12: steps whose title is a sell-buy glossary term (an ⓘ via learn:decorate)
+const TERM = { 'sell-intent': 'intent-to-sell', contra: 'contra', 'extension-of-stay': 'extension-of-stay' };
+
 const isoText = (v) => (typeof v === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v) ? fmtDate(v) : v);
 
 function sourceLink(ids, policy) {
@@ -60,7 +63,7 @@ export function moveTimelineBlock({ r, c, h, plan: p, policy, fromType = 'hdb', 
     const [title] = STEP[s.id] || [s.id];
     const cls = [`lane-${s.lane}`, s.id === 'contra' ? 'tl-key' : ''].filter(Boolean).join(' ');
     const src = s.ruleIds.length ? `<br><small class="tl-src">${t('Source')}: ${sourceLink(s.ruleIds, policy)}</small>` : '';
-    return `<li class="${cls}"><div class="tl-when"><span class="tag ${s.lane === 'both' ? 'info' : 'neutral'}">${esc(t(LANE[s.lane]))}</span></div><b>${esc(t(title))}</b><br><small>${esc(noteFor(s, r, policy))}</small>${src}</li>`;
+    return `<li class="${cls}"><div class="tl-when"><span class="tag ${s.lane === 'both' ? 'info' : 'neutral'}">${esc(t(LANE[s.lane]))}</span></div><b>${TERM[s.id] ? `<span data-term="${TERM[s.id]}">${esc(t(title))}</span>` : esc(t(title))}</b><br><small>${esc(noteFor(s, r, policy))}</small>${src}</li>`;
   }).join('');
 
   const hs = summarise(h);
@@ -87,6 +90,7 @@ export function moveTimelineBlock({ r, c, h, plan: p, policy, fromType = 'hdb', 
       ${field(t('Purchase completes (expected)'), dateIn('plan.dates.nextCompletion', buy))}
     </div>
     ${verdict ? `<p class="verdict"><span class="tag ${verdict[0]}">${esc(verdict[1])}</span></p>` : ''}
+    ${g.order === 'purchase-first' && g.bridge > 0 ? `<p class="hint">${t('A bank bridging loan can cover this gap until the sale money comes in.')} <span data-term="bridging-loan"></span></p>` : ''}
     ${notes.length ? `<ul class="notes">${notes.map(([n, v]) => `<li>${esc(t(n, v.map(isoText)))}</li>`).join('')}</ul>` : ''}
   </div>`;
 }

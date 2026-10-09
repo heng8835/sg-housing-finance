@@ -15,7 +15,10 @@
 //   · phone shell (modules/shell/phone.js, ≤ 767 px): 'phone:show-map' {size?} · 'sheet:size' size|{size} ·
 //     'sheet:push' {id, el, title, size?} · 'sheet:pop' {id?} → emits 'sheet:changed' {size, view, top} · 'sheet:popped' {id}
 //   · 'menu:painted' {root} (phone Menu opened, modules/shell/menu.js; root's [data-slot="menu-extra"] is free)
+//   · 'choices:list' {list} (legacy: the shortlist for the flat bar, Phase 8a) · 'flatbar:inputs' (8a: Afford's flat inputs moved into / out of the Which flat? sheet)
 //   · 'brief:open' {id, from?} (open the flat brief for choice id; from = element to focus on close — modules/explore/brief.js)
+//   · 'data:more' {file, ok} (main.js: one of core/data-loader.js LATE_FILES has loaded (ok) or failed, after the first
+//     map paint; explore re-binds it) · 'data:ready' {} (every data file has settled — views render with complete data)
 
 const target = new EventTarget();
 

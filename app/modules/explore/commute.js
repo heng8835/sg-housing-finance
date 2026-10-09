@@ -126,14 +126,14 @@ export function hoverPart(hubs, bi, minutesAt) {
 
 // ------------------------------------------------------------------ browser wiring
 /**
- * @param {{ data: object|null, getHubs: () => string[], setHubs: (ids: string[]) => void, onChange: () => void, doc?: Document,
+ * @param {{ data: object|null, pending?: boolean, getHubs: () => string[], setHubs: (ids: string[]) => void, onChange: () => void, doc?: Document,
  *   getMax?: () => number|null, setMax?: (v: number|null) => void, active?: () => boolean, blocks?: object[] }} o
  * `data` = window.HDB_COMMUTE (null when the file is missing → the colour option is hidden with a note).
  * B8 filter: `getMax` / `setMax` = legacy S.commuteMax (kept with saved views); it applies while `active()` (the
  * Commute colour mode is on, where the chips and the legend line are visible) and a place is chosen. `blocks` =
  * D.blocks, so `keep(block)` can answer for legacy's per-block filter predicate.
  */
-export function createCommute({ data, getHubs, setHubs, onChange, doc = globalThis.document, getMax = () => null, setMax = () => {}, active = () => true, blocks = [] }) {
+export function createCommute({ data, getHubs, setHubs, onChange, doc = globalThis.document, getMax = () => null, setMax = () => {}, active = () => true, blocks = [], pending = false }) {
   const available = !!(data && Array.isArray(data.hubs) && data.hubs.length && data.minutes);
   const byId = new Map(available ? data.hubs.map((h) => [h.id, h]) : []);
   const decoded = new Map();
@@ -156,6 +156,7 @@ export function createCommute({ data, getHubs, setHubs, onChange, doc = globalTh
   }
   function build() {
     if (!pick || built) return;
+    if (!available && pending) return; // S1b: commute.js still loading — no "missing" note; legacy re-makes this once it lands
     built = true;
     if (!available) {
       if (radio) radio.closest('label').style.display = 'none'; // .radios label sets display, so `hidden` alone would not hide it
@@ -163,6 +164,7 @@ export function createCommute({ data, getHubs, setHubs, onChange, doc = globalTh
       pick.hidden = false;
       return;
     }
+    if (radio) radio.closest('label').style.display = '';
     pick.innerHTML = `<label class="f"><span>${t('Where do you travel to most days?')}</span><select id="commuteHub1">${options('— choose a place —')}</select></label>`
       + `<label class="f"><span>${t('Second worker or student (optional)')}</span><select id="commuteHub2">${options('— nobody else —')}</select></label>`
       + '<div id="commuteNotes"></div><div id="commuteFilter" class="cm-filter"></div>';
@@ -194,6 +196,8 @@ export function createCommute({ data, getHubs, setHubs, onChange, doc = globalTh
 
   return {
     available,
+    /** commute.js not loaded yet (S1b lazy data): the colour mode waits instead of switching back to price. */
+    pending: !available && pending,
     hubs,
     minutesAt,
     scale: () => scale,
@@ -211,6 +215,7 @@ export function createCommute({ data, getHubs, setHubs, onChange, doc = globalTh
     keep: (b) => { if (!filterOn()) return true; const c = combined(), bi = indexOf(b); return keepBlock(c && bi != null ? c[bi] : null, max()); },
     legend({ simple, zoomedIn, chipLabel = null, tap = false }) { // tap = phone wording ("Tap any block.", P-22)
       const hs = hubs();
+      if (!available && pending) return `<div class="key">${t('Commute time by public transport')}</div><div class="hint">${t('Loading…')}</div>`;
       if (!hs.length) return `<div class="key">${t('Commute time by public transport')}</div><div class="hint">${t('Choose where you travel to (above) to colour the blocks.')}</div>`;
       return legendHtml({ scale, mode: 'commute', label: legendLabel(hs), fmt: (v) => t('{0} min', [v]), t, simple, zoomedIn, chipLabel, tap })
         + (filterOn() ? filterNote(hs, max()) : '')

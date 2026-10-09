@@ -4,7 +4,7 @@
 // the labels at the 14 px floor: `fs` widens the left margin and spaces the year labels for it (review R-09).
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
-import { niceTicks, sgdShort, quarterTicks, parseQuarter } from '../../core/axis.js';
+import { niceTicks, sgdShort, quarterTicksAt, parseQuarter } from '../../core/axis.js';
 import { ftWord } from '../../core/typical.js';
 
 const M = { top: 14, right: 12, bottom: 26, left: 46 };
@@ -58,7 +58,7 @@ export function rentChartModel({ q, quarters, range = DEFAULT_RANGE, width = 320
   }
   return { W, H, x0, x1, y0, y1, first: quarters[start], last: quarters[end], pts, segs,
     yTicks: axis.ticks.map((v) => ({ v, y: y(v), text: sgdShort(v) })), fs,
-    ticks: quarterTicks(quarters[start], quarters[end], x1 - x0, big ? { yearPx: Math.ceil(labelW('2026', fs) + 12), endPx: Math.ceil(labelW(qLabel(quarters[end]), fs) + labelW('2026', fs) / 2 + 10) } : undefined),
+    ticks: quarterTicksAt(quarters.slice(start, end + 1), x1 - x0, big ? { yearPx: Math.ceil(labelW('2026', fs) + 12), endPx: Math.ceil(labelW(qLabel(quarters[end]), fs) + labelW('2026', fs) / 2 + 10) } : undefined),
     ask: ask == null ? null : { v: ask, y: y(ask) } };
 }
 
@@ -103,7 +103,7 @@ const poly = (seg) => seg.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).joi
 export function rentChartSvg(m, aria) {
   const grid = m.yTicks.map((k) => `<line x1="${m.x0}" x2="${m.x1}" y1="${k.y.toFixed(1)}" y2="${k.y.toFixed(1)}" style="stroke:var(--border-subtle)" stroke-width="1"/>
     <text x="${m.x0 - 6}" y="${(k.y + 4).toFixed(1)}" text-anchor="end" style="fill:var(--text-2)">${esc(k.text)}</text>`).join('');
-  // ticks come from the quarter labels; a gap in HDB's quarter list can put one past the last point — skip it (7b)
+  // ticks sit at their own quarter label (S1a: by label, not by calendar index — HDB's list can skip a quarter)
   const ly = Math.round((m.fs || 11) + 5); // x-label baseline below the axis (16 at 11 px)
   const X = (i) => m.pts[i].x.toFixed(1), tk = m.ticks && { minor: m.ticks.minor.filter((i) => m.pts[i]), major: m.ticks.major.filter((j) => m.pts[j.i]) };
   const minor = tk ? tk.minor.map((i) => `<line x1="${X(i)}" x2="${X(i)}" y1="${m.y1}" y2="${m.y1 + 2}" style="stroke:var(--border-input)"/>`).join('') : '';

@@ -10,7 +10,7 @@ const tr = (s, v) => (v ? s.replace(/\{(\d+)\}/g, (m, k) => v[k]) : s);
 
 test('F4 peek line: colour · period · flat types (two by name, more as a count); rent / commute have no price window', () => {
   assert.equal(peekSummary({ mode: 'price', period: '1 year', types: ['4 ROOM', '5 ROOM'], tr }), 'Price · last 1 year · 4 ROOM, 5 ROOM');
-  assert.equal(peekSummary({ mode: 'psf', period: '2 years', types: ['3 ROOM', '4 ROOM', '5 ROOM', 'EXECUTIVE'], tr }), '$ per sqft · last 2 years · 4 flat types');
+  assert.equal(peekSummary({ mode: 'psf', period: '2 years', types: ['3 ROOM', '4 ROOM', '5 ROOM', 'EXECUTIVE'], tr }), 'Price per sq ft · last 2 years · 4 flat types');
   assert.equal(peekSummary({ mode: 'price', period: '1 year', types: ['1 ROOM'], allTypes: true, tr }), 'Price · last 1 year · All flat types');
   assert.equal(peekSummary({ mode: 'rent', period: '1 year', types: ['4 ROOM'], tr }), 'Median rent · 4 ROOM');
   assert.equal(peekSummary({ mode: 'commute', period: '1 year', types: [], tr }), 'Commute time · No flat types picked');

@@ -25,7 +25,7 @@ fieldset.buyer > legend + * { clear: both; }
 fieldset.buyer .fields { margin-bottom: 0; }
 fieldset.buyer input, fieldset.buyer select { background: var(--surface); }
 .row.wrap { flex-wrap: wrap; gap: 8px; }
-.btn.danger { color: var(--critical); border-color: var(--critical); }
+.btn.danger { color: var(--critical-ink); border-color: var(--critical); }
 .btn.file { cursor: pointer; }
 .notice { background: #fff6e0; border: 1px solid #f0d9a0; border-radius: 8px; padding: 8px 10px; font-size: .893rem; margin: 8px 0; }
 
@@ -116,7 +116,7 @@ ul.notes { padding-left: 18px; font-size: .857rem; color: var(--text-2); line-he
 .f.kid > label.f { margin-bottom: var(--sp-1); } /* Key dates: child's date, "remove" link under it */
 
 /* learn: term buttons, popover, side sheet */
-.term { border: 0; background: none; padding: 0 2px; margin-left: 2px; color: var(--accent); font: inherit; font-size: .786rem; cursor: pointer; border-radius: 50%; min-width: 1.286rem; min-height: 1.286rem; }
+.term { border: 0; background: none; padding: 0 2px; margin-left: 2px; color: var(--accent-ink); font: inherit; font-size: .786rem; cursor: pointer; border-radius: 50%; min-width: 1.286rem; min-height: 1.286rem; }
 .term:focus-visible { outline: 2px solid var(--accent); }
 .term-pop { position: fixed; z-index: 20000; max-width: 300px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 24px rgba(0, 0, 0, .15); padding: 10px 12px; font-size: .929rem; line-height: 1.4; }
 .term-pop b { display: block; margin-bottom: 4px; }
@@ -384,3 +384,34 @@ ul.dates li.past .fade { opacity: .55; }
 .fill-link:hover { text-decoration: underline; }
 .cmp td .fill-link { font-size: .857rem; }
 #rentRoot .flash { box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent); }
+
+/* P8 8e — goal steps (modules/journey, M-07): "Your steps" card at the top of the Start here goal's page. Calm (Q6):
+   numbered lines, ✓ in the existing good text colour, no progress bar, no new colour, no transition. */
+.jr-steps { list-style: none; margin: 0 0 var(--sp-3); padding: 0; }
+.jr-step { margin: 0; border-top: 1px solid var(--border-subtle); }
+.jr-step:first-child { border-top: 0; }
+.jr-go { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: 44px; padding: 6px 0; background: none; border: 0;
+  text-align: left; color: var(--text); font-size: 1rem; line-height: 1.4; cursor: pointer; }
+.jr-go:hover .jr-x { color: var(--accent-ink); text-decoration: underline; }
+.jr-k { flex: none; width: 1.5rem; text-align: center; color: var(--text-3); font-weight: 600; }
+.jr-step.done .jr-k { color: #0a7a0a; }
+.jr-step.done .jr-x { color: var(--text-2); }
+.jr-step.next .jr-x { font-weight: 600; }
+.jr-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.jr-next { display: block; width: 100%; min-height: 44px; }
+.jr-all { margin: 0; color: var(--text-2); }
+.jr-foot { margin: var(--sp-2) 0 0; }
+.jr-hide { min-height: 44px; font-size: .929rem; }
+.jr-card[open] > summary .fold-s { display: none; } /* the Next button repeats it */
+.jr-gone { margin: 0 0 var(--sp-4); }
+.jr-gone .link { min-height: 44px; font-size: .929rem; }
+@media screen and (max-width: 767px) {
+  .jr-next { min-height: 48px; font-size: 1rem; }
+  .jr-hide, .jr-gone .link { font-size: .875rem; }
+  /* P8-01: folded on the answer pages, the card is one compact row (≈ 64 px) so the answer stays above the tab bar */
+  #journey .jr-card { margin-bottom: 8px; }
+  #journey .jr-card:not([open]) > summary { padding-top: 8px; padding-bottom: 8px; }
+  /* at Larger text the two lines wrapped to 4 (139 px) on 360 px phones: keep each on one line */
+  #journey .jr-card:not([open]) > summary .fold-t,
+  #journey .jr-card:not([open]) > summary .fold-s { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

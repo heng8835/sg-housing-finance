@@ -6,6 +6,7 @@ import { grants } from '../../engine/grants.js';
 import { atPayoutAge } from '../../engine/cpfbuy.js';
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
+import { flatTypeLabel } from '../../core/flattype.js';
 import { grantNotesFor } from '../../core/grantnotes.js';
 import { moneyInput, parseMoney } from '../../core/moneyinput.js';
 import { loanChoice, loanSeg } from './loan.js';
@@ -136,7 +137,7 @@ export function parseField(el) {
 
 /** Grants estimate inside "Grants and first home": the engine's totals as they are + the notes that apply (B11). */
 export function grantsPreview(x, policy) {
-  const out = ['4 ROOM', '5 ROOM'].map((ft) => `${t(ft)} ${money(grants({ household: x, flatType: ft }, policy).total)}`);
+  const out = ['4 ROOM', '5 ROOM'].map((ft) => `${flatTypeLabel(ft)} ${money(grants({ household: x, flatType: ft }, policy).total)}`);
   const notes = grantNotesFor(grants({ household: x, flatType: '4 ROOM' }, policy));
   return `<p class="hint">${t('Estimated')}: ${out.join(' · ')}.</p>${notes.map((n) => `<p class="hint">• ${esc(t(n))}</p>`).join('')}`;
 }

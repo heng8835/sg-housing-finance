@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { niceTicks, sgdShort, quarterTicks, parseQuarter } from '../../app/core/axis.js';
+import { niceTicks, sgdShort, quarterTicks, quarterTicksAt, parseQuarter } from '../../app/core/axis.js';
 
 test('niceTicks: steps from {1, 2, 2.5, 5}×10ⁿ, at most n ticks, cover the data', () => {
   assert.deepEqual(niceTicks(0, 812345, 5).ticks, [0, 250000, 500000, 750000, 1000000]);
@@ -46,4 +46,21 @@ test('quarterTicks: Q1 of each year is a major tick, labels every 1/2/5/10 years
   assert.equal(narrow.major.length, 21);                                   // 2006 … 2026, every Q1 still ticked
   assert.equal(quarterTicks('bad', '2026-Q2', 300), null);
   assert.equal(quarterTicks('2026-Q2', '2026-Q1', 300), null);
+});
+
+test('quarterTicksAt (S1a): year ticks sit at their own Q1 label even when HDB skipped a quarter', () => {
+  const list = [];
+  for (let y = 2016; y <= 2026; y++) for (let q = 1; q <= 4; q++) if (!(y === 2026 && q > 2) && `${y}-Q${q}` !== '2021-Q3') list.push(`${y}-Q${q}`);
+  const k = quarterTicksAt(list, 600);
+  assert.equal(k.count, list.length);
+  for (const j of k.major) assert.equal(list[j.i], `${j.year}-Q1`);    // by label, never one quarter off
+  assert.deepEqual(k.major.map((j) => j.year), [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]);
+  const byIndex = quarterTicks(list[0], list.at(-1), 600);               // the calendar index drifts after the gap
+  assert.notEqual(list[byIndex.major.find((j) => j.year === 2024).i], '2024-Q1');
+  // a year whose Q1 is missing gets no tick; the end label room rule still applies
+  const noQ1 = quarterTicksAt(list.filter((x) => x !== '2019-Q1'), 600);
+  assert.ok(!noQ1.major.some((j) => j.year === 2019));
+  assert.equal(k.major.at(-1).label, false);                             // 2026-Q1 is next to the "Q2 2026" end label
+  assert.equal(quarterTicksAt(['bad'], 300), null);
+  assert.equal(quarterTicksAt([], 300), null);
 });

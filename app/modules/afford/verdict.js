@@ -45,6 +45,6 @@ export const grantsAmount = (p) => (p.shortLease && p.shortLease.ehgUpTo ? t('up
  *  fill link to the household's cash (core/filllink.js; h = the household). */
 export function cashShortLine(p, h = null) {
   if (p.cashShort == null) return `<p class="hint">${householdLink(h, 'cash', { text: 'Add your savings to check the cash part.' })}</p>`;
-  if (p.cashShort > 0) return `<p class="hint" style="color:var(--critical)">${t('Short of {0} in cash.', [money(p.cashShort)])}</p>`;
+  if (p.cashShort > 0) return `<p class="hint" style="color:var(--critical-ink)">${t('Short of {0} in cash.', [money(p.cashShort)])}</p>`;
   return '';
 }

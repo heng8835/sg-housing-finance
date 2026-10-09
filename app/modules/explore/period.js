@@ -109,7 +109,8 @@ export function mountPeriod({ months, S, fmtMonth, monthName, save, onChange }) 
   if (ends) ends.innerHTML = `<span>${first}</span><span>${last}</span>`;
 
   function sync() {
-    if (sel) sel.value = String(S.calcM);
+    // M-10 (P8 8c): "Prices from the last" is a seg of 4 buttons (index.html #calcWin), roving tabindex
+    sel?.querySelectorAll('button[data-v]').forEach((b) => { const on = +b.dataset.v === S.calcM; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; });
     if ($('calcWinHelp')) $('calcWinHelp').textContent = windowHelp(w, fmtMonth);
     if (from) { from.value = S.hist.from; from.setAttribute('aria-valuetext', String(S.hist.from)); }
     if (to) { to.value = S.hist.to; to.setAttribute('aria-valuetext', String(S.hist.to)); }
@@ -128,7 +129,14 @@ export function mountPeriod({ months, S, fmtMonth, monthName, save, onChange }) 
     clearTimeout(timer);
     if (now) onChange(); else timer = setTimeout(onChange, 120); // slider drags: one render per pause
   }
-  sel?.addEventListener('change', () => { S.calcM = +sel.value; apply(true); });
+  const pickCalc = (b) => { if (!b || +b.dataset.v === S.calcM) return; S.calcM = +b.dataset.v; apply(true); };
+  sel?.addEventListener('click', (e) => pickCalc(e.target.closest('button[data-v]')));
+  sel?.addEventListener('keydown', (e) => { // ← / → move and pick (as the other segs, card.js wireSeg)
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]; if (!d) return;
+    const bs = [...sel.querySelectorAll('button[data-v]')], i = bs.indexOf(e.target.closest('button')); if (i < 0) return;
+    e.preventDefault(); e.stopPropagation(); // keep the map from panning
+    const next = bs[(i + d + bs.length) % bs.length]; next.focus(); pickCalc(next);
+  });
   const setYears = (which, v) => {
     const y = Math.max(first, Math.min(last, Math.round(v)));
     if (which === 'from') S.hist = { from: Math.min(y, S.hist.to), to: S.hist.to }; // handles never cross (equal = one year)

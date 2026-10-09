@@ -17,10 +17,10 @@ const drv = (id, score, metric, rid, args, reason = null, unit = null) => ({ id,
 
 test('formatArgs: years 1 dp, signed %, grouped units, plain years, title-case towns, no -0.0', () => {
   assert.deepEqual(formatArgs('fv.lease', [59.333, 49.333, 10]), ['59.3', '49.3', '10']);
-  assert.deepEqual(formatArgs('fv.momentum', ['ANG MO KIO', '4 ROOM', 15.859, 3, -0.04]), ['Ang Mo Kio', '4 ROOM', '+15.9', '3', '0.0']);
+  assert.deepEqual(formatArgs('fv.momentum', ['ANG MO KIO', '4 ROOM', 15.859, 3, -0.04]), ['Ang Mo Kio', '4-room', '+15.9', '3', '0.0']);
   assert.deepEqual(formatArgs('fv.supply', [2933, 1, 2933, 0, 5, 2028, 23534]), ['2,933', '1', '2,933', '0', '5', '2028', '23,534']);
   assert.deepEqual(formatArgs('fv.lease.drag', [60, 50, 10, '', -8, 36]).slice(3, 5), ['—', '-8.0']);
-  assert.equal(rationale({ id: 'fv.yield', args: [6.0833, 3650, 5.558, 'BISHAN', '4 ROOM'] }), 'Gross rental yield about 6.1% (median rent $3,650 a month) vs 5.6% for 4 ROOM flats in Bishan.');
+  assert.equal(rationale({ id: 'fv.yield', args: [6.0833, 3650, 5.558, 'BISHAN', '4 ROOM'] }), 'Gross rental yield about 6.1% (median rent $3,650 a month) vs 5.6% for 4-room flats in Bishan.');
 });
 
 test('every rationale template has one format per placeholder', () => {
@@ -36,12 +36,12 @@ test('cellHtml: plain "3/5 · headline" text, pips are visual only, rationale in
   assert.match(h, /^<span class="fv-pips" aria-hidden="true">(<i( class="on")?><\/i>){5}<\/span>/);
   assert.equal((h.match(/class="on"/g) || []).length, 1);
   assert.equal(text(h), '1/5 · 49 y left in 10 y\n59.3 years of lease left now; 49.3 years in 10 years.');
-  assert.equal(text(cellHtml(drv('scarcity', 1, 51.4, 'fv.scarcity', ['4 ROOM', 51.4, 'BISHAN'], null, '%'))), "1/5 · 51% of the town's sold flats\n4 ROOM flats are 51% of the sold flats in Bishan.");
+  assert.equal(text(cellHtml(drv('scarcity', 1, 51.4, 'fv.scarcity', ['4 ROOM', 51.4, 'BISHAN'], null, '%'))), "1/5 · 51% of the town's sold flats\n4-room flats are 51% of the sold flats in Bishan.");
   assert.equal(text(cellHtml(drv('liquidity', 3, 6, 'fv.liquidity.no-units', [12, 24, 6], null, 'sales/year'))).split('\n')[0], '3/5 · 6 sales a year');
 });
 
 test('cellHtml: null score -> "—" + reason; measured-but-unscored keeps its headline', () => {
-  assert.equal(text(cellHtml(drv('momentum', null, null, 'fv.momentum.thin', ['4 ROOM', 'BISHAN', 3], 'thin'))), '—\nNot enough 4 ROOM sales in Bishan to measure a 3-year trend.');
+  assert.equal(text(cellHtml(drv('momentum', null, null, 'fv.momentum.thin', ['4 ROOM', 'BISHAN', 3], 'thin'))), '—\nNot enough 4-room sales in Bishan to measure a 3-year trend.');
   const y = cellHtml(drv('yield', null, 5, 'fv.yield.no-town', [5, 3000], 'no-town', '%'));
   assert.match(y, /^<span class="muted">— · 5\.0% gross yield<\/span>/);
   assert.doesNotMatch(y, /fv-pips/);
@@ -168,7 +168,7 @@ test('how-scored panel: drivers, sources, caveats, market status; no overall sco
 test('block-card fold: the 8 drivers compactly for one flat type', () => {
   const fv = make(), h = fv.cardHtml(0, '4 ROOM');
   assert.equal((h.match(/<li>/g) || []).length, 8);
-  assert.match(h, /4 ROOM in this block · sales to Sep 2026/);
+  assert.match(h, /4-room in this block · sales to Sep 2026/);
   const card = { drivers: DRIVERS.map((id) => drv(id, null, null, 'fv.nodata', [], 'no-data')) };
   assert.equal((text(cardListHtml(card, { ftName: '3 ROOM' })).match(/Not enough data for this flat\./g) || []).length, 8);
 });

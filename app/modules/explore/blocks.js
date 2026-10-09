@@ -3,7 +3,9 @@
 // block as a box with its number inside, on the shared canvas, with greedy collision placement.
 // The pure helpers are exported for node tests; the canvas parts need Leaflet (global L) and run in the browser.
 
-export const RAMP = ['#6aa3dc', '#3f84d1', '#2a66ad', '#1a4a8a', '#0e2d5c']; // ≥ 2:1 vs the grey tiles, even L* steps
+// ≥ 2:1 vs the grey tiles; RAMP[1] darkened #3f84d1 → #3077c7 (go-live D9, a11y audit 5a): its box label is white at
+// 4.58:1 (was near-black ink at 4.46:1); the other steps are unchanged
+export const RAMP = ['#6aa3dc', '#3077c7', '#2a66ad', '#1a4a8a', '#0e2d5c'];
 export const CHIP_ZOOM = 17;
 export const COLOR = { noSales: '#b5b4ae', newRing: '#6b6a65', ink: '#1b1b19', muted: '#6b6a65', noSalesChip: '#f1f0ec', newText: '#52514e' };
 
@@ -42,12 +44,14 @@ export function shortValue(mode, v, tr) {
 }
 
 /** The value-label button text for a colour mode (English key for t()). */
-export const chipMetric = (mode) => ({ price: 'Price', budget: 'Price', psf: '$ per sqft', count: 'Sales', rent: 'Rent', commute: 'Minutes' }[mode] || 'Price');
+export const chipMetric = (mode) => ({ price: 'Price', budget: 'Price', psf: 'Price per sq ft', count: 'Sales', rent: 'Rent', commute: 'Minutes' }[mode] || 'Price');
 
-/** Text colour on a fill: near-black on light fills, white on dark (relative luminance cut at 0.18). */
+/** Text colour on a fill: near-black on light fills, white on dark. The cut (relative luminance 0.203) is where both
+ *  give the same contrast, so the label always gets the better of the two (a11y audit 5a; was 0.18). */
+export const TEXT_ON_CUT = 0.203;
 export function textOn(hex) {
   const n = parseInt(hex.slice(1), 16), ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
-  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2] > 0.18 ? COLOR.ink : '#ffffff';
+  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2] > TEXT_ON_CUT ? COLOR.ink : '#ffffff';
 }
 
 /** Dot size by zoom band (Leaflet radii are pixels). kind: 'sale' | 'none' | 'new'. */

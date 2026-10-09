@@ -6,7 +6,9 @@
 // Also applies partial views from other tabs (bus 'explore:view' { view, fit } — Start here: flat types, towns, colour).
 // Pure helpers (capture / clean / apply / list ops / markup) are node-tested; createViews() wires the browser part.
 import { t } from '../../core/i18n.js';
+import { flatTypeLabel } from '../../core/flattype.js';
 import { esc } from '../../core/dom.js';
+import { offerUndo } from '../../core/undo.js';
 import { CALC_OPTIONS } from './period.js';
 import { cleanMax } from './commute.js';
 
@@ -133,15 +135,23 @@ export function renameView(list, id, name) {
   return n ? cur.map((x) => (x.id === id ? { ...x, name: n } : x)) : cur;
 }
 export const deleteView = (list, id) => cleanViews(list).filter((x) => x.id !== id);
+/** Undo a delete (M-17): put `item` back at index `at` — unless its id is in use again or the list is full. */
+export function restoreView(list, item, at) {
+  const cur = cleanViews(list);
+  if (!item || cur.some((x) => x.id === item.id) || cur.length >= MAX_VIEWS) return cur;
+  const out = cur.slice();
+  out.splice(Math.max(0, Math.min(Number.isInteger(at) ? at : out.length, out.length)), 0, item);
+  return cleanViews(out);
+}
 export const defaultName = (n) => t('View {0}', [n]);
 
-const MODE_NAMES = { price: 'Median price', psf: '$ per sqft', count: 'Number of transactions', budget: 'Within my budget', rent: 'Median rent', commute: 'Commute time (public transport)' };
+const MODE_NAMES = { price: 'Median price', psf: 'Price per sq ft', count: 'Number of transactions', budget: 'Within my budget', rent: 'Median rent', commute: 'Commute time (public transport)' };
 
 /** One line under a view's name: colour mode · flat types · towns · area · filters. */
 export function viewSummary(v) {
   const parts = [];
   if (v.colorBy) parts.push(t(MODE_NAMES[v.colorBy]));
-  if (v.ft) parts.push(v.ft.length ? v.ft.map((f) => t(f)).join(', ') : t('no flat types'));
+  if (v.ft) parts.push(v.ft.length ? v.ft.map(flatTypeLabel).join(', ') : t('no flat types'));
   if ('towns' in v) parts.push(v.towns === null ? t('all towns') : v.towns.length === 1 ? t('1 town') : t('{0} towns', [v.towns.length]));
   if (v.area) parts.push(v.area.type === 'circle' ? t('circle') : t('drawn area'));
   if (v.filt && Object.values(v.filt).some((x) => x != null)) parts.push(t('filters'));
@@ -218,8 +228,14 @@ export function createViews({ S, D, map, bus, save, per, fitTo, refresh, doc = g
       case 'rename': ui.editing = id; ui.saving = false; return render('[data-vname]');
       case 'apply': if (item) { applyNow(item.view); ui.msg = t('Showing “{0}”.', [item.name]); } return render();
       case 'del':
-        if (item && confirm(t('Delete the saved view “{0}”?', [item.name]))) { S.views = deleteView(S.views, id); save(); }
-        return render('[data-v="save"]');
+        if (!item) return render('[data-v="save"]');
+        { // M-17 / Q7: deleted at once; the Undo line (core/undo.js) takes the focus, then back to this list
+          const at = S.views.indexOf(item);
+          S.views = deleteView(S.views, id); save(); render();
+          offerUndo(t('Deleted the saved view “{0}”.', [item.name]), () => { S.views = restoreView(S.views, item, at); save(); render(); },
+            { focusAfter: (why) => sec.querySelector(why === 'undo' ? `[data-v="del"][data-id="${id}"]` : '[data-v="save"]') });
+        }
+        return undefined;
       default: return undefined;
     }
   });

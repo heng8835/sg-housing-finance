@@ -133,6 +133,22 @@ export function nearby(centre, stations = [], schools = [], name = (p) => p.n) {
   return { mrt: mrt.map(pt), schools: all.slice(0, MAP_SCHOOL_MAX).map(pt), schoolCount: all.length };
 }
 
+export const LABEL_GAP = 12;   // SVG units: a station name this close to one already placed is left out (squares stay)
+const LABEL_FS = 8.5, LABEL_CHAR = 0.56; // locator text size and an average glyph width (em) for the overlap test
+/** Station names that fit (S1a): nearest first; a name whose anchor is within LABEL_GAP of a placed one, or whose box
+ *  overlaps a placed box, is dropped (its square stays). items: [{ x, y, left, name }] → the same items + `show`. */
+export function placeLabels(items, gap = LABEL_GAP) {
+  const boxes = [];
+  return items.map((it) => {
+    const w = String(it.name || '').length * LABEL_FS * LABEL_CHAR, x0 = it.left ? it.x - 6 - w : it.x + 6;
+    const box = { ax: it.x, ay: it.y, x0, x1: x0 + w, y0: it.y - LABEL_FS + 3, y1: it.y + 3 };
+    const clash = boxes.some((b) => Math.hypot(b.ax - box.ax, b.ay - box.ay) < gap
+      || (box.x0 < b.x1 && b.x0 < box.x1 && box.y0 < b.y1 && b.y0 < box.y1));
+    if (!clash) boxes.push(box);
+    return { ...it, show: !clash };
+  });
+}
+
 /** Static SVG locator (no tiles): the block, a 1 km ring, MRT squares with names, school triangles, 500 m bar. */
 export function locatorSvg({ centre, mrt = [], schools = [], radiusM = MAP_RADIUS_M, maxM = MAP_MAX_M }) {
   const S = 240, pad = 16, kx = 111320 * Math.cos((centre.lat * Math.PI) / 180), ky = 110574;
@@ -147,10 +163,10 @@ export function locatorSvg({ centre, mrt = [], schools = [], radiusM = MAP_RADIU
     `<text x="${f1(c + r * 0.72 + 3)}" y="${f1(c - r * 0.72 - 3)}" font-size="8" fill="#555">${esc(t('{0} km', ['1']))}</text>`,
   ];
   for (const s of schools) { const [x, y] = at(s); parts.push(`<path d="M${f1(x)} ${f1(y - 4.5)}L${f1(x + 4)} ${f1(y + 3)}L${f1(x - 4)} ${f1(y + 3)}Z" fill="#fff" stroke="#222" stroke-width="1.2"/>`); }
-  for (const s of mrt) {
-    const [x, y] = at(s), left = x > S * 0.62;
-    parts.push(`<rect x="${f1(x - 3.5)}" y="${f1(y - 3.5)}" width="7" height="7" fill="#222"/>`,
-      `<text x="${f1(left ? x - 6 : x + 6)}" y="${f1(y + 3)}" font-size="8.5" fill="#111"${left ? ' text-anchor="end"' : ''}>${esc(s.name)}</text>`);
+  const byNear = mrt.map((s, i) => ({ s, i })).sort((a, b) => (a.s.m ?? 0) - (b.s.m ?? 0) || a.i - b.i).map(({ s }) => s);
+  for (const { x, y, left, name, show } of placeLabels(byNear.map((s) => { const [x, y] = at(s); return { x, y, left: x > S * 0.62, name: s.name }; }))) {
+    parts.push(`<rect x="${f1(x - 3.5)}" y="${f1(y - 3.5)}" width="7" height="7" fill="#222"/>`);
+    if (show) parts.push(`<text x="${f1(left ? x - 6 : x + 6)}" y="${f1(y + 3)}" font-size="${LABEL_FS}" fill="#111"${left ? ' text-anchor="end"' : ''}>${esc(name)}</text>`);
   }
   parts.push(`<circle cx="${c}" cy="${c}" r="6" fill="#111" stroke="#fff" stroke-width="2"/>`,
     `<path d="M${S - 16} 22V9M${S - 20} 13L${S - 16} 8L${S - 12} 13" fill="none" stroke="#222" stroke-width="1.3"/><text x="${S - 16}" y="32" font-size="8" text-anchor="middle" fill="#222">N</text>`,
