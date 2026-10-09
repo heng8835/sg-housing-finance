@@ -21,7 +21,7 @@ export function grants({ household: h, flatType = null, coversTo95 = null, paren
   const single = h.scheme === 'single';
   const size = flatSize(flatType);
 
-  if (!s.buyers.length) { notes.push('Add the buyers in Household to estimate grants.'); return done(); }
+  if (!s.buyers.length) { notes.push('Add the buyers in About you to estimate grants.'); return done(); }
   if (!s.citizenships.includes('SC')) { notes.push('CPF housing grants need at least one Singapore Citizen buyer.'); return done(); }
   if (isType(flatType, '1 ROOM')) { notes.push('Grants apply to 2-room and bigger flats.'); return done(); }
   if (single && s.youngestAge != null && s.youngestAge < policy.get('eligibility.single.min_age')) {

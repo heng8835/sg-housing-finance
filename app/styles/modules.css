@@ -378,3 +378,9 @@ ul.dates li.past .fade { opacity: .55; }
 
 /* 7b B7 integrator: the "Typical: …" line under the Whole flat / Room switch (sec-sub pulls up under headings) */
 .seg-field + .sec-sub { margin-top: var(--sp-2); }
+
+/* Fill links (core/filllink.js): an empty-state cell or line that opens the missing input ("Add your income →") */
+.fill-link { color: var(--accent-ink); font-weight: 500; text-align: left; cursor: pointer; line-height: 1.4; }
+.fill-link:hover { text-decoration: underline; }
+.cmp td .fill-link { font-size: .857rem; }
+#rentRoot .flash { box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent); }

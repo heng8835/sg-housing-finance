@@ -40,7 +40,7 @@ test('Start here: phone markup has a word "Close" and keeps Back / Skip / Next i
 
 test('every slice-E dialog is a .phone-full page; phones get "Close" (household: sticky Done)', () => {
   const src = {
-    start: read('modules/start/index.js'), household: read('modules/household/index.js'), samples: read('modules/samples/index.js'),
+    start: read('modules/start/index.js'), household: read('modules/household/index.js') + read('modules/household/form.js'), samples: read('modules/samples/index.js'),
     learn: read('modules/learn/index.js'), guide: read('modules/guide/index.js'), guides: read('modules/guides/index.js'),
   };
   assert.match(src.start, /className = 'start-dlg phone-full'/);
@@ -54,7 +54,7 @@ test('every slice-E dialog is a .phone-full page; phones get "Close" (household:
 });
 
 test('household money fields go through core/moneyinput (separators; the store still gets whole dollars)', () => {
-  const s = read('modules/household/index.js');
+  const s = read('modules/household/index.js') + read('modules/household/form.js'); // S3: the markup lives in form.js
   for (const path of ['buyers.${i}.income', 'buyers.${i}.cpfOa', "'cash'", "'otherDebts'", "'grantsOverride'"]) assert.ok(s.includes(`amt(${path.startsWith("'") ? path : `\`${path}\``}`), path);
   assert.match(s, /if \('money' in el\.dataset\) return parseMoney\(el\.value\)/);
   assert.match(s, /if \(Number\.isNaN\(v\)\) return;/, 'a value that cannot be read is not saved');

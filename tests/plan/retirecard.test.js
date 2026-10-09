@@ -101,7 +101,7 @@ test('B6: Simple says "Retirement Account" and "Lease Buyback"; Pro "RA top-up"'
   assert.match(card(), /<span>RA top-up<\/span>/);
 });
 
-test('B6: CPF balances missing → "—" with a link to add them (household:open)', () => {
+test('B6: CPF balances missing → "—" with a fill link to add them (household:open via core/filllink.js)', () => {
   const html = card({ h: { ...P4, buyers: [{ age: 60, income: 0, citizenship: 'SC' }] } });
-  assert.match(optionOf(html, 'stay'), /CPF LIFE a month<\/span><b>—<\/b><small><button type="button" class="link" data-act="hh-open" data-field="buyers\.0\.cpfOa">add CPF balances/);
+  assert.match(optionOf(html, 'stay'), /CPF LIFE a month<\/span><b>—<\/b><small><button type="button" class="link fill-link" data-fill="household" data-field="buyers\.0\.cpfOa">Add CPF balances →/);
 });

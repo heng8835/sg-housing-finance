@@ -2,7 +2,7 @@
    is inside @media screen and (max-width: 767px), so tablet and desktop do not change (tests/phone/css-floor.test.js checks it,
    plus: no px font sizes, no font size under .875rem, ≥ 44 px targets). Tokens from base.css only — no new colours.
    Screens: the Map tab = map + map sheet (#mapSheet, peek / half / full); Afford / Rent / Plan / Choices = full-screen
-   pages (#panel). Top bar = the header (household chip · Aa · Menu); bottom tab bar = #tabbar (modules/shell/phone.js
+   pages (#panel). Top bar = the header (EN | 中文 · Simple | Pro · You · Menu); bottom tab bar = #tabbar (modules/shell/phone.js
    moves the .tabs strip into it). Type: root 16 / 18 / 20 px (A / A+ / A++); notes 14, secondary 15, body 16. */
 @media screen and (max-width: 767px) {
   /* ---------------------------------------------------------------- root sizes (textsize.css: 14 / 16 / 18) */
@@ -18,17 +18,36 @@
   }
   #app, #app.panel-hidden { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
 
-  /* top bar: the household chip takes the free space; Aa and Menu on the right; the rest lives in the Menu */
-  header { grid-row: 1; min-height: 56px; padding: 6px 16px; gap: 8px; font-size: 1rem; min-width: 0; }
-  header h1, header .sub, header .stat, header .spacer, header .seg, #learnBtn, #guideBtn { display: none; }
-  #hhChip { order: 0; flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 14px; font-size: .9375rem; overflow: hidden; white-space: nowrap; }
-  #hhChip .hh-more { display: none; }
-  /* P-03: the chip's text is never cut — a little less side padding than 14 px fits "设置您的家庭资料" at 360 px Larger */
-  header #hhChip { padding: 0 10px; text-overflow: ellipsis; }
-  .tb-btn { order: 1; display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 44px; min-height: 44px; padding: 0 10px;
-    border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: .9375rem; font-weight: 600; }
-  #phoneMenu { order: 2; min-width: 64px; }
-  #phoneAa[aria-expanded="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+  /* top bar (phone-topbar-area-household.md §3): EN | 中文 · Simple | Pro · (space) · You · Menu, one row, 6 px gaps.
+     The same .lang-switch / .mode-switch / #hhChip elements as the desktop header, reordered; text size is in the Menu. */
+  header { grid-row: 1; min-height: 56px; padding: 6px 16px; gap: 6px; font-size: 1rem; min-width: 0; }
+  header h1, header .sub, header .stat, header .spacer, header .ts-switch, #learnBtn, #guideBtn { display: none; }
+  header .lang-switch { order: 1; flex: none; }
+  header .mode-switch { order: 2; flex: none; }
+  header .lang-switch button, header .mode-switch button { display: inline-flex; align-items: center; justify-content: center; min-width: 44px;
+    min-height: 44px; padding: 0 6px; font-size: .9375rem; font-weight: 500; line-height: 1.2; white-space: nowrap; }
+  /* T-1 (phone-topbar-review): a soft selected state, so the segs do not outweigh the map; weight + inner ring keep it
+     clear without colour alone (#1f5fae on #e6f0fc ≈ 5.7:1). Only the top bar; other .segs stay as they are. */
+  header .lang-switch button.on, header .mode-switch button.on {
+    background: var(--accent-soft); color: var(--accent-ink); font-weight: 650;
+    box-shadow: inset 0 0 0 1.5px var(--accent); }
+  /* You (household/chip.js) and Menu: a matching pair, 20 px outline icon over the word; no frame, no pill */
+  header .tb-item { display: inline-flex; flex: none; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    min-width: 44px; min-height: 44px; padding: 0 4px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--text-2);
+    font-size: .875rem; font-weight: 500; line-height: 1.15; white-space: nowrap; }
+  header .tb-item:active { background: var(--surface-2); }
+  header .tb-ic { flex: none; width: 20px; height: 20px; }
+  #hhChip { order: 3; margin-left: auto; }
+  #hhChip .hh-d { display: none; } /* the desktop chip's text: count, money, age */
+  #hhChip .hh-tb[hidden] { display: contents; }
+  #hhChip.unset { color: var(--accent-ink); } /* nothing set yet: the one quiet invitation colour */
+  #phoneMenu { order: 4; }
+  /* Q10: the bar's labels grow to Large and stop there (16.875 px segs, 15.75 px words = Large's .9375rem / .875rem),
+     written in Larger's rem (root 20 px) so the row fits 360 px; everything else keeps growing */
+  :root.ts-larger header .lang-switch button, :root.ts-larger header .mode-switch button { font-size: calc(16.875rem / 20); }
+  :root.ts-larger header .tb-item { font-size: calc(15.75rem / 20); }
+  /* under 360 px (not a target): Menu keeps its icon and aria-label, the word gives way */
+  @media (max-width: 359px) { #phoneMenu .tb-w { display: none; } }
 
   /* bottom tab bar: always visible (hidden only while the on-screen keyboard is up); short labels */
   nav.tabbar { display: block; grid-row: 3; grid-column: 1 / -1; position: relative; z-index: 1100; background: var(--surface);
@@ -174,15 +193,6 @@
     border: 0; background: none; color: var(--text); font-size: 1rem; text-align: left; }
   .phone-menu .pm-go::after { content: '›'; color: var(--text-3); font-size: 1.25rem; }
   .phone-menu .pm-disc { margin: 16px 0; font-size: .875rem; color: var(--text-3); }
-
-  /* Aa popover */
-  .ts-pop { position: fixed; z-index: 1300; top: calc(env(safe-area-inset-top, 0px) + 60px); right: 16px; width: min(18rem, calc(100vw - 32px));
-    padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-pop); }
-  .ts-pop-l { margin: 0 0 10px; font-size: .9375rem; color: var(--text-2); }
-  .ts-pop .ts-switch { display: flex; gap: 8px; width: 100%; border: 0; overflow: visible; }
-  .ts-pop .ts-switch button, .ts-pop .ts-switch button + button { flex: 1; min-height: 48px; border: 1px solid var(--border);
-    border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
-  .ts-pop .ts-switch button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
 
   @media (prefers-reduced-motion: reduce) { #mapSheet { transition: none; } }
 }

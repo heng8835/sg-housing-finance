@@ -44,7 +44,7 @@ export function needsHtml(needs) {
   const hh = needs.filter((n) => n !== 'flat');
   return `<div class="need" role="note"><span class="need-ic" aria-hidden="true">ⓘ</span>
     <p>${t('Numbers shown as — need {0}.', [words])}</p>
-    <div class="need-act">${hh.length ? `<button type="button" class="btn sm" data-guide-need="${esc(hh[0])}">${esc(t('Add in Household →'))}</button>` : ''}
+    <div class="need-act">${hh.length ? `<button type="button" class="btn sm" data-guide-need="${esc(hh[0])}">${esc(t('Add in About you →'))}</button>` : ''}
       ${needs.includes('flat') ? `<button type="button" class="link" data-guide-need="flat">${esc(t('Pick a flat or enter a price in Afford →'))}</button>` : ''}</div></div>`;
 }
 

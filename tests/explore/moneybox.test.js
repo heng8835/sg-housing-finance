@@ -62,7 +62,7 @@ test('B12: PHG row wording — within, over, close to the limit (± 300 m), livi
   assert.match(close, /^≈ .* km \(close to the .* km limit; HDB checks the exact distance\)/);
   assert.match(cell(LIMIT + 0.2), /^≈ /, 'just over the limit is also "close"');
   assert.match(cell(9, household({ parents: 'with' })), /^✓ living with your parents/);
-  assert.match(cell(1, household({ grantsOverride: 30000 })), /your own grant figure in Household is used\)$/);
+  assert.match(cell(1, household({ grantsOverride: 30000 })), /your own grant figure in About you is used\)$/);
 });
 
 test('B12: daily places — the parents\' place, the card line', () => {

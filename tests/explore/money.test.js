@@ -100,7 +100,8 @@ test('cash not known: no "short", ask for the savings (A11) — Compare as Affor
   assert.equal(p.cashShort, null);
   const cash = strip(rowsBy(mon)['Cash you must pay'].f(m));
   assert.doesNotMatch(cash, /short/i);
-  assert.match(cash, /Add your savings to check the cash part\./);
+  assert.match(cash, /Add your savings →$/); // fill link → the household's cash (core/filllink.js)
+  assert.match(rowsBy(mon)['Cash you must pay'].f(m), /data-fill="household" data-field="cash"/);
   assert.equal(strip(cashShortLine(p)), 'Add your savings to check the cash part.');
   assert.ok(!mon.glance(m).some(([, , txt]) => /short/.test(txt)));
   // nothing known at all: no cash line in At a glance (as before 7a)

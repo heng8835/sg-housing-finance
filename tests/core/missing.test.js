@@ -35,7 +35,7 @@ test('prompt: words, quick-fill + deep-link buttons, the first missing field, a 
   assert.match(html, /data-need-key="afVerdict"/);
   assert.match(html, /Add <b>income<\/b> and <b>age<\/b> to see this\./);
   assert.match(html, /data-need="quick"[^>]*>Fill in here</);
-  assert.match(html, /data-need="open" data-field="buyers\.0\.income">Set in household →</);
+  assert.match(html, /data-need="open" data-field="buyers\.0\.income">Add in About you →</);
   assert.match(html, /data-fields="buyers\.0\.income,buyers\.0\.age"/);
   assert.match(needPrompt(list, 'k', { compact: true }), /class="need compact"/);
   assert.equal(needPrompt([], 'k'), '');

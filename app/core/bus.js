@@ -3,6 +3,7 @@
 //   · 'explore:rings' {lat, lon, radiiKm, label} | null (P1 rings) · 'plan:show' {section} (scroll the Plan tab)
 //   · 'explore:area' {kind, label, blockIds, town, centre, n} | null (drawn area; explore emits, core/typical.js listens)
 //   · 'explore:selection' {flatTypes, allTypes, towns|null, area|null, window:{from,to,months}, history:{from,to}}
+//   · 'fill:open' {target, field, id} (a fill link, core/filllink.js: places / flat → explore, rent → modules/rent)
 //   · 'household:open' {field?} (open the drawer, focus that data-path) · 'guide:open' {useCase?} (tour picker / one tour)
 //   · 'afford:painted' {root} (Afford re-rendered; modules/scenarios moves its card into root's [data-slot="scenarios"])
 //   · 'learn:painted' {root, id} (Learn sheet re-rendered; modules/guides fills root's [data-slot="guides"] on the index)

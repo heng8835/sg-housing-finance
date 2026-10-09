@@ -86,8 +86,8 @@ test('Sev-1 UI: the gap uses the one rent figure (plan.rent.amount, else the old
   assert.match(strip(gapNote(cur, d, { rent: { amount: 3000 } })), /about 2 months × your rent S\$3,000 = S\$6,000\./);
   assert.match(strip(gapNote(cur, d, { rentNow: 2400 })), /× your rent S\$2,400 = S\$4,800\./);
   const none = gapNote(cur, d, {});
-  assert.match(none, /data-act="goto-rent"/);
-  assert.match(strip(none), /Add the rent you.d pay to see this\./);
+  assert.match(none, /data-fill="rent"/); // fill link → Rent & Buy, the rent field focused (core/filllink.js)
+  assert.match(strip(none), /Add the rent you(.|&#39;)d pay to see this\./); // the link text is HTML-escaped
   assert.equal(gapNote({ ...cur, mode: 'buy-first' }, d, { rent: { amount: 3000 } }), '');
   assert.equal(sharedRent({ rent: { amount: 0 }, rentNow: 1500 }).amount, 0, 'typed 0 wins');
   assert.equal(sharedRent({}).amount, null);

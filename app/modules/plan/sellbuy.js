@@ -3,6 +3,7 @@
 import { sellThenBuy, defaultMode } from '../../engine/sellbuy.js';
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
+import { householdLink } from '../../core/filllink.js';
 import { field, numIn, moneyIn, selIn, notesFold, todayIso } from './ui.js';
 import { defaultNote } from '../../core/typical.js';
 import { moveTimelineBlock } from './contra.js';
@@ -72,13 +73,13 @@ export function sellBuySection({ h, tf: f, plan: p, policy, fold = () => '', tod
   const line = (label, v, sign = '−') => (v ? `<tr><td>${label}</td><td>${sign} ${money(v)}</td></tr>` : '');
   // A11: never "short" before the household's own savings are known (the sale money alone isn't the whole picture)
   const savingsKnown = h.cash != null && h.cash !== '';
-  const verdict = !savingsKnown && (gap.fundsShort > 0 || gap.cashShort > 0) ? ['neutral', t('Add your savings in Household to check whether the sale covers the next flat')]
+  const verdict = !savingsKnown && (gap.fundsShort > 0 || gap.cashShort > 0) ? ['neutral', t('Add your savings in About you to check whether the sale covers the next flat')]
     : gap.fundsShort > 0 ? ['critical', t('Short of {0} for the next flat', [money(gap.fundsShort)])]
     : gap.cashShort > 0 ? ['warn', t('Enough in total, but {0} more must be cash', [money(gap.cashShort)])]
       : ['good', t('Covered, with {0} to spare', [money(gap.surplus)])];
   return `${head}${inputs(c, year, mode)}${defaultNote(f)}
-    ${h.firstTimer ? `<p class="notice">${t('Your household is set up as first-timers. If you have bought an HDB flat before, change this in Household — grants and loans differ for second-timers.')}</p>` : ''}
-    <p class="verdict"><span class="tag ${verdict[0]}">${verdict[1]}</span> <small>${t('next: {0} at {1}', [esc(f.label || t('this flat')), money(f.price)])}</small></p>
+    ${h.firstTimer ? `<p class="notice">${t('Your household is set up as first-timers. If you have bought an HDB flat before, change this in About you — grants and loans differ for second-timers.')}</p>` : ''}
+    <p class="verdict"><span class="tag ${verdict[0]}">${verdict[1]}</span>${!savingsKnown && verdict[0] === 'neutral' ? ` ${householdLink(h, 'cash')}` : ''} <small>${t('next: {0} at {1}', [esc(f.label || t('this flat')), money(f.price)])}</small></p>
     <div class="kpis">
       <div class="kpi"><small>${t('Cash from the sale')}</small><b>${money(pr.cashAfterTaxes)}${unsure}</b><small>${t('after loan, CPF refund and fees')}</small></div>
       <div class="kpi"><small>${simple ? t('CPF back to your CPF account') : t('CPF back to your OA')}</small><b>${money(pr.cpfRefund)}${cb.estimate ? ` <span class="tag warn">${t('estimate')}</span>` : ''}</b><small>${cb.sub}</small></div>

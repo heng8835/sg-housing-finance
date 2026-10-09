@@ -9,6 +9,7 @@
 // Sev-1: display only — medians are the block's sales of the selected flat types in S.mFrom…S.mTo (no More filters).
 // Pure parts are exported for node tests (tests/explore/schoolcard.test.js); createSchoolCard() is browser-only.
 import { t } from '../../core/i18n.js';
+import { fillLink } from '../../core/filllink.js';
 import { esc } from '../../core/dom.js';
 import { blocksNear, schoolName } from '../../core/schools.js';
 
@@ -71,7 +72,7 @@ export function schoolCardHtml(m, o) {
   const list = rows.length
     ? `${seg}<ul class="sc-blocks">${shown.map((r) => rowHtml(r, o)).join('')}</ul>${rows.length > SCHOOL_BLOCKS_SHOWN ? `<button type="button" class="link bc-more" data-sc="all">${o.all ? t('Show fewer') : t('Show all {0} blocks', [rows.length])}</button>` : ''}`
     : `<p class="bc-cap">${none}</p>${m.nearest ? `<ul class="sc-blocks">${rowHtml(m.nearest, o)}</ul>` : ''}`;
-  const hh = rows.length && !o.budgetKnown ? `<p class="bc-cap">${t('Add your household to see which are within your budget.')}</p>` : '';
+  const hh = rows.length && !o.budgetKnown ? `<p class="bc-cap">${fillLink({ target: 'household', field: 'buyers.0.income', text: 'Add your household to see which are within your budget.' })}</p>` : '';
   return `<div class="bc"><section class="bc-sec">${list}${hh}</section>
     <div class="bc-actions"><button type="button" class="btn sm" data-sc="ring" aria-pressed="${!!o.ringOn}">${o.ringOn ? t('Hide the ring') : t('Show the {0} km ring', [m.km])}</button>
     <p class="foot-note">${t('Tap a block to open its card. Straight-line distance; MOE measures from the home address, so check MOE\'s tool.')}</p></div></div>`;

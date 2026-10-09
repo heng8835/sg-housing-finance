@@ -1,155 +1,69 @@
-// Household chip (header) + drawer: who is buying, their money, loan choice, grants, and data controls.
+// Household page "About you" (the header entry is household/chip.js; the markup is household/form.js; groups and
+// summaries household/groups.js): the basics first, then folded groups (spec phone-topbar-area-household.md §4).
 // Writes only to the store; every other module reacts to the store.
-import { summarise } from '../../engine/household.js';
-import { grants } from '../../engine/grants.js';
-import { esc, money, kilo, downloadJson } from '../../core/dom.js';
+import { downloadJson } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
-import { saveView } from '../../core/fold.js';
+import { saveView, keepFolds } from '../../core/fold.js';
 import { loanChoice, loanSeg } from './loan.js';
-import { grantNotesFor } from '../../core/grantnotes.js';
 import { isPhone } from '../../core/spotlight.js';
-import { moneyInput, parseMoney, bindMoneyInputs } from '../../core/moneyinput.js';
+import { bindMoneyInputs } from '../../core/moneyinput.js';
+import { mountChip } from './chip.js';
+import { formHtml, grantsPreview, parseField } from './form.js';
+import { pickTarget, foldOf, groupFor, summaries, statusLine } from './groups.js';
 
-const CITIZEN = [['SC', 'Singapore Citizen'], ['PR', 'Permanent Resident'], ['F', 'Foreigner']];
-const PARENTS = [['none', 'No'], ['near', ['Within {0} km of parents / child', 'grant.phg.near_km']], ['with', 'Living with parents / child']];
-const TIMER = [[true, 'First-timers'], ['mixed', 'One first-timer, one second-timer'], [false, 'Second-timers']];
-const NATIONALITY = [['MY', 'Malaysian'], ['US', 'American (US)'], ['EFTA', 'Iceland / Liechtenstein / Norway / Switzerland'], ['other', 'Other']];
-const PASS = [['EP', 'Employment Pass'], ['SP', 'S Pass'], ['WP', 'Work Permit'], ['DP', 'Dependant / Long-Term Visit Pass'], ['student', 'Student Pass']];
-const SECTOR = [['services', 'Services'], ['manufacturing', 'Manufacturing'], ['cmp', 'Construction / marine / process']];
-const YESNO = [['true', 'Yes'], ['false', 'No']];
-const OWNED = [[0, 'None'], [1, 'One'], [2, 'Two or more']];
-const FLASH_MS = 1600; // highlight on a field opened from a "Set in household →" link (styles/modules.css .flash)
+const FLASH_MS = 1600; // highlight on a field opened from a fill link (styles/modules.css .flash)
+const HEAD_GAP = 12; // px between the sticky header and the label of a field opened from a link (§4.3 step 3)
+const BUYER_ROW = /^buyers\.\d+\.(age|income)$/; // fields in a buyer's first row: the deep link scrolls to the buyer's legend
+const FRAME_FALLBACK_MS = 50; // a page that is not being painted (background tab) gets no animation frame
+/** fn once, after the next animation frame (or a short timeout when no frame comes). */
+function nextFrame(fn) {
+  let done = false;
+  const go = () => { if (!done) { done = true; fn(); } };
+  requestAnimationFrame(go); setTimeout(go, FRAME_FALLBACK_MS);
+}
 
 export function mountHousehold({ store, policy, bus }) {
-  const chip = document.createElement('button');
-  chip.id = 'hhChip'; chip.className = 'hh-chip'; chip.type = 'button';
-  chip.setAttribute('aria-haspopup', 'dialog');
-  document.querySelector('header .spacer').after(chip);
+  const chip = mountChip({ store }); // header entry: desktop chip / phone "You" (household/chip.js)
 
   const dlg = document.createElement('dialog');
-  dlg.id = 'hhDialog'; dlg.className = 'drawer phone-full'; dlg.setAttribute('aria-labelledby', 'hhTitle'); // phones: full-screen page, sticky head + Done (styles/samples.css)
+  dlg.id = 'hhDialog'; dlg.className = 'drawer phone-full'; dlg.setAttribute('aria-labelledby', 'hhTitle'); // phones: full-screen page, sticky head + Done (styles/household.css)
   document.body.appendChild(dlg);
+  const folds = keepFolds(dlg); // open / closed groups remembered for the session (F6)
 
   const h = () => store.get('household');
   const set = (path, v) => store.set(`household.${path}`, v);
-
-  function renderChip() {
-    const s = summarise(h()), n = s.buyers.length;
-    chip.innerHTML = s.income == null
-      ? `👪 <b>${t('Set up your household')}</b>`
-      : `👪 ${t(n === 1 ? '{0} buyer' : '{0} buyers', [n])}<span class="hh-more"> · ${t('{0}/mo', [kilo(s.income)])}${s.youngestAge ? ` · ${s.youngestAge}` : ''}</span> <span aria-hidden="true">▾</span>`;
-    chip.title = t('Your household — used by every calculation. Stays in this browser.');
-  }
-
-  const opt = (list, cur) => list.map(([v, l]) => `<option value="${esc(String(v))}"${String(v) === String(cur) ? ' selected' : ''}>${esc(Array.isArray(l) ? t(l[0], [policy.get(l[1])]) : t(l))}</option>`).join('');
-  const num = (path, val, label, attrs = '', cls = '') => `<label class="f${cls ? ` ${cls}` : ''}"><span>${t(label)}</span><input type="number" inputmode="numeric" data-path="${path}" value="${val ?? ''}" ${attrs}></label>`;
-  // money: a text field with thousands separators (core/moneyinput.js, phone overhaul §3.8 / owner Q10); the store
-  // still gets whole dollars — parse() below reads it with parseMoney, and a value that cannot be read is not saved
-  const amt = (path, val, label, cls = '') => `<label class="f${cls ? ` ${cls}` : ''}"><span>${t(label)}</span>${moneyInput({ value: val, attrs: `data-path="${path}"` })}</label>`;
-  const sel = (path, label, list, cur, extra = '') => `<label class="f"><span>${t(label)}</span><select data-path="${path}" ${extra}>${opt(list, cur)}</select></label>`;
-
-  function buyerRow(b, i, n) {
-    return `<fieldset class="buyer"><legend>${t('Buyer {0}', [i + 1])}${n > 1 ? ` <button type="button" class="link" data-act="remove-buyer" data-i="${i}">${t('remove')}</button>` : ''}</legend>
-      <div class="fields">
-        ${num(`buyers.${i}.age`, b.age, 'Age', 'min="21" max="99"')}${amt(`buyers.${i}.income`, b.income, 'Gross monthly income (S$)')}
-        ${sel(`buyers.${i}.citizenship`, 'Residency', CITIZEN, b.citizenship, 'data-restructure')}
-        ${b.citizenship === 'F' ? '' : amt(`buyers.${i}.cpfOa`, b.cpfOa, 'CPF Ordinary Account (S$)')}
-        ${b.citizenship === 'F' ? '' : `${amt(`buyers.${i}.cpfSa`, b.cpfSa, 'Special Account (S$)', 'pro-only')}${amt(`buyers.${i}.cpfMa`, b.cpfMa, 'MediSave (S$)', 'pro-only')}${amt(`buyers.${i}.cpfRa`, b.cpfRa, 'Retirement Account (S$)', 'pro-only')}`}
-        ${b.citizenship !== 'F' && +b.age >= policy.get('cpf.age.life_payout') ? amt(`buyers.${i}.cpfLifeMonthly`, b.cpfLifeMonthly, 'CPF LIFE payout you receive (S$ a month, optional)') : ''}
-        ${b.citizenship === 'PR' ? sel(`buyers.${i}.prYears3Plus`, 'PR for 3 years or more?', [['', '—'], ...YESNO], b.prYears3Plus == null ? '' : String(b.prYears3Plus), 'data-type="bool"') : ''}
-        ${b.citizenship !== 'SC' ? sel(`buyers.${i}.nationality`, 'Nationality', [['', '—'], ...NATIONALITY], b.nationality || '') : ''}
-        ${b.citizenship === 'F' ? sel(`buyers.${i}.pass`, 'Pass', [['', '—'], ...PASS], b.pass || '', 'data-restructure') : ''}
-        ${b.citizenship === 'F' && b.pass === 'WP' ? sel(`buyers.${i}.wpSector`, 'Work Permit sector', [['', '—'], ...SECTOR], b.wpSector || '') : ''}
-      </div>
-      ${b.citizenship === 'F' ? `<p class="hint">${t("Foreigners don't have CPF, can't buy HDB flats and pay ABSD on private homes — the Afford tab shows what applies.")}</p>` : ''}
-      </fieldset>`;
-  }
-
-  function grantsPreview() {
-    const out = ['4 ROOM', '5 ROOM'].map((ft) => `${t(ft)} ${money(grants({ household: h(), flatType: ft }, policy).total)}`);
-    const notes = grantNotesFor(grants({ household: h(), flatType: '4 ROOM' }, policy)); // B11: notes only when they apply
-    return `<p class="hint">${t('Estimated')}: ${out.join(' · ')}.</p>${notes.map((n) => `<p class="hint">• ${esc(t(n))}</p>`).join('')}`;
-  }
-
-  const seg = (label, act, items, cur, labelledBy = '') => `<div class="seg" role="radiogroup" ${labelledBy ? `aria-labelledby="${labelledBy}"` : `aria-label="${esc(t(label))}"`}>${items.map(([v, l]) => `<button type="button" role="radio" aria-checked="${v === cur}" data-act="${act}" data-v="${v}" class="${v === cur ? 'on' : ''}">${t(l)}</button>`).join('')}</div>`;
+  const pro = () => (store.get('ui') || {}).mode === 'pro';
 
   function renderForm() {
     const restore = saveView(dlg, () => dlg.querySelector('.drawer-body'));
-    paintForm();
+    folds.snapshot();
+    dlg.innerHTML = `<form method="dialog" class="drawer-body" autocomplete="off">${formHtml(h(), policy, { phone: isPhone(), sample: store.inSample(), pro: pro(), folds })}</form>`;
     restore();
   }
 
-  function paintForm() {
-    const x = h(), single = x.scheme === 'single', sample = store.inSample(), phone = isPhone();
-    // phone overhaul §3.8: on a phone the close button says "Close" and a sticky Done ends the page (values save as you type)
-    const close = phone ? `<button class="btn sm" value="close">${t('Close')}</button>` : `<button class="btn sm" value="close" aria-label="${esc(t('Close'))}">✕</button>`;
-    dlg.innerHTML = `<form method="dialog" class="drawer-body" autocomplete="off">
-      <div class="drawer-head"><h2 id="hhTitle">${t('Your household')}</h2>${close}</div>
-      <p class="hint">${t('Used by every number in the app.')} <b>${t('Stays in this browser')}</b> — ${t('nothing is sent anywhere.')}</p>
-      ${sample ? `<div class="notice" role="note">${t('This is a sample household. You can change anything here — the changes are discarded when you exit the sample.')} <button type="button" class="link" data-act="sample-exit">${t('Exit sample')}</button></div>`
-    : `<p class="hint hh-links"><button type="button" class="link" data-act="samples">${t('Try a sample household →')}</button> <span class="hh-sep">·</span> <button type="button" class="link" data-act="edit-answers">${t('Edit answers')}</button> <span class="hh-sep">·</span> <button type="button" class="link" data-act="start">${t('Start over with a few quick questions')}</button></p>`}
-      ${x.needsReview ? `<div class="notice" role="note">${t('Your old “Cash + CPF” figure was put into Cash. Move your CPF OA balance into the buyer rows so the cash checks are right.')} <button type="button" class="link" data-act="reviewed">${t('Done')}</button></div>` : ''}
-      <div class="section"><h3>${t('Buying as')}</h3>
-        ${seg('Scheme', 'scheme', [['family', 'Family / couple'], ['single', 'Single']], x.scheme === 'single' ? 'single' : 'family')}
-        ${x.buyers.map((b, i) => buyerRow(b, i, x.buyers.length)).join('')}
-        ${!single && x.buyers.length < 2 ? `<div class="actions"><button type="button" class="btn sm" data-act="add-buyer">+ ${t('Add second buyer')}</button></div>` : ''}
-      </div>
-      <div class="section"><h3>${t('Money for the purchase')}</h3>
-        <div class="fields">
-          ${amt('cash', x.cash, 'Cash savings you can put in (S$)')}
-          ${amt('otherDebts', x.otherDebts, 'Other monthly loan repayments (car, study…) (S$)')}
-        </div>
-      </div>
-      <div class="section"><h3>${t('Situation')}</h3>
-        <div class="fields">
-          ${sel('firstTimer', 'First-time buyers?', single ? TIMER.filter(([v]) => v !== 'mixed') : TIMER, x.firstTimer, 'data-type="timer"')}
-          ${sel('propertiesOwned', 'Homes you already own', OWNED, x.propertiesOwned, 'data-type="int"')}
-          ${sel('parents', 'Close to parents / married child?', PARENTS, x.parents)}
-        </div>
-      </div>
-      <div class="section"><h3>${t('Loan')}</h3>
-        <div class="fields">
-          <div class="seg-field" id="hhLoan"><span class="f-label" id="hhLoanLbl">${t('Loan type')}</span>${loanSeg(loanChoice(x, policy))}</div>
-          ${num('tenure', x.tenure, 'Loan tenure (years)', 'min="5" max="30"')}
-        </div>
-      </div>
-      <div class="section"><h3>${t('Grants')}</h3>
-        <div id="hhGrants">${grantsPreview()}</div>
-        <div class="fields">${amt('grantsOverride', x.grantsOverride, 'Override with your HFE letter amount (S$, optional)', 'wide')}</div>
-      </div>
-      <div class="section hh-data"><h3>${t('Your data')}</h3>
-        <div class="actions">
-          <button type="button" class="btn sm" data-act="export">${t('Export (.json)')}</button>
-          <label class="btn sm file">${t('Import')}<input type="file" accept="application/json,.json" data-act="import" hidden></label>
-          <button type="button" class="btn sm danger" data-act="forget">${t('Forget my data')}</button>
-        </div>
-        <p class="hint" id="hhDataMsg" aria-live="polite"></p>
-      </div>
-      ${phone ? `<div class="drawer-foot"><button class="btn primary" value="close">${t('Done')}</button></div>` : ''}
-    </form>`;
+  /** After typing: the parts that depend on other fields (grants estimate, loan switch, summaries, status line). */
+  function refreshLive() {
+    const x = h();
+    const g = dlg.querySelector('#hhGrants'); if (g) g.innerHTML = grantsPreview(x, policy);
+    const loan = dlg.querySelector('#hhLoan'); // B11: income above the ceiling greys the HDB loan as you type
+    if (loan) loan.innerHTML = `<span class="f-label" id="hhLoanLbl">${t('Loan type')}</span>${loanSeg(loanChoice(x, policy))}`;
+    const sums = summaries(x, policy, { pro: pro() });
+    dlg.querySelectorAll('[data-sum]').forEach((el) => { el.textContent = sums[el.dataset.sum] ?? ''; });
+    const line = dlg.querySelector('#hhLine'); if (line) line.textContent = statusLine(x, { sample: store.inSample() });
   }
-
-  const parse = (el) => {
-    if (el.dataset.type === 'timer') return el.value === 'true' ? true : el.value === 'false' ? false : 'mixed';
-    if (el.dataset.type === 'int') return +el.value;
-    if (el.dataset.type === 'bool') return el.value === '' ? null : el.value === 'true';
-    if ('money' in el.dataset) return parseMoney(el.value); // NaN = cannot be read yet (the input handler skips it)
-    if (el.type === 'number') return el.value === '' ? null : +el.value;
-    return el.value;
-  };
 
   dlg.addEventListener('input', (e) => {
     const el = e.target.closest('[data-path]'); if (!el) return;
-    const v = parse(el);
+    const v = parseField(el); // household/form.js: the value the store gets
     if (Number.isNaN(v)) return; // e.g. "12.5" or "-3" in a money field: marked aria-invalid, the saved value stays
     set(el.dataset.path, v);
     if (el.hasAttribute('data-restructure')) { renderForm(); return; } // renderForm restores focus + scroll
-    dlg.querySelector('#hhGrants').innerHTML = grantsPreview();
-    const loan = dlg.querySelector('#hhLoan'); // B11: income above the ceiling greys the HDB loan as you type
-    if (loan) loan.innerHTML = `<span class="f-label" id="hhLoanLbl">${t('Loan type')}</span>${loanSeg(loanChoice(h(), policy))}`;
+    refreshLive();
   });
 
   dlg.addEventListener('click', (e) => {
+    const i = e.target.closest('.hh-i'); // ⓘ: show / hide the one help line under the field
+    if (i) { const p = dlg.querySelector(`#${CSS.escape(i.getAttribute('aria-controls'))}`); if (p) { p.hidden = !p.hidden; i.setAttribute('aria-expanded', String(!p.hidden)); } return; }
     const b = e.target.closest('[data-act]'); if (!b) return;
     // in a sample household the live data is the sample's: Export / Import / Forget act on the user's own data only
     if (store.inSample() && ['export', 'import', 'forget'].includes(b.dataset.act)) { e.preventDefault(); sampleBlocked(); return; }
@@ -162,9 +76,11 @@ export function mountHousehold({ store, policy, bus }) {
       case 'start': if (!confirm(t('Start over? This clears your household in this browser.'))) return; dlg.close(); bus.emit('start:open', { opener: chip, fresh: true }); return;
       case 'sample-exit': bus.emit('samples:exit', {}); return;
       case 'scheme': set('scheme', b.dataset.v); if (b.dataset.v === 'single') set('buyers', x.buyers.slice(0, 1)); if (b.dataset.v === 'single' && x.firstTimer === 'mixed') set('firstTimer', true); break;
+      case 'cit': set(`buyers.${b.dataset.i}.citizenship`, b.dataset.v); break; // was a select: same value SC / PR / F, same re-render
+      case 'pr': { const p = `buyers.${b.dataset.i}.prYears3Plus`, v = b.dataset.v === 'true'; set(p, x.buyers[+b.dataset.i]?.prYears3Plus === v ? null : v); break; } // tap the chosen one again = not answered (the old "—")
       case 'loan': if (b.getAttribute('aria-disabled') === 'true') return; set('loan', b.dataset.v); break; // B11: greyed HDB loan
       case 'add-buyer': set('buyers', [...x.buyers, { age: null, income: null, citizenship: 'SC', prYears3Plus: null, nationality: null, pass: null, wpSector: null, cpfOa: null, cpfSa: null, cpfMa: null, cpfRa: null }]); break;
-      case 'remove-buyer': set('buyers', x.buyers.filter((_, i) => i !== +b.dataset.i)); break;
+      case 'remove-buyer': set('buyers', x.buyers.filter((_, k) => k !== +b.dataset.i)); break;
       case 'reviewed': set('needsReview', false); break;
       case 'export': downloadJson(store.export(), 'sg-housing-household.json'); break;
       case 'forget':
@@ -188,18 +104,44 @@ export function mountHousehold({ store, policy, bus }) {
 
   bindMoneyInputs(dlg); // after the listener above: it saves first, then the field is re-grouped (same digits)
   chip.addEventListener('click', () => { renderForm(); dlg.showModal(); });
-  // { field: 'buyers.0.income' } (from a "Set in household →" prompt) → open, then focus and flash that input
+
+  // open at a field (§4.3): its group opens (and stays open on re-render), the field's label sits just under the
+  // sticky header, focus + the 1.6 s flash. Not on the page → buyer 1's field → the group's title row → the first basics field.
+  const shown = (el) => !!el && el.getClientRects().length > 0;
+  function landOn(field) {
+    const key = foldOf(groupFor(field));
+    const d = key && dlg.querySelector(`details[data-fold="${key}"]`);
+    if (d && !d.open) { d.open = true; folds.snapshot(); }
+    const find = (c) => (c.path ? (c.path === 'forget' ? dlg.querySelector('[data-act="forget"]') : dlg.querySelector(`[data-path="${CSS.escape(c.path)}"]`))
+      : c.group ? dlg.querySelector(`details[data-fold="${foldOf(c.group)}"] > summary`)
+        : dlg.querySelector('.hh-basics [data-path]'));
+    const c = pickTarget(field, (x) => shown(find(x)));
+    return c && find(c);
+  }
   bus.on('household:open', ({ field } = {}) => {
     renderForm();
     if (!dlg.open) dlg.showModal();
     if (!field) return;
-    const el = dlg.querySelector(`[data-path="${CSS.escape(field)}"]`) || dlg.querySelector('[data-path^="buyers.0."]');
+    const el = landOn(field);
     if (!el) return;
-    el.scrollIntoView({ block: 'center' });
-    el.focus();
-    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), FLASH_MS);
+    const target = el.matches('[role="radiogroup"]') ? el.querySelector('[aria-checked="true"]') || el.querySelector('button') : el;
+    nextFrame(() => {
+      const head = dlg.querySelector('.drawer-head');
+      // a buyer's first row (age / income): the buyer's legend goes to the top so "Buyer 1" / "Buyer 2" stays in view (review H-5)
+      const legend = BUYER_ROW.test(el.dataset.path || '') && el.closest('fieldset.buyer')?.querySelector(':scope > legend');
+      const top = (head ? head.offsetHeight : 0) + HEAD_GAP, box = legend || el.closest('.hh-f') || el, body = dlg.querySelector('.drawer-body');
+      dlg.style.setProperty('--hh-head', `${top}px`); // scroll-margin-top (styles/household.css)
+      // a field near the end cannot scroll up to the header: room below it until the next re-render
+      const margin = parseFloat(getComputedStyle(box).scrollMarginTop) || top; // legend / Forget: their own scroll-margin-top
+      const need = box.getBoundingClientRect().top - body.getBoundingClientRect().top - margin - (body.scrollHeight - body.clientHeight - body.scrollTop);
+      if (need > 0) {
+        const sp = document.createElement('div'); sp.className = 'hh-room'; sp.setAttribute('aria-hidden', 'true'); sp.style.height = `${Math.ceil(need)}px`;
+        body.insertBefore(sp, body.querySelector('.drawer-foot'));
+      }
+      box.scrollIntoView({ block: 'start' });
+      target.focus({ preventScroll: true });
+      el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+      setTimeout(() => el.classList.remove('flash'), FLASH_MS);
+    });
   });
-  store.subscribe('household', renderChip);
-  renderChip();
 }

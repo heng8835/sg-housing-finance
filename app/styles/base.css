@@ -369,15 +369,20 @@ label.f > span:first-child { display: block; font-size: .893rem; font-weight: 50
   #mapwrap[data-sheet="half"] .leaflet-bottom { bottom: calc(var(--sheet-half) + 8px); } /* % of #map = % of #mapwrap */
   #mapwrap[data-sheet="full"] .leaflet-bottom { visibility: hidden; }
   /* short screens (360 × 640, Larger): the map band above a half sheet is ~150 px, too short for the column
-     (Area prices 48 + gap + − / + 100 + attribution) — "Area prices" moves to the left of − / + instead */
+     (Area prices 48 + gap + − / + 100 + attribution). At half the sheet already offers Draw again / Clear (area view)
+     or the "Area prices ›" row (Map settings), so the icon hides there and the column stays straight (A-2) */
   @media (max-height: 740px) {
-    #mapwrap[data-sheet="half"] .leaflet-bottom.leaflet-right { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-end; }
-    #mapwrap[data-sheet="half"] .leaflet-bottom.leaflet-right > .ms-area-btn { order: 1; }
-    #mapwrap[data-sheet="half"] .leaflet-bottom.leaflet-right > .leaflet-control-zoom { order: 2; }
-    #mapwrap[data-sheet="half"] .leaflet-bottom.leaflet-right > .leaflet-control-attribution { order: 3; flex: 0 0 calc(100% - 16px); text-align: right; }
+    #mapwrap[data-sheet="half"] .ms-area-ctl { display: none; }
   }
   #mapwrap .leaflet-control-zoom a { width: 48px; height: 48px; line-height: 48px; font-size: 1.375rem; }
-  #mapwrap .ms-area-btn { display: block; min-height: 48px; padding: 0 16px; border: 2px solid rgba(0, 0, 0, .2); background: var(--surface); background-clip: padding-box; color: var(--text); font-size: 1rem; font-weight: 600; }
+  /* "Area prices" (./areasheet.js, spec phone-topbar-area-household §2.1): a 48 × 48 icon at the top of the + / −
+     column, the same Leaflet bar look; drawing = pressed (accent-soft fill, accent border); an area on the map = blue icon */
+  #mapwrap .ms-area-ctl { margin-bottom: 8px; }
+  #mapwrap .ms-area-go { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 2px; background: var(--surface); color: var(--text); cursor: pointer; }
+  #mapwrap .ms-area-go svg { width: 26px; height: 26px; }
+  #mapwrap .ms-area-go.has-area { color: var(--accent-ink); }
+  #mapwrap .ms-area-go[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-ink); }
+  #mapwrap .ms-area-ctl:has(.ms-area-go[aria-pressed="true"]) { border-color: var(--accent); }
   #map .leaflet-tooltip { display: none; }
   #mapwrap .leaflet-control-attribution { font-size: .75rem; white-space: nowrap; } /* exempt from the floor (AC2); one line at A++ */
   .leaflet-popup-content { min-width: 0; max-width: calc(100vw - 80px); }
@@ -411,17 +416,31 @@ label.f > span:first-child { display: block; font-size: .893rem; font-weight: 50
   /* sheet views: "Area prices", station / bus stop / BTO popups, "Blocks here" */
   .ms-area, .ms-pop, .ms-blocks { padding: 0 16px 24px; }
   .ms-area .areabox { position: static; width: auto; max-width: none; border: 0; border-radius: 0; box-shadow: none; background: none; font-size: 1rem; }
-  .ms-area .ab-head { padding: 0 0 8px; border: 0; }
-  .ms-area .ab-head > :not(#abTitle) { display: none !important; } /* collapse ▾, mini line, circle / draw / clear: the view has its own buttons */
-  .ms-area #abTitle { font-size: 1.125rem; }
-  .ms-area .ab-body, .ms-area .areabox.collapsed .ab-body { display: block; padding: 0; }
-  .ms-area .ab-grid { gap: 12px 16px; }
-  .ms-area .ab-grid .st small { font-size: .875rem; }
-  .ms-area .ab-grid .st b { font-size: 1.125rem; }
-  .ms-area .ab-note { margin-top: var(--sp-3); font-size: .9375rem; line-height: 1.45; }
-  .ms-ab-acts { display: flex; gap: 8px; margin-top: 16px; }
-  .ms-ab-acts .btn { flex: 1; min-height: 48px; font-size: 1rem; }
-  .ms-ab-acts .btn[hidden] { display: none; }
+  .ms-area .areabox > :not(.ms-av) { display: none !important; } /* the desktop box's head and body: the view has its own */
+  .ms-av-t { margin: 0; font-size: 1.125rem; font-weight: 650; line-height: 1.3; }
+  .ms-av-sub { margin: 2px 0 12px; font-size: .9375rem; line-height: 1.4; color: var(--text-2); }
+  .ms-av-note { margin: 8px 0 12px; font-size: 1rem; line-height: 1.45; color: var(--text-2); }
+  .ms-av-grid { display: grid; grid-template-columns: 1fr 1fr; margin: 0 0 12px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .ms-av-grid > div { min-width: 0; padding: 10px 12px; }
+  .ms-av-grid > div:nth-child(odd) { border-right: 1px solid var(--border); }
+  .ms-av-grid > div:nth-child(n+3) { border-top: 1px solid var(--border); }
+  .ms-av-grid small { display: block; font-size: .875rem; line-height: 1.35; color: var(--text-2); }
+  .ms-av-grid b { display: block; font-size: 1.25rem; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+  .ms-av-more { margin: 0 0 12px; }
+  .ms-av-more > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; min-height: 48px; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); font-size: .9375rem; font-weight: 600; cursor: pointer; }
+  .ms-av-more > summary::-webkit-details-marker { display: none; }
+  .ms-av-more > summary::after { content: ''; width: 8px; height: 8px; margin: -4px 6px 0 0; border: solid var(--text-3); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .ms-av-more[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; }
+  .ms-av-more[open] > summary { margin-bottom: 12px; }
+  .ms-av-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .ms-av-acts .btn { min-height: 48px; font-size: 1rem; }
+  .ms-av-acts .btn:only-child { grid-column: 1 / -1; }
+  .ms-av-circ { display: flex; align-items: center; min-height: 44px; margin-top: 4px; padding: 0; border: 0; background: none; color: var(--accent-ink); font-size: 1rem; font-weight: 500; cursor: pointer; }
+  /* Map settings: the worded way in, "Area prices ›" under the two zoom buttons */
+  .ms-arow { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; margin: 0 0 var(--sp-3); padding: 0 4px; border: 0; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); background: none; color: var(--text); font-size: 1rem; font-weight: 600; text-align: left; cursor: pointer; }
+  .ms-arow svg { flex: none; width: 22px; height: 22px; }
+  .ms-arow > span:first-of-type { flex: 1; min-width: 0; }
+  .ms-arow-go { flex: none; color: var(--text-3); font-size: 1.25rem; line-height: 1; }
   @media (prefers-reduced-motion: reduce) { #mapwrap .leaflet-bottom { transition: none; } }
   .ms-pop .pop h4 { margin: 0 0 4px; font-size: 1.125rem; }
   .ms-pop .pop .sub { font-size: .9375rem; line-height: 1.45; }

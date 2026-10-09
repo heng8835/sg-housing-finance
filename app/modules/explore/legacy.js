@@ -7,12 +7,14 @@ import { shareUrl, readShareHash } from './share.js'; // every URL built from us
 import { buildPlaceIndex, searchPlaces, MISS_MIN } from '../../core/placesearch.js'; // Daily places search: our own data only
 import { remainingLease, coversToAge } from '../../engine/lease.js';
 import { summarise } from '../../engine/household.js';
+import { fillLink, householdLink, FLAT_INPUT } from '../../core/filllink.js'; // empty-state cells link to the missing input
 import { t, currentLang } from '../../core/i18n.js';
 import { COLOR as BLOCK_COLOR, CHIP_ZOOM, quantileScale, dotOptions as dotOpts, dotBand as dotBandOf, glyphScale, chipSize, placeChips, textWidth, installChipMarker, legendHtml, shortValue, chipMetric, syncChipLabel } from './blocks.js';
 import { createCard, wireSeg } from './card.js';
 import { mountPeriod, calcLabel } from './period.js';
 import { createSelection } from './selection.js';
 import { createMapSheet, peekSummary, peekLegend, kindLabel } from './mapsheet.js'; // phones: map sheet content (peek, Map settings, Blocks here, popups)
+import { inPoly, polyAreaKm2, tooSmall, roundPts } from './areasheet.js'; // drawn-area maths shared by desktop and phones
 import { createCommute } from './commute.js';
 import { mountFamily } from './family.js';
 import { createHexGrid } from './hexgrid.js'; import { createViews } from './views.js';
@@ -20,7 +22,7 @@ import { createComparables, premiumFlag } from './comparables.js';
 import { createPriorities } from './priorities.js'; import { createPlaces } from './places.js'; // 7b B1 priorities, B12 daily-place kinds
 import { createCompareCards } from './cmpcards.js'; // phones: Compare as one card per flat inside My choices
 import { createFutureValue } from './futurevalue-ui.js';
-import { createBrief, pickRows } from './brief.js'; import { createCpfLife } from './cpflife.js'; import { createHandoff, flashForm } from './handoff.js'; import { createMoney, SIMPLE_MONEY_KEYS } from './money.js'; import { createFamilyRows } from './familyrows.js';
+import { createBrief, pickRows } from './brief.js'; import { createCpfLife } from './cpflife.js'; import { createHandoff, flashForm, FLASH_MS } from './handoff.js'; import { createMoney, SIMPLE_MONEY_KEYS } from './money.js'; import { createFamilyRows } from './familyrows.js';
 
 export function startExplore({ policy, store, bus }) {
   const D = window.HDB_DATA;
@@ -185,6 +187,12 @@ export function startExplore({ policy, store, bus }) {
   // phones (≤ 767 px): what the map sheet shows (./mapsheet.js); every call is a no-op on desktop
   const msheet = createMapSheet({ bus, map, canvas, hooks: {
     fitChoices: () => $('fitChoices').click(), fitSg: () => $('fitSg').click(), hasArea: () => !!S.area, area: () => S.area, openBlock: (bi) => openBlock(bi), relayout: () => { renderLegend(); renderArea(); },
+    // phones: "Area prices" (./areasheet.js) — finger drawing through the desktop draw mode, the same areaStats / S.area
+    draw: { start: () => startDraw({ keep: true, ext: true }), stop: () => stopDraw(), commit: (pts) => commitPoly(pts) },
+    areaInfo: () => { const A = S.area, base = { types: S.ft.length === D.flat_types.length ? t('All flat types') : S.ft.length > 2 ? t('{0} flat types', [S.ft.length]) : [...S.ft].sort((a, b) => a - b).map(ftName).join(', '), names: [...S.ft].sort((a, b) => a - b).map(ftName), all: S.ft.length === D.flat_types.length, period: calcLabel(S.calcM), k: fmt.k, pct: fmt.pct };
+      if (A) return { ...base, kind: A.type === 'circle' ? 'circle' : 'poly', title: areaTitle(), km2: A.type === 'circle' ? null : polyAreaKm2(A.pts), st: areaStats(areaPred()) };
+      if (map.getZoom() < 14) return { ...base, kind: 'out' };
+      const bb = map.getBounds(); return { ...base, kind: 'view', st: areaStats((b) => bb.contains([b.lat, b.lon])) }; },
     inView: () => { const bb = map.getBounds(), out = []; for (let bi = 0; bi < NB; bi++) { const b = D.blocks[bi]; if (blockInfo[bi] && bb.contains([b.lat, b.lon])) out.push({ id: bi, lat: b.lat, lon: b.lon }); } return out; },
     blockRow: (bi) => { const info = blockInfo[bi] || {}; return { label: D.blocks[bi].label, value: info.a ? t('median {0} · {1} sales', [fmt.k(info.a.price), info.a.n]) : info.kind === 'new' ? t('New block, no resale yet') : t('No sales match your filters') }; },
   } });
@@ -616,6 +624,7 @@ export function startExplore({ policy, store, bus }) {
   // ------------------------------------------------------------------ compare table
   // k / sec stay English: they are lookup keys (SIMPLE_KEYS, ROW_TERMS, ROWS()); translated at render
   const NA = `<span class="muted">${t('n/a')}</span>`;
+  const setFacing = (m) => fillLink({ target: 'flat', id: m.c.id, field: 'facing', text: 'facing' }); // → this flat's edit form, "Main windows face"
   const BASE_ROWS = [
     { sec: 'Price & value' },
     { k: 'Asking price', f: (m) => fmt.money(m.c.price), v: (m) => m.c.price, best: 'min', tip: t('What the seller is asking. Lower is not always better — see the premium row.') },
@@ -627,7 +636,7 @@ export function startExplore({ policy, store, bus }) {
     { sec: 'Can we afford it?' },
     { sec: 'Lease & future value' },
     { k: 'Remaining lease today', f: (m) => `${fmt.yrs(m.leaseNow)}<small>${t('lease from {0}', [m.b.lease])}</small>`, v: (m) => m.leaseNow, best: 'max', tip: t('{0}-year lease counted from the block\'s lease start (January assumed). Older flats are cheaper but lose value faster as the lease shortens.', [LEASE_TERM]) },
-    { k: 'Lease covers youngest owner to 95', f: (m) => m.coverTo95 == null ? `<span class="muted">${t('set age')}</span>` : m.coverTo95 ? `<span class="tag good">✓ ${t('Yes')}</span>` : `<span class="tag warn">! ${t('No')}</span><small>${t('need {0} y, has {1} y', [CPF_AGE - S.profile.age, m.leaseNow.toFixed(0)])}</small>`, tip: t('If the remaining lease does not cover the youngest owner to age {0}, CPF use and the HDB loan LTV are pro-rated; with under {1} y left, CPF cannot be used at all.', [CPF_AGE, CPF_MIN_LEASE]) },
+    { k: 'Lease covers youngest owner to 95', f: (m) => m.coverTo95 == null ? householdLink(store.get('household'), 'age') : m.coverTo95 ? `<span class="tag good">✓ ${t('Yes')}</span>` : `<span class="tag warn">! ${t('No')}</span><small>${t('need {0} y, has {1} y', [CPF_AGE - S.profile.age, m.leaseNow.toFixed(0)])}</small>`, tip: t('If the remaining lease does not cover the youngest owner to age {0}, CPF use and the HDB loan LTV are pro-rated; with under {1} y left, CPF cannot be used at all.', [CPF_AGE, CPF_MIN_LEASE]) },
     { k: 'Lease in 10 years (when you may sell)', f: (m) => m.lease10 == null ? '—' : `${fmt.yrs(m.lease10)}${m.lease10 < RESALE_WATCH_LEASE ? `<small style="color:var(--serious)">${t('full CPF only for buyers aged {0}+', [Math.ceil(CPF_AGE - m.lease10)])}</small>` : ''}`, v: (m) => m.lease10, best: 'max', tip: t('When you sell, a buyer gets full CPF use only if the lease covers them to {0}, so younger buyers face pro-rated CPF and HDB loans — a smaller pool and softer prices. With under {1} y left no buyer can use CPF.', [CPF_AGE, CPF_MIN_LEASE]) },
     { k: 'Town price trend (same type)', f: (m) => `${t('1 y {0} · 3 y {1} · 5 y {2}', [fmt.pct(m.town1y, 0), fmt.pct(m.town3y, 0), fmt.pct(m.town5y, 0)])}<small>${t('median $psf change')}</small>`, v: (m) => m.town3y, best: 'max', tip: t('How median $psf for this flat type in this town moved. Past appreciation is not a guarantee, but shows demand.') },
     { k: 'Block price trend (3 y, all types)', f: (m) => m.blk3y == null ? `<span class="muted">${t('too few sales')}</span>` : fmt.pct(m.blk3y, 0), v: (m) => m.blk3y, best: 'max', tip: t('Median $psf change of this specific block over 3 years (needs ≥ 3 sales in each window).') },
@@ -644,9 +653,9 @@ export function startExplore({ policy, store, bus }) {
     { k: 'Nearest hawker centre', f: (m) => m.hk ? `${fmt.m(m.hk.d)}<small>${esc(m.hk.p.n)}</small>` : '—', v: (m) => m.hk ? m.hk.d : null, best: 'min', tip: t('Cheap family meals within walking distance — a daily-life convenience.') },
     { k: 'Town / region', f: (m) => `${esc(title(D.towns[m.b.t]))}<small>${t(D.zones[m.b.t])}</small>` },
     { sec: 'Environment & feng shui' },
-    { k: 'Sun & heat (window facing)', f: (m) => m.c.facing ? `<span class="tag ${m.env.sun[0]}">${m.c.facing}</span> ${m.env.sun[1]}` : `<span class="muted">${t('set "main windows face" on the flat')}</span>`, tip: t('Near the equator the sun tracks east→west almost overhead; west/south-west windows get the hot 2–6 pm sun (higher aircon bills, faded furniture). North/south facing is the classic preference.') },
+    { k: 'Sun & heat (window facing)', f: (m) => m.c.facing ? `<span class="tag ${m.env.sun[0]}">${m.c.facing}</span> ${m.env.sun[1]}` : setFacing(m), tip: t('Near the equator the sun tracks east→west almost overhead; west/south-west windows get the hot 2–6 pm sun (higher aircon bills, faded furniture). North/south facing is the classic preference.') },
     { k: 'Floor position', f: (m) => `${storeyName(D.storeys[m.c.storey])}<small>${t(m.env.floorPos)}${m.env.top ? (m.env.topSrc === 'HDB' ? ' · ' + t('block has {0} storeys (HDB)', [m.env.top]) : ' · ' + t('highest storey sold here: {0}', [m.env.top])) : ''}</small>`, tip: t('Top floor: hotter ceiling, water-tank/lift-motor noise, but no upstairs neighbours. Low floors (≤3): road & void-deck noise, less privacy, more insects, easier with strollers/elderly. Block top is inferred from the highest storey ever transacted.') },
-    { k: 'Outlook in facing direction', f: (m) => m.c.facing ? (m.env.outlook ? `${t('faces a block ~{0} away', [fmt.m(m.env.outlook.d)])}<small>${esc(m.env.outlook.p.label)}</small>` : `<span class="tag good">${t('open')}</span><small>${t('no HDB block within 120 m in that direction')}</small>`) : `<span class="muted">${t('set facing')}</span>`, v: (m) => m.c.facing ? (m.env.outlook ? m.env.outlook.d : 999) : null, best: 'max', tip: t('Uses HDB block coordinates only (no condos, landed, or future sites) — treat as a hint and verify on site.') },
+    { k: 'Outlook in facing direction', f: (m) => m.c.facing ? (m.env.outlook ? `${t('faces a block ~{0} away', [fmt.m(m.env.outlook.d)])}<small>${esc(m.env.outlook.p.label)}</small>` : `<span class="tag good">${t('open')}</span><small>${t('no HDB block within 120 m in that direction')}</small>`) : setFacing(m), v: (m) => m.c.facing ? (m.env.outlook ? m.env.outlook.d : 999) : null, best: 'max', tip: t('Uses HDB block coordinates only (no condos, landed, or future sites) — treat as a hint and verify on site.') },
     { k: 'Park', f: (m) => m.env.park ? `${m.env.parkF ? `<span class="tag good">${t('faces park')}</span> ` : ''}${distTo(m.env.park.d, esc(m.env.park.p.n))}${m.env.park.p.reserve ? ' ' + t('(nature reserve)') : ''}` : NA, v: (m) => m.env.park ? m.env.park.d : null, best: 'min', tip: t('Distance to the edge of the nearest NParks park/reserve. "Faces park" = park within 300 m in the window direction (±45°).') },
     { k: 'Childcare within 500 m', f: (m) => CC.length ? `${m.env.cc500.length}<small>${t('{0} within 1 km', [m.env.cc1k.length])} · ${t('nearest {0}', [m.env.ccN ? fmt.m(m.env.ccN.d) + ' ' + esc(m.env.ccN.p.n) : '—'])}</small>` : NA, v: (m) => m.env.cc500.length, best: 'max', tip: t('ECDA-licensed childcare centres and kindergartens. Walking distance matters twice a day.') },
     { k: 'Nearest eldercare centre', f: (m) => m.env.ecN ? `${fmt.m(m.env.ecN.d)}<small>${esc(m.env.ecN.p.n)}</small>` : NA, tip: t('MOH eldercare list (senior activity / day-care centres). Useful if parents will live with or near you; nursing homes are not published separately.') },
@@ -658,11 +667,11 @@ export function startExplore({ policy, store, bus }) {
     { k: 'Floor area', f: (m) => `${t('{0} sqm · {1} sqft', [m.c.sqm, Math.round(m.sqft)])}<small>${m.townSqm ? (m.c.sqm >= m.townSqm ? t('at/above town median {0} sqm', [Math.round(m.townSqm)]) : t('below town median {0} sqm', [Math.round(m.townSqm)])) : ''}</small>`, v: (m) => m.c.sqm, best: 'max', tip: t('A family of 4 typically wants ≥ 90 sqm (4-room) — check against the town\'s typical size for this type.') },
     { k: 'Storey', f: (m) => `${storeyName(D.storeys[m.c.storey])}<small>${t('{0} floor', [t(m.storeyLbl)])}</small>`, v: (m) => m.mid, best: 'max', tip: t('Higher floors: better views, breeze, less noise, usually resell better. Lower floors: cheaper, no lift wait, easier with strollers.') },
     { k: 'Flat type', f: (m) => ftName(m.c.ft) },
-    { k: 'Listing', f: (m) => m.c.url ? `<a href="${esc(m.c.url)}" target="_blank" rel="noopener">${t('open ↗')}</a>` : '<span class="muted">—</span>' },
+    { k: 'Listing', f: (m) => m.c.url ? `<a href="${esc(m.c.url)}" target="_blank" rel="noopener">${t('open ↗')}</a>` : fillLink({ target: 'flat', id: m.c.id, field: 'url', text: 'url' }) },
   ];
   if (!BTO_ON) BASE_ROWS.splice(BASE_ROWS.findIndex((x) => x.k === 'Upcoming BTO supply within 1 km'), 1); // removed, not shown as —
   function commuteRows() {
-    const W = S.workplaces || []; if (!W.length) return [{ sec: 'Commute' }, { k: 'Workplaces', f: () => `<span class="muted">${t('add daily places in the Shortlist tab')}</span>` }];
+    const W = S.workplaces || []; if (!W.length) return [{ sec: 'Commute' }, { k: 'Workplaces', f: () => fillLink({ target: 'places', text: 'places' }) }];
     const rows = [{ sec: 'Commute (straight-line; road/MRT ≈ 1.3–1.5×)' }];
     // k stays English (lookup key); lbl is the displayed label for these per-place rows
     W.forEach((w, wi) => rows.push({ k: `To ${esc(w.name)}`, lbl: t('To {0}', [esc(w.name)]), f: (m) => `${fmt.m(m.work[wi].d)}<small>${esc(w.label)}${m.work[wi].bus ? (m.work[wi].bus.length ? ` · <b>${t('direct bus {0}', [m.work[wi].bus.slice(0, 6).join(', ') + (m.work[wi].bus.length > 6 ? '…' : '')])}</b>` : ' · ' + t('no direct bus (stops ≤300 m → ≤400 m)')) : ''}</small>`, v: (m) => m.work[wi].d, best: 'min', tip: t('Straight-line distance from the block to this place. Under ~5 km is usually a short bus/MRT hop; over 12 km means a long daily commute.') }));
@@ -800,6 +809,13 @@ export function startExplore({ policy, store, bus }) {
     showTab(tab);
   }
   bus.on('nav:goto', ({ tab }) => showTab(tab));
+  // fill links (core/filllink.js): "Add a daily place →" → My choices → Daily places, search focused; "Set the facing →" /
+  // "Add the listing link →" → that flat's edit form, field focused. Phones: List view, the fold opened (./cmpcards.js)
+  const focusField = (form, el) => setTimeout(() => { if (!form || !el) return; el.scrollIntoView?.({ block: 'center' }); el.focus({ preventScroll: true }); form.classList.remove('ho-flash'); void form.offsetWidth; form.classList.add('ho-flash'); setTimeout(() => form.classList.remove('ho-flash'), FLASH_MS); }, 0);
+  bus.on('fill:open', ({ target, field, id } = {}) => {
+    if (target === 'places') { showTab('choices'); cards.reveal('choices-daily'); focusField($('workForm'), $('wPlace')); }
+    else if (target === 'flat') { const c = S.choices.find((x) => x.id === id); if (!c || !FLAT_INPUT[field]) return; editChoice(c); cards.reveal('choices-add'); focusField($('choiceForm'), $(FLAT_INPUT[field])); }
+  });
   bus.on('panel:resized', coverPopups);
   // P1 distance rings from the Plan tab: { lat, lon, radiiKm, label } or null to clear
   let p1Rings = null;
@@ -901,6 +917,7 @@ export function startExplore({ policy, store, bus }) {
     return { blocks, n: prices.length, medP: median(prices), avgP: avg(prices), medPsf: median(psfs), avgPsf: avg(psfs), yoy: now.length >= 5 && prev.length >= 5 ? median(now) / median(prev) - 1 : null };
   }
   function renderArea() {
+    msheet.areaRefresh(); // phones: the Area prices view reads the same stats (once per burst, only while it is open)
     const box = $('abBody'); let title, st; const mini = (s) => { $('abMini').textContent = s; };
     if (S.area) { title = areaTitle(); st = areaStats(areaPred()); }
     else if (map.getZoom() < 14) { $('abTitle').textContent = t('Prices in view'); mini('· ' + t('zoom in')); box.innerHTML = `<div class="ab-note">${tapOr('Zoom in (≥ 14), <b>circle</b> or <b>draw</b> an area to see prices for it — uses the flat-type, period and More filters.', 'Zoom in close, or circle an area, to see prices for it. Uses the flat types, period and More filters.')}</div>`; return; }
@@ -914,8 +931,7 @@ export function startExplore({ policy, store, bus }) {
   if (S.circle && !S.area) { S.area = { type: 'circle', lat: S.circle.lat, lon: S.circle.lon, r: S.circle.r }; S.circle = null; }
   let areaLayer = null, drawing = false, drawPts = [], sketchLine = null;
   const AREA_STYLE = { renderer: canvas, color: '#0b0b0b', weight: 2, dashArray: '6 4', fillColor: '#0b0b0b', fillOpacity: 0.06, interactive: false };
-  const inPoly = (lat, lon, pts) => { let inside = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [yi, xi] = pts[i], [yj, xj] = pts[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside; } return inside; };
-  const polyAreaKm2 = (pts) => { const k = 111.32, kx = k * Math.cos(pts[0][0] * Math.PI / 180); let a = 0; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) a += (pts[j][1] * kx) * (pts[i][0] * k) - (pts[i][1] * kx) * (pts[j][0] * k); return Math.abs(a) / 2; };
+  // inPoly / polyAreaKm2 / tooSmall / roundPts: ./areasheet.js (moved unchanged; phones share them)
   const areaPred = () => { const A = S.area; if (!A) return null; return A.type === 'circle' ? (b) => haversine(A.lat, A.lon, b.lat, b.lon) <= A.r : (b) => inPoly(b.lat, b.lon, A.pts); };
   const areaTitle = () => { const A = S.area; return A.type === 'circle' ? t('Within {0} of the circle centre', [fmt.m(A.r)]) : t('Inside drawn area ({0} km²)', [polyAreaKm2(A.pts).toFixed(2)]); };
   function drawArea() { if (areaLayer) { map.removeLayer(areaLayer); areaLayer = null; } const A = S.area; if (A) { areaLayer = A.type === 'circle' ? L.circle([A.lat, A.lon], Object.assign({ radius: A.r }, AREA_STYLE)).addTo(map) : L.polygon(A.pts, AREA_STYLE).addTo(map); } $('abClear').style.display = A ? '' : 'none'; sel.syncArea(); } // emits explore:area
@@ -928,13 +944,18 @@ export function startExplore({ policy, store, bus }) {
   map.on('click', (e) => { if (!circling) return; if (!circleCenter) { circleCenter = e.latlng; tempCircle = L.circle(circleCenter, { radius: 300, color: '#0b0b0b', weight: 2, dashArray: '6 4', fillOpacity: 0.05, interactive: false }).addTo(map); return; } const r = Math.max(100, circleCenter.distanceTo(e.latlng)); S.area = { type: 'circle', lat: circleCenter.lat, lon: circleCenter.lng, r }; stopCircle(); drawArea(); renderArea(); save(); });
   map.on('mousemove', (e) => { if (circling && circleCenter && tempCircle) tempCircle.setRadius(Math.max(100, circleCenter.distanceTo(e.latlng))); });
   // freehand: press-and-drag to sketch; auto-closes on release
-  function startDraw() { stopCircle(); clearArea(false); drawing = true; drawPts = []; $('map').classList.add('drawing'); map.dragging.disable(); openDrawer(false); map.closePopup(); showBanner(t('Press and drag on the map to sketch the area — release to close it · Esc to cancel')); renderArea(); }
-  function stopDraw() { if (!drawing) return; drawing = false; $('map').classList.remove('drawing'); map.dragging.enable(); if (sketchLine) { map.removeLayer(sketchLine); sketchLine = null; } drawPts = []; }
+  // phones (./areasheet.js): keep = the old area stays until a new one is saved; ext = the finger stroke and its hint
+  // (peek row, no banner) are run there, so the mouse handlers below stand aside
+  let drawExt = false;
+  function startDraw({ keep = false, ext = false } = {}) { stopCircle(); if (!keep) clearArea(false); drawing = true; drawExt = ext; drawPts = []; $('map').classList.add('drawing'); map.dragging.disable(); openDrawer(false); map.closePopup(); if (!ext) showBanner(t('Press and drag on the map to sketch the area — release to close it · Esc to cancel')); renderArea(); }
+  function stopDraw() { if (!drawing) return; drawing = false; drawExt = false; $('map').classList.remove('drawing'); map.dragging.enable(); if (sketchLine) { map.removeLayer(sketchLine); sketchLine = null; } drawPts = []; }
   $('abDraw').addEventListener('click', () => (drawing ? stopDraw() : startDraw()));
+  /** Save a drawn shape (desktop release, phones' finger stroke): false when too small. */
+  function commitPoly(pts) { if (tooSmall(pts)) return false; S.area = { type: 'poly', pts: roundPts(pts) }; drawArea(); renderArea(); save(); return true; }
   const mapEl = $('map'); let drawActive = false, lastPx = null;
-  mapEl.addEventListener('pointerdown', (e) => { if (!drawing || e.button !== 0) return; drawActive = true; drawPts = []; lastPx = null; mapEl.setPointerCapture(e.pointerId); if (sketchLine) map.removeLayer(sketchLine); sketchLine = L.polyline([], { color: '#0b0b0b', weight: 2.5, dashArray: '6 4' }).addTo(map); e.preventDefault(); });
+  mapEl.addEventListener('pointerdown', (e) => { if (!drawing || drawExt || e.button !== 0) return; drawActive = true; drawPts = []; lastPx = null; mapEl.setPointerCapture(e.pointerId); if (sketchLine) map.removeLayer(sketchLine); sketchLine = L.polyline([], { color: '#0b0b0b', weight: 2.5, dashArray: '6 4' }).addTo(map); e.preventDefault(); });
   mapEl.addEventListener('pointermove', (e) => { if (!drawing || !drawActive) return; if (lastPx && Math.hypot(e.clientX - lastPx[0], e.clientY - lastPx[1]) < 4) return; lastPx = [e.clientX, e.clientY]; const ll = map.mouseEventToLatLng(e); drawPts.push([ll.lat, ll.lng]); sketchLine.addLatLng(ll); });
-  const finishDraw = () => { if (!drawing || !drawActive) return; drawActive = false; const pts = drawPts.slice(); stopDraw(); if (pts.length < 8 || polyAreaKm2(pts) < 0.005) { showBanner(t('Area too small — press and drag a larger shape')); return; } S.area = { type: 'poly', pts: pts.map(([a, b]) => [+a.toFixed(5), +b.toFixed(5)]) }; drawArea(); renderArea(); save(); };
+  const finishDraw = () => { if (!drawing || !drawActive) return; drawActive = false; const pts = drawPts.slice(); stopDraw(); if (!commitPoly(pts)) showBanner(t('Area too small — press and drag a larger shape')); };
   mapEl.addEventListener('pointerup', finishDraw); mapEl.addEventListener('pointercancel', finishDraw);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (circling) stopCircle(); if (drawing) stopDraw(); } });
   map.on('moveend', debounce(() => { if (!S.area) renderArea(); }, 150));

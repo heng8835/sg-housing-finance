@@ -11,6 +11,7 @@ import { t } from '../../core/i18n.js';
 import { isSimple, incomeShareText, allLoansText, reasonText } from '../../core/plain.js';
 import { parentsKm, parentsPlaceOf, withParents } from '../../core/parents.js';
 import { phgNear } from '../../engine/grants.js';
+import { fillLink, householdLink } from '../../core/filllink.js';
 
 /** Lookup keys (English, stable — SIMPLE_KEYS, ROW_TERMS, the brief); translated at render. */
 export const ROW_KEYS = {
@@ -36,7 +37,6 @@ export const PHG_MARGIN_M = 300;
 const pct = (x) => `${+(x * 100).toFixed(1)}%`;
 const pct0 = (x) => `${(x * 100).toFixed(0)}%`;
 const k = (v) => `S$${(v / 1000).toFixed(0)}k`;
-const muted = (s) => `<span class="muted">${s}</span>`;
 
 /**
  * The flat exactly as Afford gets it from My choices → Afford (legacy store focus: price, type, lease, cov), plus
@@ -48,14 +48,14 @@ export const flatInput = (m, flatTypes, km = null) => withParents({ price: m.c.p
 export function phgCell(ph, p, own = false) {
   const km = ph.km == null ? null : t('{0} km', [ph.km.toFixed(1)]);
   let head;
-  if (ph.basis === 'with') head = `<span class="tag good">✓ ${t('living with your parents')}</span><small>${t('"Living with" in Household counts, whatever the distance')}</small>`;
-  else if (km == null) head = `<span class="muted">${t("tag a daily place as your parents' home")}</span>`;
+  if (ph.basis === 'with') head = `<span class="tag good">✓ ${t('living with your parents')}</span><small>${t('"Living with" in About you counts, whatever the distance')}</small>`;
+  else if (km == null) head = fillLink({ target: 'places', text: 'parentsPlace' });
   else if (ph.limitKm == null) head = `${km}<small>${t("the PHG distance is not in this app's rules yet — HDB checks it")}</small>`;
   else if (Math.abs(ph.km - ph.limitKm) * 1000 <= PHG_MARGIN_M) head = `<span class="tag warn">≈ ${km}</span><small>${t('close to the {0} km limit; HDB checks the exact distance', [ph.limitKm])}</small>`;
   else if (ph.within) head = `<span class="tag good">✓ ${km}</span><small>${t('within {0} km', [ph.limitKm])}</small>`;
   else head = `${km}<small>${t('over {0} km', [ph.limitKm])}</small>`;
   const g = (p.grants.items.find((i) => i.id === 'phg') || {}).amount;
-  const tail = own ? t('your own grant figure in Household is used') : g ? t('PHG {0} in the grants', [money(g)]) : t('no PHG in the grants');
+  const tail = own ? t('your own grant figure in About you is used') : g ? t('PHG {0} in the grants', [money(g)]) : t('no PHG in the grants');
   return `${head}<small>${tail}</small>`;
 }
 
@@ -73,29 +73,33 @@ export function cashParts(f, loanType, mode = 'pro') {
   return parts;
 }
 
-/** Cell HTML per row (p = planPurchase() result; mode 'simple' = plain words, same numbers; default Pro). */
+/** Which missing input the verdict's top reason asks for → the fill link under it (household key). */
+export const REASON_FILL = { 'income-unknown': 'income', 'funds-unknown': 'funds', 'cash-unknown': 'cash', 'smaller-loan-unknown': 'cash' };
+
+/** Cell HTML per row (p = planPurchase() result; mode 'simple' = plain words, same numbers; default Pro;
+ *  h = the household, only for the fill links' field — "Add your income →" opens the drawer on that buyer's income). */
 export const cells = {
   loan(p) {
     const c = p.chosen, up = p.shortLease && p.shortLease.loanUpTo;
     return `${up ? t('up to {0}', [money(c.loan)]) : money(c.loan)}<small>${t('{0} LTV', [pct(c.ltv)])} · ${pct(c.rate)} · ${t('{0} y', [c.tenure])}${c.tenureCapped ? ' ' + t('(max for this loan)') : ''}${c.loanType === 'bank' ? ' · ' + t('bank loan') : ''}</small>`
       + (up ? `<small>${t("lease doesn't reach 95 — HDB will lower it")}</small>` : '');
   },
-  monthly(p, mode = 'pro') {
+  monthly(p, mode = 'pro', h = null) {
     const c = p.chosen;
-    if (p.summary.income == null) return `${money(c.monthly)}<small>${t('enter income in Household (top right)')}</small>`;
+    if (p.summary.income == null) return `${money(c.monthly)}${householdLink(h, 'income', { small: true })}`;
     if (isSimple(mode)) return `${money(c.monthly)}<small>${incomeShareText(pct0(c.msr), pct0(c.msrAssessed), pct(c.assessRate), pct(c.msrCap))}${c.tdsr != null ? ' · ' + allLoansText(pct0(c.tdsr)) : ''}</small>`;
     return `${money(c.monthly)}<small>${t('{0} of income · MSR test {1} at {2} (cap {3})', [pct0(c.msr), pct0(c.msrAssessed), pct(c.assessRate), pct(c.msrCap)])}${c.tdsr != null ? ' · ' + t('TDSR {0}', [pct0(c.tdsr)]) : ''}</small>`;
   },
-  verdict(p, mode = 'pro') {
+  verdict(p, mode = 'pro', h = null) {
     const [tone, icon, title] = VERDICT[p.verdict.status], { reasons, codes } = p.verdict;
     const top = REASON_ORDER.map((code) => codes.indexOf(code)).find((i) => i >= 0);
-    const more = reasons.length - (top == null ? 0 : 1);
-    return `<span class="tag ${tone}">${icon} ${t(title)}</span>${top != null ? `<small>${esc(reasonText(codes[top], reasons[top], mode))}</small>` : ''}${more > 0 ? `<small>${t('+{0} more in Afford', [more])}</small>` : ''}`;
+    const more = reasons.length - (top == null ? 0 : 1), need = top != null ? REASON_FILL[codes[top]] : null;
+    return `<span class="tag ${tone}">${icon} ${t(title)}</span>${top != null ? `<small>${esc(reasonText(codes[top], reasons[top], mode))}</small>` : ''}${need ? householdLink(h, need, { small: true }) : ''}${more > 0 ? `<small>${t('+{0} more in Afford', [more])}</small>` : ''}`;
   },
-  cash(p, mode = 'pro') {
+  cash(p, mode = 'pro', h = null) {
     const f = p.chosen.funding;
-    // A11: "short" only once the cash is known (Afford's cashShortLine) — before that, ask for it
-    const state = p.cashShort == null ? t('Add your savings to check the cash part.')
+    // A11: "short" only once the cash is known (Afford's cashShortLine) — before that, ask for it (fill link)
+    const state = p.cashShort == null ? householdLink(h, 'cash')
       : p.cashShort > 0 ? `<b style="color:var(--critical)">${t('short {0}', [k(p.cashShort)])}</b> · ${t('your cash {0}', [k(p.funds.cash)])}`
         : t('within your cash {0}', [k(p.funds.cash)]);
     return `${money(f.cashNeeded)}<small>${cashParts(f, p.chosen.loanType, mode).join(' + ')}</small><small>${state}</small>`;
@@ -110,9 +114,9 @@ export const cells = {
     if (grantsUsed) s += ' − ' + (p.shortLease && p.shortLease.ehgUpTo ? t('grants up to {0}', [k(grantsUsed)]) : t('grants {0}', [k(grantsUsed)]));
     return `${money(f.net)}<small>${s}</small>`;
   },
-  most(p) {
+  most(p, mode = 'pro', h = null) {
     const b = p.budget;
-    if (b.maxPrice == null) return muted(t('set income'));
+    if (b.maxPrice == null) return householdLink(h, 'income');
     const why = b.binding === 'income' ? 'limited by income (loan limit)' : b.binding === 'funds' ? 'limited by your cash + CPF' : null;
     return `${money(b.maxPrice)}${why ? `<small>${t(why)}</small>` : ''}`;
   },
@@ -166,7 +170,8 @@ export function createMoney({ policy, store, D, rerender = null, year = () => ne
     return p;
   }
   const MSR_CAP = policy.get('ratio.msr.cap');
-  const row = (key, f, extra = {}) => ({ k: ROW_KEYS[key], f: (m) => f(planFor(m)), fs: (m) => f(planFor(m), 'simple'), ...extra });
+  const hh = () => store.get('household');
+  const row = (key, f, extra = {}) => ({ k: ROW_KEYS[key], f: (m) => f(planFor(m), 'pro', hh()), fs: (m) => f(planFor(m), 'simple', hh()), ...extra });
   function rows() {
     return [
       row('loan', cells.loan, { tip: t('HDB loan: up to {0} of the lower of price and valuation at {1}, max {2} y. Bank loan: {3} for up to {4} y, {5} beyond; the {6} bank rate is illustrative.', [pct(policy.get('loan.hdb.ltv')), pct(policy.get('rate.hdb.concessionary')), policy.get('tenure.hdb.max'), pct(policy.get('loan.bank.ltv')), policy.get('loan.bank.hdb_flat.full_ltv_max_tenure'), pct(policy.get('loan.bank.ltv.lower_tier')), pct(policy.get('assumption.rate.bank'))]) }),
@@ -181,7 +186,7 @@ export function createMoney({ policy, store, D, rerender = null, year = () => ne
   /** "Near your parents (PHG)": straight-line distance per flat vs the policy distance; the grant is planFor()'s. */
   function phgRow() {
     const f = (m) => { const h = store.get('household'), p = planFor(m); return phgCell(phgNear({ household: h, parentsKm: p.flat.parentsKm ?? null }, policy), p, h.grantsOverride != null); };
-    return { k: PHG_KEY, simple: true, f, fs: f, tip: t('Proximity Housing Grant: buying a resale flat near your parents or married child (or living with them) adds a grant. With a daily place tagged as their home, each flat is checked against the distance in the rules, in a straight line; HDB checks the exact distance. "Living with" in Household still counts first.') };
+    return { k: PHG_KEY, simple: true, f, fs: f, tip: t('Proximity Housing Grant: buying a resale flat near your parents or married child (or living with them) adds a grant. With a daily place tagged as their home, each flat is checked against the distance in the rules, in a straight line; HDB checks the exact distance. "Living with" in About you still counts first.') };
   }
   /** Money rows go first in "Can we afford it?" (right after the section header). */
   function insert(r) {

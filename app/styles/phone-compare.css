@@ -132,4 +132,8 @@
   #cmpBody .cmp-comps, #cmpBody .cmp-fv-how { max-width: none; overflow-x: auto; }
 
   @media (prefers-reduced-motion: reduce) { .cc-row { scroll-behavior: auto; } }
+
+  /* fill links (core/filllink.js) anywhere on a phone: a 44 px tap target, text size of the line around it */
+  .fill-link { display: inline-flex; align-items: center; min-height: 44px; font-size: .9375rem; }
+  .cc-card dd small .fill-link, .cc-card dd .fill-link { color: var(--accent-ink); }
 }

@@ -1,6 +1,6 @@
 // Quick-fill popover (H4): the missing household inputs right where a card needs them. One store write
 // (household) on Save; everything stays in this browser. bindNeeds() wires the prompts from core/missing.js:
-// "Fill in here" → this popover, "Set in household →" → bus 'household:open' { field } (drawer focuses it).
+// "Fill in here" → this popover, "Add in About you →" → bus 'household:open' { field } (drawer focuses it).
 import { describe } from './missing.js';
 import { esc } from './dom.js';
 import { t } from './i18n.js';

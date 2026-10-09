@@ -10,6 +10,7 @@ import { t } from '../../core/i18n.js';
 import { field, dateIn, selIn, badge, fmtDate } from './ui.js';
 import { moveMode } from './sellbuy.js';
 import { sharedRent } from '../../core/rentshare.js';
+import { fillLink } from '../../core/filllink.js';
 
 const CLASSES = [['standard', 'Standard'], ['plus', 'Plus'], ['prime', 'Prime']];
 const ORDER = { 'sell-first': 'Sell first, then buy', 'buy-first': 'Buy first, then sell', contra: 'Sell and buy at the same time (contra)' };
@@ -83,7 +84,7 @@ export function gapNote(c, d, p) {
   const g = gapCost({ mode: moveMode(c), saleCompletion: c.saleCompletion, purchaseCompletion: d.nextCompletion, rent: sharedRent(p).amount });
   if (!g) return '';
   const text = g.cost == null
-    ? `${esc(t('Between the sale and your new keys: about {0} months.', [g.months]))} <button type="button" class="link" data-act="goto-rent">${t('Add the rent you\'d pay to see this.')}</button>`
+    ? `${esc(t('Between the sale and your new keys: about {0} months.', [g.months]))} ${fillLink({ target: 'rent', text: "Add the rent you'd pay to see this." })}`
     : esc(t('Between the sale and your new keys: about {0} months × your rent {1} = {2}.', [g.months, money(g.rent), money(g.cost)]));
   return `<p class="default-note" role="note"><span class="dn-ic" aria-hidden="true">i</span><span>${text}</span></p>`;
 }

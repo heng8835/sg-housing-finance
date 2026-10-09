@@ -8,6 +8,7 @@ import { t } from '../../core/i18n.js';
 import { field, pctIn, numIn, moneyIn, selIn } from './ui.js';
 import { defaultNote, ftWord } from '../../core/typical.js';
 import { missingFields, needPrompt } from '../../core/missing.js';
+import { householdLink } from '../../core/filllink.js';
 import { DEFAULT_WAGE_GROWTH, DEFAULT_BONUS_MONTHS, CPF_DEFAULTS } from '../../core/cpf-defaults.js';
 import { rangeOn, cpfRangeToggle, cpfRangeSlots, cpfRangeNote } from './cpfrange.js';
 
@@ -89,7 +90,7 @@ function payoutDelta({ h, plan, settings, policy, year }) {
   if (!plan) return '';
   let r;
   try { r = lifePayoutDelta({ household: h, plan, settings, defaults: CPF_DEFAULTS, year }, policy); } catch { return ''; }
-  if (!r.ok) return r.reason === 'nobalances' ? `<p class="hint">${esc(t(r.message))}</p>` : '';
+  if (!r.ok) return r.reason === 'nobalances' ? `<p class="hint">${esc(t(r.message))} ${householdLink(h, 'cpfOa', { field: `buyers.${r.buyer ?? 0}.cpfOa` })}</p>` : '';
   const missing = (r.payoutMissing || []).length
     ? `<small>${t('Not counted: the payout of {0} (not entered).', [r.payoutMissing.map((i) => t('Buyer {0}', [i + 1])).join(', ')])}</small>` : '';
   if (r.allAtPayout) {

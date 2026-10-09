@@ -105,7 +105,7 @@ export const USE_CASES = [
         body: 'Retirement Account at 55 and the CPF LIFE estimate, with and without the flat you picked.' },
       { target: '#planSeniors', tab: 'plan', ifMissing: 'Switch to Pro to see all options.', title: 'Options at 55+',
         body: 'Options at 55+: Lease Buyback, Silver Housing Bonus, 2-room Flexi, renting out a room.' },
-      { target: '.mode-switch', fallback: ['#phoneMenu'], title: 'Simple or Pro', // phones: the switch is in the Menu
+      { target: '.mode-switch', fallback: ['#phoneMenu'], title: 'Simple or Pro', // phones: on the top bar since the topbar redesign; fallback kept
         body: 'Pro shows the year-by-year table and pay-rise / bonus settings.',
         bodyIfMissing: 'Pro shows the year-by-year table and pay-rise / bonus settings. Switch to Pro in the Menu.' },
       { target: '#planDates', tab: 'plan', fallback: ['#tabbtn-plan'], title: 'Lease milestones',

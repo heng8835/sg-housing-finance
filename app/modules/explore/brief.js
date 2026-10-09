@@ -9,6 +9,7 @@
 // Pure parts are exported for node tests; createBrief() wires the browser.
 import { t, currentLang } from '../../core/i18n.js';
 import { esc } from '../../core/dom.js';
+import { stripFillLinks } from '../../core/filllink.js';
 import { withinKm, nearest } from '../../core/geo.js';
 import { bus } from '../../core/bus.js';
 import { moneyBoxHtml, moneyFor, MONEY_SECTION } from './briefmoney.js';
@@ -63,7 +64,7 @@ export function briefSections(rows, m, { label = (r) => r.k, skip = HEADER_KEYS 
   for (const r of rows) {
     if (r.sec) { cur = { sec: r.sec, rows: [] }; out.push(cur); continue; }
     if (skip.has(r.k)) continue;
-    const html = r.f(m);
+    const html = stripFillLinks(r.f(m)); // paper: the "Add … →" fill links are not printed
     if (isEmptyCell(html)) continue;
     if (!cur) { cur = { sec: '', rows: [] }; out.push(cur); }
     cur.rows.push({ k: r.k, label: label(r), html });
@@ -74,10 +75,13 @@ export function briefSections(rows, m, { label = (r) => r.k, skip = HEADER_KEYS 
 /** Tips of the lease rows, in LEASE_KEYS order (plain text). */
 export const leaseNotes = (rows) => LEASE_KEYS.map((k) => rows.find((r) => r.k === k)?.tip).filter(Boolean);
 
+/** A cell in a file (TSV / CSV): plain text; "Add … →" fill links left out (a cell that was only a link → "—"). */
+export const fileCell = (html) => { const h = String(html ?? ''), s = stripFillLinks(h), txt = stripCell(s); return s !== h && !txt ? '—' : txt; };
+
 /** Shortlist table as cells: header, one line per section (upper case), one per row; one column per flat. */
 export function tableLines(rows, ms, label) {
   const lines = [[t('Measure'), ...ms.map((m) => m.c.name)]];
-  for (const r of rows) lines.push(r.sec ? [t(r.sec).toUpperCase()] : [label(r), ...ms.map((m) => stripCell(r.f(m)))]);
+  for (const r of rows) lines.push(r.sec ? [t(r.sec).toUpperCase()] : [label(r), ...ms.map((m) => fileCell(r.f(m)))]);
   return lines;
 }
 export const tsvText = (lines) => lines.map((l) => l.join('\t')).join('\n');

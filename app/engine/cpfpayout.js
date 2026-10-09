@@ -18,7 +18,7 @@ export const PAYOUT_REASONS = Object.freeze({
   nobalances: "Add each buyer's CPF balances to estimate CPF LIFE.",
   foreigner: 'No CPF LIFE: foreigners do not contribute to CPF.',
   noplan: 'Pick a flat with a price to compare CPF LIFE payouts.',
-  atpayout: 'Already at the CPF LIFE payout age: payouts may have started, and buying a flat does not change them. Enter the monthly payout you receive in Household (optional).',
+  atpayout: 'Already at the CPF LIFE payout age: payouts may have started, and buying a flat does not change them. Enter the monthly payout you receive in About you (optional).',
 });
 
 /**

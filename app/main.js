@@ -20,6 +20,7 @@ import { mountMenu } from '@modules/shell/menu.js';
 import { mountPanelResize } from '@modules/shell/resize.js';
 import { mountTextSize } from '@modules/shell/textsize.js';
 import { bindTextSize } from '@core/textsize.js';
+import { bindFillLinks } from '@core/filllink.js';
 
 const boot = document.getElementById('boot');
 const say = (text) => { boot.querySelector('.msg').textContent = text; };
@@ -45,6 +46,7 @@ async function main() {
     const policy = await loadPolicy('policy/sg-policy.json');
     mountPanelResize({ store, bus });
     mountHousehold({ store, policy, bus });
+    bindFillLinks(document, bus); // "Add your income →"-style links in any tab / card / drawer → the field to fill
     mountSamples({ store, policy, bus }); // banner while a sample is on; picker; card at the top of the Learn sheet
     mountStart({ store, bus, policy }); // first-run "Start here" questions (after 'data:ready'); bus 'start:open' re-opens
     mountAfford({ store, policy, bus, el: document.getElementById('affordRoot') });

@@ -1,5 +1,5 @@
 // Missing household inputs (H4): which fields a card needs that are still empty, and the inline prompt
-// "Add income and age to see this. [Fill in here] [Set in household →]". Pure (no DOM); the buttons are
+// "Add income and age to see this. [Fill in here] [Add in About you →]". Pure (no DOM); the buttons are
 // wired by core/quickfill.js (bindNeeds). Paths are the household drawer's data-path values.
 import { esc } from './dom.js';
 import { t, currentLang } from './i18n.js';
@@ -64,5 +64,5 @@ export function needPrompt(list, key, { compact = false } = {}) {
   return `<div class="need${compact ? ' compact' : ''}" role="note" data-need-key="${esc(key)}" data-fields="${esc(list.map((f) => f.path).join(','))}"><span class="need-ic" aria-hidden="true">ⓘ</span>
     <p>${t('Add {0} to see this.', [needWords(list)])}</p>
     <div class="need-act"><button type="button" class="btn sm" data-need="quick">${t('Fill in here')}</button>
-      <button type="button" class="link" data-need="open" data-field="${esc(list[0].path)}">${t('Set in household →')}</button></div></div>`;
+      <button type="button" class="link" data-need="open" data-field="${esc(list[0].path)}">${t('Add in About you →')}</button></div></div>`;
 }

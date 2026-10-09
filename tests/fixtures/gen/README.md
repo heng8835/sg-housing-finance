@@ -25,3 +25,6 @@ below 8 sales) and the money rows (B12: no PHG row and the same planPurchase inp
 parents' home) are unchanged; the B1 header note only appears with saved ticks (the seed has none). Since 7b the 7a and
 7a-family files are **historical** too: built in the temp folder, only the 7b files are written / checked. Reviewed diff:
 `hdb-data-pipeline/docs/specs/phase7b-compare-diff.md`.
+Fill links (Oct 2026): `filllinks_fixture.mjs` turns the three 7b files into `compare-phase7c.txt`, `-fv.txt`, `-nobto.txt` —
+empty-state cells that wait for an input show the fill-link text (`app/core/filllink.js`); the 7b files are historical
+since (built in the temp folder). Reviewed diff: `hdb-data-pipeline/docs/specs/fill-links-compare-diff.md`.

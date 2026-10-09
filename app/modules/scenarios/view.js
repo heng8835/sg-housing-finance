@@ -77,7 +77,7 @@ function rentBuyCell(r) {
 }
 
 function cpfCell(r) {
-  if (!r.cpf55) return `—${small(t('Add ages, income and CPF balances in Household.'))}`;
+  if (!r.cpf55) return `—${small(t('Add ages, income and CPF balances in About you.'))}`;
   const n = r.cpf55.buyers.filter((b) => b.ra != null).length;
   return `${money(r.cpf55.total)}${n > 1 ? small(esc(t('{0} buyers together', [n]))) : ''}`;
 }

@@ -18,6 +18,7 @@ import { keepFolds, saveView } from '../../core/fold.js';
 import { lastSelection, onTypicalChange, scopeOf, typicalPriceWidened, typicalRent, defaultFlatType, bindPickMap, ftWord, townName } from '../../core/typical.js';
 import { missingFields, needPrompt } from '../../core/missing.js';
 import { bindNeeds } from '../../core/quickfill.js';
+import { fillLink } from '../../core/filllink.js';
 import { pathwaysSection, landlordSection, ftLabel } from './rules.js';
 import { buyGate, rbVerdict } from './buygate.js';
 import { drawChart, signedMoney } from './chart.js';
@@ -140,7 +141,7 @@ export function mountRent({ store, policy, bus, el }) {
         ${amountField('whole', asking, comps ? Math.round(comps.med) : null, isPhone())}
       </div>
       ${comps ? `<div class="kpis"><div class="kpi"><small>${t('Median rent')} (${esc(tierLabel[comps.tier] || comps.label || '')})</small><b>${money(comps.med)}</b><small>${simple && comps.p25 && comps.n ? t('middle half of {0} rentals: {1}–{2}', [comps.n, money(comps.p25), money(comps.p75)]) : `${comps.p25 ? `${t('middle half')} ${money(comps.p25)}–${money(comps.p75)}` : ''}${comps.n ? (simple ? ` · ${t('{0} rentals', [comps.n])}` : ` · n=${comps.n}`) : ''}`}</small></div>
-        <div class="kpi"><small>${t('Verdict')}</small><b>${fair ? esc(t(VERDICT[fair.verdict])) : '—'}</b><small>${fair?.band ? `${t('usual')}: ${money(fair.band[0])}–${money(fair.band[1])}` : t('enter the asking rent')}</small></div>
+        <div class="kpi"><small>${t('Verdict')}</small><b>${fair ? esc(t(VERDICT[fair.verdict])) : '—'}</b><small>${fair?.band ? `${t('usual')}: ${money(fair.band[0])}–${money(fair.band[1])}` : fillLink({ target: 'rent', text: 'rent' })}</small></div>
         ${share}
         ${c.price ? `<div class="kpi"><small>${isPhone() ? t('Rent as a share of the price (gross yield)') : t('Gross rental yield')}</small><b>${pct(grossYield({ annualRent: rentNow * 12, price: c.price }), 1)}</b><small>${t('rent ÷ price')} ${money(c.price)}</small></div>` : ''}</div>` : none}
       ${comps ? windowLine(comps, data.rents.months) : ''}
@@ -286,6 +287,12 @@ export function mountRent({ store, policy, bus, el }) {
   store.subscribe(MC_FLAG, render);
   store.subscribe('ui.mode', render); // Simple ↔ Pro: the range (Pro) and the plain words (B10)
   bus.on('data:ready', render);
+  // fill links (core/filllink.js) "Add your rent →" from any tab: this tab, the rent field focused
+  bus.on('fill:open', ({ target } = {}) => {
+    if (target !== 'rent') return;
+    bus.emit('nav:goto', { tab: 'rent' });
+    setTimeout(() => { const i = el.querySelector('#rtAsk'); if (!i) return; i.scrollIntoView?.({ block: 'center' }); i.focus({ preventScroll: true }); i.classList.remove('flash'); void i.offsetWidth; i.classList.add('flash'); setTimeout(() => i.classList.remove('flash'), 1600); }, 0);
+  });
   phoneMq?.addEventListener?.('change', render); // phone ↔ desktop wording and the median hint
   render();
 }

@@ -5,8 +5,8 @@
 //     as the settings' header at half / full (no re-layout when snapping). A tapped school / mall / … shows a one-line
 //     row there instead of a hover tooltip (P-23).
 //   · map first (owner): pan / pinch / wheel / + − / a tap on empty map drop the sheet to peek.
-//   · "Area prices" map button (owner request): the "Prices in view" box as a sheet view, never on the map (P-17 /
-//     P-19; circle stays, freehand draw is desktop-only).
+//   · "Area prices" (./areasheet.js): a 48 px icon above + / − that starts drawing with a finger, a worded row in Map
+//     settings, the result as a sheet view (spec phone-topbar-area-household.md §2). This file paints its peek row.
 //   · Map settings (= #tab-explore, the sheet's base view): [Zoom to my choices] [All of Singapore] (were floating,
 //     P-17), sections named by the question they answer and the layers under 5 small headings (F5; markup order only —
 //     `data-l` and every saved setting are unchanged), "tap" wording in the layer notes (P-22).
@@ -14,6 +14,7 @@
 //     than 3 blocks sit within 30 px of a tap (P-20); + / − bottom-right, 48 px (P-18).
 // Pure helpers are exported for tests (tests/explore/mapsheet.test.js).
 import { t } from '../../core/i18n.js';
+import { createAreaSheet, uiStrings as areaStrings } from './areasheet.js';
 
 export const PHONE_QUERY = '(max-width: 767px)';
 export const NEAR_PX = 30;        // P-20: blocks within this many px of a tap …
@@ -95,9 +96,6 @@ export const TAP_NOTES = {
 /** A POI tooltip ("<div class=poi-tip><b>Name</b><br>kind</div>") as one line of HTML: "<b>Name</b> · kind". */
 export const tipLine = (html) => String(html || '').replace(/<br\s*\/?>/gi, ' · ').replace(/<\/?div[^>]*>/gi, '').trim();
 
-/** R-13: the peek row while circling an area (with a 44 px Cancel). */
-export const CIRCLE_ROW = 'Tap the centre, then the edge';
-
 /** Map search placeholder: the desktop one (index.html) and a shorter one for phones. */
 export const SEARCH_PH = { desktop: 'Search block, street, town, MRT or school…', phone: 'Search block, street, MRT…' };
 
@@ -105,25 +103,26 @@ export const SEARCH_PH = { desktop: 'Search block, street, town, MRT or school�
 /**
  * ctx: { bus, map, canvas, hooks: { fitChoices(), fitSg(), inView() → [{ id, lat, lon }], blockRow(id) → { label,
  * value }, openBlock(id), hasArea(), area() → S.area ({ type:'circle', lat, lon, r } | { pts }), relayout() — redraw
- * the legend + area note on a breakpoint change } }.
+ * the legend + area note on a breakpoint change, areaInfo(), draw: { start, stop, commit } (./areasheet.js) } }.
  * Call start() once the static layers exist.
  */
 export function createMapSheet({ bus, map, canvas, hooks }) {
   const $ = (id) => document.getElementById(id);
   const mq = matchMedia(PHONE_QUERY);
   const sheet = $('mapSheet'), slot = sheet?.querySelector('[data-slot="peek"]'), pane = $('tab-explore');
-  const state = { size: 'peek', top: 'settings', poi: null, legend: null, awaitCircle: false, started: false };
+  const state = { size: 'peek', top: 'settings', poi: null, legend: null, started: false };
   const phone = () => mq.matches && !!sheet;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const size = (s) => { if (phone()) bus?.emit('sheet:size', s); };
-  const circling = () => !!$('map')?.classList.contains('circling');
+  // "Area prices" (./areasheet.js): map icon, Map settings row, finger drawing, the result view; its peek row is painted here
+  const areaUi = createAreaSheet({ bus, map, phone, size, repaint: () => paintPeek(), hooks });
 
   // ---- peek slot
   function paintPeek() {
     if (!slot) return;
-    const circ = state.awaitCircle && circling();
+    const circ = areaUi.peek(); // drawing / circling an area: the hint + Cancel (./areasheet.js)
     if (circ) {
-      slot.innerHTML = `<div class="ms-poi ms-circ"><p>${t(CIRCLE_ROW)}</p><button type="button" class="btn" data-ms="circle-cancel">${t('Cancel')}</button></div>`;
+      slot.innerHTML = circ;
     } else if (state.poi) {
       slot.innerHTML = `<div class="ms-poi"><p>${state.poi}</p><button type="button" class="btn" data-ms="poi-close">${t('Close')}</button></div>`;
     } else if (state.legend) {
@@ -137,7 +136,7 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
     const b = e.target.closest('[data-ms]'); if (!b) return;
     if (b.dataset.ms === 'settings') size('half');
     else if (b.dataset.ms === 'poi-close') { state.poi = null; paintPeek(); }
-    else if (b.dataset.ms === 'circle-cancel') stopCircling(true);
+    else if (b.dataset.ms === 'area-cancel') areaUi.cancel();
   });
   // back on Map settings (a view closed): the shell scrolls it to its top and drops the sheet to peek (R-14)
   let changes = 0, pushedAt = -Infinity; // a map tap collapses only when the same tap did not change the sheet
@@ -208,64 +207,6 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
     size('peek');
     if (b.dataset.ms === 'fit-choices') hooks.fitChoices(); else hooks.fitSg();
   });
-  // ---- "Area prices" (owner, P-17 / P-19): on phones the floating "Prices in view" box never sits on the map. A 48 px
-  // map button (above + / −) opens it as a sheet view at half: the same stats + [Circle an area] (freehand draw is
-  // desktop-only, Q8). Circle drops the sheet to peek so the map can be tapped; the result shows back in the view.
-  const box = $('areaBox'), boxHome = sheet; // #areaBox lives right before #mapSheet in #mapwrap (desktop + parked on phones)
-  const area = document.createElement('div');
-  area.className = 'ms-area';
-  area.innerHTML = `<div class="ms-ab"></div><div class="ms-ab-acts"><button type="button" class="btn" data-ms="circle">${t('Circle an area')}</button><button type="button" class="btn" data-ms="clear" hidden>${t('Clear')}</button></div>`;
-  const clearBtn = area.querySelector('[data-ms="clear"]'), circleBtn = area.querySelector('[data-ms="circle"]');
-  const parkBox = () => { if (box && boxHome && box.nextElementSibling !== boxHome) boxHome.before(box); }; // renderArea needs it in the document
-  function openArea() {
-    if (!phone()) return;
-    if (box) area.querySelector('.ms-ab').append(box);
-    bus?.emit('sheet:push', { id: 'area', el: area, title: t('Area prices'), size: 'half' });
-  }
-  const hideBanner = () => $('banner')?.classList.remove('show'); // the circle's "Tap the centre…" instruction (R-13)
-  /** Stop circling (Cancel, Esc, a second tap on the button). back: return to the Area prices view at half. */
-  function stopCircling(back) {
-    if (circling()) $('abCircle')?.click();
-    state.awaitCircle = false; circleBtn.textContent = t('Circle an area'); hideBanner(); paintPeek();
-    if (back && area.isConnected) size('half');
-  }
-  /** R-13: after the second tap, fit the drawn circle into the map above the (half) sheet. */
-  function fitArea() {
-    const A = hooks.area?.(), L = globalThis.L; if (!A || !L || !map) return;
-    const b = A.type === 'circle' ? L.latLng(A.lat, A.lon).toBounds(A.r * 2) : A.pts ? L.latLngBounds(A.pts) : null;
-    if (b) map.fitBounds(b, { paddingTopLeft: [16, 72], paddingBottomRight: [16, sheetTarget() + 16], animate: !matchMedia('(prefers-reduced-motion: reduce)').matches });
-  }
-  /** The sheet's height once its snap ends: half = --sheet-half (55 %) of the map area; else its height now. */
-  function sheetTarget() {
-    const w = $('mapwrap'); if (!w || !sheet) return 0;
-    const half = parseFloat(getComputedStyle(w).getPropertyValue('--sheet-half')) || 55;
-    return state.size === 'half' ? Math.round(w.clientHeight * half / 100) : sheet.offsetHeight;
-  }
-  area.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-ms]'); if (!b) return;
-    if (b.dataset.ms === 'circle') {
-      if (circling()) { stopCircling(false); return; } // second tap: stop
-      state.awaitCircle = true; size('peek'); $('abCircle')?.click(); circleBtn.textContent = t('Stop circling'); paintPeek();
-    } else { state.awaitCircle = false; $('abClear')?.click(); bus?.emit('sheet:pop', { id: 'area' }); } // R-14: Clear closes the view
-  });
-  bus?.on('sheet:changed', () => { circleBtn.textContent = t(circling() ? 'Stop circling' : 'Circle an area'); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.awaitCircle) setTimeout(() => { if (!circling()) stopCircling(true); }, 0); }); // Esc stops (legacy.js)
-  bus?.on('sheet:popped', (d) => { if (d?.id === 'area') { parkBox(); if (circling() || state.awaitCircle) stopCircling(false); } });
-  bus?.on('explore:area', (a) => {
-    if (clearBtn) clearBtn.hidden = !a;
-    if (a && state.awaitCircle && phone()) {
-      state.awaitCircle = false; circleBtn.textContent = t('Circle an area'); hideBanner(); paintPeek();
-      if (!area.isConnected) openArea(); else size('half');
-      setTimeout(fitArea, 0); // after the circle is drawn; pads by the height the sheet is snapping to
-    }
-  });
-  const areaCtl = globalThis.L?.Control ? new (globalThis.L.Control.extend({ options: { position: 'bottomright' }, onAdd() {
-    const b = globalThis.L.DomUtil.create('button', 'ms-area-btn leaflet-bar');
-    b.type = 'button'; b.textContent = t('Area prices');
-    globalThis.L.DomEvent.disableClickPropagation(b); b.addEventListener('click', openArea);
-    return b;
-  } }))() : null;
-
   const heads = QUESTIONS.map((q) => { const h = document.createElement('h3'); h.className = 'ms-q'; h.textContent = t(q.h); return { el: h, before: q.before }; });
   const layerList = $('layers');
   let layerOrder = null; // desktop order of #layers' children, kept to put them back
@@ -297,16 +238,14 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
     const search = $('mSearch'); // the long placeholder is cut at 360 px / Larger
     if (search) search.placeholder = t(on ? SEARCH_PH.phone : SEARCH_PH.desktop);
     if (on) {
-      pane.prepend(top);
+      pane.prepend(top); top.after(areaUi.row); // "Area prices ›" under the two zoom buttons
       heads.forEach(({ el, before }) => { const at = pane.querySelector(before)?.closest('.section'); if (at) at.before(el); });
     } else {
       top.remove(); heads.forEach(({ el }) => el.remove());
-      if (area.isConnected) bus?.emit('sheet:pop', { id: 'area' });
-      parkBox(); // desktop: the floating box exactly as before
     }
     groupLayersOn(on);
     map?.zoomControl?.setPosition(on ? 'bottomright' : 'topleft'); // 48 px + / − above the sheet (P-18)
-    if (areaCtl && map) { if (on) areaCtl.addTo(map); else areaCtl.remove(); } // "Area prices" sits above + / −
+    areaUi.place(on); // the area icon sits above + / − (desktop: the floating box exactly as before)
     if (canvas?.options) canvas.options.tolerance = on ? PHONE_TOLERANCE : 0;
     hooks.relayout?.(); // legend + area note wording (tap / click)
     paintPeek();
@@ -316,17 +255,15 @@ export function createMapSheet({ bus, map, canvas, hooks }) {
   const relayout = () => { if (!state.started || mq.matches === was) return; was = mq.matches; place(was); };
   function start() {
     state.started = true;
-    if (clearBtn) clearBtn.hidden = !hooks.hasArea();
     mq.addEventListener?.('change', relayout); addEventListener('resize', relayout);
     relayout();
   }
-  return { phone, start, legend, row, pop, blocksHere, tapRows };
+  return { phone, start, legend, row, pop, blocksHere, tapRows, areaRefresh: () => areaUi.refresh() };
 }
 
 /** Every English string this module shows (zh coverage). */
 export const uiStrings = () => [...Object.values(KIND_LABEL), ...Object.values(MODE_SHORT), 'last {0}', 'All flat types', 'No flat types picked', '{0} flat types',
   'Close', SEARCH_PH.phone,
   'Map settings: {0}', 'Change', 'Blocks here ({0})', 'Blocks here', 'Several blocks are close together here. Tap one to open it.',
-  'Zoom to my choices', 'All of Singapore', 'Area prices', 'Circle an area', 'Stop circling', 'Clear', 'What the colours show',
-  CIRCLE_ROW, 'Cancel',
+  'Zoom to my choices', 'All of Singapore', 'What the colours show', ...areaStrings(),
   ...LAYER_GROUPS.map((g) => g.h).filter(Boolean), ...QUESTIONS.map((q) => q.h), ...Object.values(TAP_NOTES).map((x) => x[1])];

@@ -81,13 +81,13 @@ test('Plan → CPF, mixed couple: the 63-year-old keeps the projection; work ass
 });
 
 test('Compare "CPF LIFE at 65" row: no projection for a 66-year-old', () => {
-  assert.match(cellHtml({ ok: false, reason: 'atpayout', buyer: 0 }), /data-cpf-open="buyers\.0\.cpfLifeMonthly"/);
+  assert.match(cellHtml({ ok: false, reason: 'atpayout', buyer: 0 }), /data-fill="household" data-field="buyers\.0\.cpfLifeMonthly"/);
   const store = (household) => ({ get: (k) => ({ household, plan: { cpf: {} } }[k]), subscribe: () => () => {} });
   const D = { flat_types: ['1 ROOM', '2 ROOM', '3 ROOM', '4 ROOM', '5 ROOM', 'EXECUTIVE'] };
   const m = { c: { price: 450000, ft: 2 }, leaseNow: 70 };
   const rowOf = (h) => createCpfLife({ policy, store: store(h), bus: { emit() {} }, D, year: () => YEAR }).row();
   const none = rowOf(hh([mrLim()]));
-  assert.match(strip(none.f(m)), /— already receiving CPF LIFE\? add the payout in Household/);
+  assert.match(strip(none.f(m)), /— Add your CPF LIFE payout →/);
   assert.equal(none.v(m), null);
   const typed = rowOf(hh([mrLim({ cpfLifeMonthly: 1020 })]));
   assert.match(strip(typed.f(m)), /no change: payouts have started S\$1,020\/mo you entered/);
@@ -103,7 +103,7 @@ test('中文: every A10 string has an entry with the same placeholders', () => {
       'This flat uses about {0} of OA upfront from this buyer; OA savings do not change a CPF LIFE payout that has started.',
       'CPF LIFE payouts that have started do not change when you buy; OA savings can still go into the flat. Not a CPF quote — use the CPF planners for decisions.',
       'Estimates for buyers below {0}: income stays employed until {0}, rises by the pay rise above; CPF LIFE premiums, top-ups and the CPF LIFE set-aside are not modelled. Not a CPF quote — use the CPF planners for decisions.'],
-    'zh-explore.json': ['already receiving CPF LIFE? add the payout in Household', 'no change: payouts have started', '{0}/mo you entered'],
+    'zh-explore.json': ['no change: payouts have started', '{0}/mo you entered'],
     'zh-engine.json': [PAYOUT_REASONS.atpayout],
   };
   for (const [file, keys] of Object.entries(want)) {

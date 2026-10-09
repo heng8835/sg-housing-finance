@@ -96,9 +96,8 @@ export async function mountLearn({ policy, bus }) {
     if (e.target.closest('[data-close]')) return sheet.close();
     if (e.target.closest('[data-guide]')) { sheet.close(); return bus.emit('guide:open', {}); } // modules/guide (H9)
     if (e.target.closest('[data-about-rules]')) { sheet.close(); return bus.emit('guides:open', {}); } // policy-change log
-    if (e.target.closest('[data-about-forget]')) { // household drawer, scrolled to "Forget my data"
-      sheet.close(); bus.emit('household:open', {});
-      const f = document.querySelector('dialog[open] [data-act="forget"]'); f?.scrollIntoView({ block: 'center' }); return f?.focus();
+    if (e.target.closest('[data-about-forget]')) { // About you, "Your data" group opened at "Forget my data"
+      sheet.close(); return bus.emit('household:open', { field: 'forget' });
     }
     const l = e.target.closest('[data-learn]'); if (l) openSheet(l.dataset.learn || null);
   });

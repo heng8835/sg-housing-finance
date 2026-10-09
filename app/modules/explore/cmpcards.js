@@ -134,7 +134,7 @@ export const uiStrings = () => ['Best of {0}', 'best in {0} of {1} measures', 'A
 export function createCompareCards({ body, rerender } = {}) {
   const $ = (id) => document.getElementById(id);
   const tab = $('tab-choices'), seg = $('choicesView'), bar = $('drawerBar'), list = $('choiceList');
-  if (!body || !tab || !seg || !bar || !list || typeof matchMedia !== 'function') return { on: () => false, render() {}, view: () => 'list', head: headLine, ftLabel: ftDesk, storeyLabel: storeyDesk };
+  if (!body || !tab || !seg || !bar || !list || typeof matchMedia !== 'function') return { on: () => false, render() {}, view: () => 'list', head: headLine, ftLabel: ftDesk, storeyLabel: storeyDesk, reveal: () => null };
   const mq = matchMedia(PHONE_QUERY), folds = keepFolds(body), pageFolds = keepFolds(tab);
   const addSec = $('choiceForm')?.closest('.section'), listSec = list.closest('.section'), daySec = $('workForm')?.closest('.section');
   const share = $('shareChoices'), clear = $('clearChoices'), clearStyle = clear?.getAttribute('style');
@@ -219,6 +219,18 @@ export function createCompareCards({ body, rerender } = {}) {
     setTimeout(() => addSec?.scrollIntoView({ block: 'start', behavior: reduced() ? 'auto' : 'smooth' }), 0);
   });
 
+  /** Fill links (core/filllink.js → legacy 'fill:open'): phones show List with that fold open ('choices-add' = the flat
+   *  form, 'choices-daily' = Daily places); desktop: no-op. → the section, or null. */
+  function reveal(key) {
+    if (!mq.matches) return null;
+    const sec = key === 'choices-add' ? addSec : key === 'choices-daily' ? daySec : null;
+    const d = sec?.querySelector(':scope > details.ch-fold');
+    if (d) d.open = true;
+    if (key === 'choices-add') addAuto = false;
+    setView('list');
+    return sec || null;
+  }
+
   // ---- swipe row: "Flat N of M" follows the scroll; ‹ › move one card
   const row = () => body.querySelector('.cc-row');
   const cards = () => [...(row()?.children || [])];
@@ -274,5 +286,5 @@ export function createCompareCards({ body, rerender } = {}) {
   }
   // R-16: the list's flat type / storey in sentence case on phones; the desktop wording at ≥ 768 px
   const ftLabel = (code) => (mq.matches ? ftPhone(code) : ftDesk(code)), storeyLabel = (s) => (mq.matches ? storeyPhone(s) : storeyDesk(s));
-  return { on: () => mq.matches, render, view, head: headLine, ftLabel, storeyLabel };
+  return { on: () => mq.matches, render, view, head: headLine, ftLabel, storeyLabel, reveal };
 }

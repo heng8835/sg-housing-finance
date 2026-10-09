@@ -22,9 +22,9 @@ test('cell text: delta headline + without → with (estimate); no change; missin
   assert.equal(strip(cellHtml({ ...ok, delta: 0, withBuy: { monthly: 1450 } })), 'no change vs not buying S$1,450 → S$1,450/mo (estimate)');
   assert.equal(signedMoney(-310), '−S$310'); assert.equal(signedMoney(25), '+S$25');
   const nb = cellHtml({ ok: false, reason: 'nobalances', buyer: 1 });
-  assert.equal(strip(nb), '— add CPF balances in Household');
-  assert.match(nb, /data-cpf-open="buyers\.1\.cpfOa"/);
-  assert.match(cellHtml({ ok: false, reason: 'noage', buyer: 0 }), /data-cpf-open="buyers\.0\.age"/);
+  assert.equal(strip(nb), '— Add CPF balances →'); // fill link (core/filllink.js) → household:open on that buyer's OA
+  assert.match(nb, /data-fill="household" data-field="buyers\.1\.cpfOa"/);
+  assert.match(cellHtml({ ok: false, reason: 'noage', buyer: 0 }), /data-fill="household" data-field="buyers\.0\.age"/);
   assert.equal(strip(cellHtml({ ok: false, reason: 'foreigner' })), '— no CPF LIFE for foreigners');
   assert.equal(cellHtml({ ok: false, reason: 'noplan' }), '—');
   assert.equal(cellHtml(null), '—');
@@ -46,7 +46,7 @@ test('row without CPF balances: "—" + link, and no v (not counted as a measure
   const seedLike = { buyers: [{ age: 32, income: 9000, citizenship: 'SC', cpfOa: null }], cash: 150000, loan: 'hdb', tenure: 25 };
   const row = mk(seedLike).row();
   assert.equal(row.v, undefined); assert.equal(row.best, undefined);
-  assert.equal(strip(row.f(m(720000, 3, 59.3))), '— add CPF balances in Household');
+  assert.equal(strip(row.f(m(720000, 3, 59.3))), '— Add CPF balances →');
 });
 
 test('insert: end of "Can we afford it?" (after "Most you can pay"), else before the next section', () => {
@@ -73,7 +73,7 @@ test('中文: every new string has an entry (explore → zh-explore, plan → zh
   const read = (f) => JSON.parse(readFileSync(new URL(`../../app/i18n/${f}`, import.meta.url), 'utf8'));
   const ph = (s) => (s.match(/\{\d\}/g) || []).sort().join();
   const want = {
-    'zh-explore.json': ['CPF LIFE at {0} (est.)', 'no change vs not buying', '≈ {0}/mo vs not buying', '{0} → {1}/mo (estimate)', 'add CPF balances in Household', 'add ages in Household', 'no CPF LIFE for foreigners'],
+    'zh-explore.json': ['CPF LIFE at {0} (est.)', 'no change vs not buying', '≈ {0}/mo vs not buying', '{0} → {1}/mo (estimate)', 'no CPF LIFE for foreigners'],
     'zh.json': ['no change', '≈ {0} a month', 'Household CPF LIFE from {0} if you buy this flat (estimate)', '{0} → {1} a month vs not buying'],
     'zh-engine.json': Object.values(PAYOUT_REASONS),
   };

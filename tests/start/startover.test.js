@@ -42,7 +42,7 @@ test('edit answers keeps CPF, cash and the grants override', () => {
 });
 
 test('drawer: "Edit answers" keeps, "Start over" confirms then asks Start here for a fresh start', () => {
-  const src = read('modules/household/index.js');
+  const src = read('modules/household/index.js') + read('modules/household/form.js'); // S3: the markup lives in form.js
   assert.match(src, /data-act="edit-answers">\$\{t\('Edit answers'\)\}/);
   assert.match(src, /case 'edit-answers':[^\n]*bus\.emit\('start:open', \{ opener: chip \}\)/);
   assert.match(src, /case 'start': if \(!confirm\(t\('Start over\? This clears your household in this browser\.'\)\)\) return;[^\n]*fresh: true/);
@@ -58,5 +58,5 @@ test('Afford: a kept grants override shows "your figure" on the Grants KPI', () 
 
 test('A9 strings have 中文 entries', () => {
   const zh = JSON.parse(read('i18n/zh.json'));
-  for (const k of ['Edit answers', 'Start over? This clears your household in this browser.', 'your figure', 'the amount you entered in Household']) assert.ok(zh[k], k);
+  for (const k of ['Edit answers', 'Start over? This clears your household in this browser.', 'your figure', 'the amount you entered in About you']) assert.ok(zh[k], k);
 });

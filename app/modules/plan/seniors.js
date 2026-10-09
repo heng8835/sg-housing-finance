@@ -15,6 +15,7 @@ import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { field, numIn, todayIso } from './ui.js';
 import { missingFields, needPrompt } from '../../core/missing.js';
+import { fillLink, householdField } from '../../core/filllink.js';
 import { ftWord } from '../../core/typical.js';
 
 const LABEL = {
@@ -116,9 +117,9 @@ function cpfLine(o, x) {
   const startedTop = x.aged.some(({ b, i }) => tops[i] > 0 && +b.age >= atAge && b.citizenship !== 'F');
   if (!r || !r.ok) {
     if (startedTop) return [esc(t('goes up')), `${esc(t('CPF works out the new amount.'))}${estimator}`];
-    if (r && r.reason === 'atpayout') return dash(`<button type="button" class="link" data-act="hh-open" data-field="buyers.${r.buyer}.cpfLifeMonthly">${t('add the CPF LIFE payout you receive')}</button>`);
+    if (r && r.reason === 'atpayout') return dash(fillLink({ target: 'household', field: `buyers.${r.buyer ?? 0}.cpfLifeMonthly`, text: 'cpfLifeMonthly' }));
     if (r && r.reason === 'foreigner') return dash(esc(t('No CPF LIFE: foreigners do not contribute to CPF.')));
-    return dash(`<button type="button" class="link" data-act="hh-open" data-field="${r && r.buyer != null ? `buyers.${r.buyer}.cpfOa` : ''}">${t('add CPF balances')}</button>`);
+    return dash(fillLink({ target: 'household', field: r && r.buyer != null ? `buyers.${r.buyer}.cpfOa` : householdField(x.h, 'cpfOa'), text: 'cpfOa' })); // fill link (core/filllink.js)
   }
   const started = r.buyers.filter((b) => b.atPayout), projected = r.buyers.filter((b) => !b.atPayout);
   const before = money(r.before.monthly);

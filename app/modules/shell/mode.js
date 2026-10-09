@@ -1,4 +1,5 @@
-// Simple / Pro switch (header; on phones the same switch sits in the Menu sheet, shell/menu.js). Simple hides
+// Simple / Pro switch (header; on phones the same element is the second item of the top bar — styles/phone.css reorders
+// it, phone-topbar-area-household.md §3; class mode-switch kept so tours find it on every width). Simple hides
 // power-user controls (.pro-only) and shortens the compare table; the choice is stored in the store's ui slice.
 
 import { t } from '../../core/i18n.js';

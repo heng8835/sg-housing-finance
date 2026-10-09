@@ -1,4 +1,5 @@
-// EN / 中文 switch (header; on phones the same switch sits in the Menu sheet, shell/menu.js). The choice is stored in
+// EN / 中文 switch (header; on phones the same element is the first item of the top bar — styles/phone.css reorders it,
+// phone-topbar-area-household.md §3; class lang-switch + lang attributes kept for tours). The choice is stored in
 // the store's ui slice; switching reloads the page so every view — including the legacy map/compare code — is rebuilt
 // in the new language.
 import { LANGS, currentLang } from '../../core/i18n.js';

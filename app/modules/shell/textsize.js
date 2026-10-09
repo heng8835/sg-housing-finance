@@ -1,6 +1,6 @@
 // Text size switch (Phase 7 B10, DEC-016 Q5): "A A A" in the header next to EN / 中文 (tablet and desktop). On phones
-// the header shows the household chip, Aa and Menu instead (phone overhaul §2.2): the same switch opens from Aa and
-// sits in the Menu sheet (shell/menu.js). All write ui.textSize; the classes on <html> come from core/textsize.js
+// the header switch is hidden and the same switch is the Menu sheet's first row (shell/menu.js; phone top-bar spec
+// phone-topbar-area-household.md §3). All write ui.textSize; the classes on <html> come from core/textsize.js
 // bindTextSize (main.js). Never changes the size without a tap.
 import { textSizeOf, textSizeSwitch } from '../../core/textsize.js';
 

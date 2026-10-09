@@ -4,6 +4,7 @@
 import { esc, money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { ftWord } from '../../core/typical.js';
+import { householdLink } from '../../core/filllink.js';
 
 /** The home being sold, in a sentence: "your flat at 123 Bedok North St 3" / "your 4-room flat" / "your private home". */
 export function saleHomeLabel(c) {
@@ -40,9 +41,10 @@ export function shortLeaseNote(p) {
 /** Grants KPI amount: "up to S$X" while the EHG waits for HDB's pro-ration. */
 export const grantsAmount = (p) => (p.shortLease && p.shortLease.ehgUpTo ? t('up to {0}', [money(p.grants.total)]) : money(p.grants.total));
 
-/** Upfront card line (A11): the cash shortfall only once the cash is known; before that, ask for it. */
-export function cashShortLine(p) {
-  if (p.cashShort == null) return `<p class="hint">${t('Add your savings to check the cash part.')}</p>`;
+/** Upfront card line (A11): the cash shortfall only once the cash is known; before that, ask for it — the sentence is a
+ *  fill link to the household's cash (core/filllink.js; h = the household). */
+export function cashShortLine(p, h = null) {
+  if (p.cashShort == null) return `<p class="hint">${householdLink(h, 'cash', { text: 'Add your savings to check the cash part.' })}</p>`;
   if (p.cashShort > 0) return `<p class="hint" style="color:var(--critical)">${t('Short of {0} in cash.', [money(p.cashShort)])}</p>`;
   return '';
 }

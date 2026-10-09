@@ -1,0 +1,87 @@
+/* Household page "About you" (spec hdb-data-pipeline/docs/specs/phone-topbar-area-household.md §4, slice S3).
+   Markup: modules/household/form.js. Same page on phone and desktop (owner Q7): the rules at the top apply at every
+   width (the desktop drawer keeps its 440 px width and ✕); phone sizes are in the @media block at the end. rem only.
+   Older #hhDialog phone rules in samples.css still apply (sticky Done, Export / Import / Forget grid, .hh-links rows). */
+
+/* status line under the title: "2 buyers · S$8,000 a month · saved only in this browser" */
+#hhDialog .hh-line { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--sp-3); color: var(--text-2); font-size: .893rem; line-height: 1.4; }
+#hhDialog .hh-lock { width: 1rem; height: 1rem; flex: none; color: var(--text-3); }
+#hhDialog .notice .link { font-weight: 600; text-decoration: underline; }
+/* sample: "Sample household · 2 buyers · S$8,000 a month" left, Exit sample right (review H-1.1, no yellow notice) */
+#hhDialog .hh-exit { flex: none; margin-left: auto; min-height: 44px; padding: 0 0 0 var(--sp-2); color: var(--accent-ink); font-size: inherit; font-weight: 600; }
+
+/* fields: label (+ ⓘ) above the control; the ⓘ line hidden under it */
+#hhDialog .hh-f { margin: 0 0 var(--sp-3); min-width: 0; scroll-margin-top: var(--hh-head, 4.5rem); }
+#hhDialog .hh-f > .f-label { display: block; min-height: 1.375rem; line-height: 1.35; } /* ⓘ inline: it stays after the last word when a label wraps; min-height: Age and Income inputs line up (H-4) */
+#hhDialog .hh-f > .f-label label { color: inherit; }
+#hhDialog .fold > summary { scroll-margin-top: var(--hh-head, 4.5rem); }
+#hhDialog .hh-row { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: 0 var(--sp-3); align-items: start; } /* start: an open ⓘ line under Income does not push Age down */
+#hhDialog .hh-row > .hh-f { margin-bottom: var(--sp-3); }
+/* the Income ⓘ line spans the whole row (not the narrow Income column) */
+#hhDialog .hh-row > .hh-help { grid-column: 1 / -1; margin: calc(var(--sp-1) - var(--sp-3)) 0 var(--sp-3); }
+#hhDialog .hh-help { margin: var(--sp-1) 0 0; font-size: .857rem; color: var(--text-2); line-height: 1.45; }
+#hhDialog .hh-i { display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; margin: -.375rem 0; padding: 0; border: 0;
+  background: none; color: var(--text-3); cursor: pointer; vertical-align: middle; }
+#hhDialog .hh-i > span { display: grid; place-items: center; width: 1.0625rem; height: 1.0625rem; border: 1px solid currentColor; border-radius: 50%;
+  font-size: .75rem; font-weight: 700; line-height: 1; }
+#hhDialog .hh-i:hover, #hhDialog .hh-i[aria-expanded="true"] { color: var(--accent-ink); }
+#hhDialog .hh-i:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm); }
+
+/* switches fill the row: Buying as, Citizenship (Citizen · PR · Foreigner), PR 3 years, Loan type */
+#hhDialog .hh-seg, #hhDialog #hhLoan .seg { display: flex; width: 100%; }
+#hhDialog .hh-seg button, #hhDialog #hhLoan .seg button { flex: 1 1 0; min-width: 0; padding: 6px 8px; text-align: center; line-height: 1.2; }
+
+/* money: "S$" inside the box at every width (phones already had it: phone-pages.css) */
+#hhDialog .money-in { display: block; position: relative; }
+#hhDialog .money-in::before { content: 'S$'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-3); line-height: 1; pointer-events: none; }
+#hhDialog .money-in > input { padding-left: 2.25rem; font-variant-numeric: tabular-nums; }
+
+/* the basics card: buyers as plain blocks with a hairline, not grey boxes */
+#hhDialog .hh-basics > h3 { margin-bottom: var(--sp-3); }
+#hhDialog fieldset.buyer { background: none; border: 0; border-top: 1px solid var(--border-subtle); border-radius: 0; padding: var(--sp-3) 0 0; margin: var(--sp-3) 0 0; }
+/* the buyer heading row: "Buyer 2" left, a quiet Remove right (review H-2); the deep-link target for age / income (H-5) */
+#hhDialog fieldset.buyer > legend { float: left; display: flex; width: 100%; align-items: center; justify-content: space-between; margin: 0 0 var(--sp-2);
+  font-size: 1rem; font-weight: 600; color: var(--text); scroll-margin-top: calc(var(--hh-head, 4.5rem) + 8px); }
+#hhDialog fieldset.buyer > legend + * { clear: both; }
+/* negative margin: the 44 px hit area overlaps the row, the heading row keeps its own height */
+#hhDialog .hh-remove { margin: -10px 0; border: 0; background: none; min-height: 44px; padding: 0 4px;
+  color: var(--text-2); font-weight: 500; text-decoration: underline; cursor: pointer; }
+#hhDialog .hh-data .btn { scroll-margin-top: var(--hh-head, 4.5rem); } /* Forget my data deep link: 12 px under the header like the fields */
+#hhDialog .hh-basics > .actions { margin: 0 0 var(--sp-3); }
+#hhDialog .hh-cash { border-top: 1px solid var(--border-subtle); padding-top: var(--sp-3); margin-top: var(--sp-2); }
+#hhDialog .hh-cash .hh-f, #hhDialog .fold-body > :last-child { margin-bottom: 0; }
+
+/* folded groups */
+#hhDialog .hh-fold .fold-s:empty { display: none; }
+#hhDialog .hh-fold #hhGrants { margin: 0 0 var(--sp-3); }
+#hhDialog .hh-fold #hhGrants .hint:first-child { margin-top: 0; }
+#hhDialog .hh-sub { margin: var(--sp-2) 0 var(--sp-2); font-size: .929rem; font-weight: 600; color: var(--text); }
+#hhDialog .hh-cpfb + .hh-cpfb { border-top: 1px solid var(--border-subtle); padding-top: var(--sp-2); }
+#hhDialog .hh-data .actions { margin-top: 0; }
+#hhDialog .hh-links { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); margin-top: var(--sp-3); }
+
+@media screen and (max-width: 767px) {
+  #hhDialog .hh-line, #hhDialog .hh-help { font-size: .9375rem; }
+  #hhDialog .hh-lock { width: 1rem; height: 1rem; }
+  /* ⓘ: a 44 px hit area around an 18 px circle; negative margins keep the label row its own height */
+  #hhDialog .hh-i { width: 2.75rem; height: 2.75rem; min-height: 2.75rem; margin: -.75rem -.5rem -.75rem -.375rem; }
+  #hhDialog .hh-i > span { width: 1.25rem; height: 1.25rem; font-size: .875rem; }
+  #hhDialog .hh-seg button, #hhDialog #hhLoan .seg button { min-height: 2.875rem; font-size: .9375rem; padding: 0 6px; }
+  #hhDialog .money-in::before { left: 12px; font-size: 1rem; }
+  #hhDialog .money-in > input { padding-left: 2.5rem; }
+  #hhDialog fieldset.buyer > legend { font-size: 1rem; }
+  #hhDialog .hh-remove { font-size: 1rem; }
+  /* "The basics" flat on phones: the page background groups it; the folds below stay cards (review H-1.3) */
+  #hhDialog .hh-basics { border: 0; background: none; box-shadow: none; padding: 0; }
+  /* fields 8 px apart on phones (review H-1 fallback: the sample page to 2 screens at 360 x 640) */
+  #hhDialog .hh-f, #hhDialog .hh-row > .hh-f { margin-bottom: var(--sp-2); }
+  #hhDialog .hh-row > .hh-help { margin: calc(var(--sp-1) - var(--sp-2)) 0 var(--sp-2); }
+  /* flat basics: 8 px rhythm inside it (no card padding any more); fold titles 17 px as in the spec (review nice-to-have 8) */
+  #hhDialog .hh-basics > h3 { margin-bottom: var(--sp-2); }
+  #hhDialog fieldset.buyer { margin-top: var(--sp-2); padding-top: var(--sp-2); }
+  #hhDialog .hh-cash { padding-top: var(--sp-2); }
+  #hhDialog .hh-fold .fold-t { font-size: 1.0625rem; }
+  #hhDialog .hh-basics > .actions .btn { min-height: 44px; font-size: 1rem; }
+  #hhDialog .hh-sub { font-size: 1rem; }
+  #hhDialog .hh-links { flex-direction: column; align-items: flex-start; gap: 0; }
+}

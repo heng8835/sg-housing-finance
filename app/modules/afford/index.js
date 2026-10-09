@@ -11,6 +11,7 @@ import { keepFolds, saveView } from '../../core/fold.js';
 import { effectiveFlat, defaultNote, bindPickMap, onTypicalChange, marketRentFor } from '../../core/typical.js';
 import { missingFields, needPrompt } from '../../core/missing.js';
 import { bindNeeds } from '../../core/quickfill.js';
+import { householdLink } from '../../core/filllink.js';
 import { saleInput } from '../../engine/salefunds.js';
 import { saleBanner, shortLeaseNote, grantsAmount, cashShortLine } from './verdict.js';
 import { retypePatch, noSalesHint, blockMedian, blockLabelOf } from './flattype.js';
@@ -96,10 +97,10 @@ export function mountAfford({ store, policy, bus, el }) {
       ${bankLoanNote(p)}
       ${!hasIncome || p.verdict.status === 'unknown' || h.cash == null ? needPrompt(missingFields(h, ['income', 'age', 'cash']), 'afVerdict') : ''}
       <div class="kpis">
-        <div class="kpi"><small>${term('instalment', t('Monthly instalment'))}</small><b>${money(c.monthly)}</b><small>${!hasIncome ? t('add income') : simple ? `${incomeShareText(pct(c.msr), pct(c.msrAssessed), (c.assessRate * 100).toFixed(1) + '%')} ${term('msr', '')}` : t('{0} of income', [pct(c.msr)]) + ` · ${term('msr', 'MSR')} ` + t('test {0} at {1}', [pct(c.msrAssessed), (c.assessRate * 100).toFixed(1) + '%'])}</small></div>
+        <div class="kpi"><small>${term('instalment', t('Monthly instalment'))}</small><b>${money(c.monthly)}</b><small>${!hasIncome ? householdLink(h, 'income') : simple ? `${incomeShareText(pct(c.msr), pct(c.msrAssessed), (c.assessRate * 100).toFixed(1) + '%')} ${term('msr', '')}` : t('{0} of income', [pct(c.msr)]) + ` · ${term('msr', 'MSR')} ` + t('test {0} at {1}', [pct(c.msrAssessed), (c.assessRate * 100).toFixed(1) + '%'])}</small></div>
         <div class="kpi"><small>${term('upfront-cost', t('Upfront after grants'))}</small><b>${money(fund.net)}</b><small>${t('cash {0} · CPF + grants {1}', [money(fund.cashNeeded), money(fund.cpfUsed)])}</small></div>
-        <div class="kpi"><small>${t('Most you can pay')}</small><b>${p.budget.maxPrice != null ? kilo(p.budget.maxPrice) : '—'}</b><small>${t(p.budget.binding === 'income' ? 'limited by income (loan limit)' : p.budget.binding === 'funds' ? 'limited by your cash + CPF' : 'add income')}</small></div>
-        <div class="kpi"><small>${term('ehg', t('Grants'))}${h.grantsOverride != null ? ` <span class="tag neutral">${t('your figure')}</span>` : ''}</small><b>${grantsAmount(p)}</b><small>${h.grantsOverride != null ? t('the amount you entered in Household') : p.grants.items.map((i) => `${simple ? esc(grantName(i.id)) : i.id.toUpperCase()} ${kilo(i.amount)}`).join(' · ') || t('none')}</small></div>
+        <div class="kpi"><small>${t('Most you can pay')}</small><b>${p.budget.maxPrice != null ? kilo(p.budget.maxPrice) : '—'}</b><small>${p.budget.binding ? t(p.budget.binding === 'income' ? 'limited by income (loan limit)' : 'limited by your cash + CPF') : householdLink(h, 'income')}</small></div>
+        <div class="kpi"><small>${term('ehg', t('Grants'))}${h.grantsOverride != null ? ` <span class="tag neutral">${t('your figure')}</span>` : ''}</small><b>${grantsAmount(p)}</b><small>${h.grantsOverride != null ? t('the amount you entered in About you') : p.grants.items.map((i) => `${simple ? esc(grantName(i.id)) : i.id.toUpperCase()} ${kilo(i.amount)}`).join(' · ') || t('none')}</small></div>
       </div>
       ${grantsMissingFold(p, h, mode)}
       ${shortLeaseNote(p)}
@@ -110,7 +111,7 @@ export function mountAfford({ store, policy, bus, el }) {
     <div class="section" id="affordUpfront"><h3>${t('Upfront: what you pay before keys')}</h3>
       ${stackBar(fund.items, t('Upfront costs'))}
       ${stackBar([{ id: 'cash', amount: fund.cashNeeded, label: t('From cash') }, { id: 'cpf', amount: fund.cpfUsed, label: simple ? t('From CPF + grants') : t('From CPF OA + grants') }], t('Cash vs CPF'))}
-      ${cashShortLine(p)}
+      ${cashShortLine(p, h)}
       <p class="hint">${simple ? `${t('Option fees and any cash over valuation must be paid in cash; your CPF can pay the rest of the downpayment, stamp duty and legal fees.')} ${term('cov', '')}` : `${t('Option and exercise fees and COV must be paid in cash; CPF OA can pay the rest of the downpayment, stamp duty and legal fees.')} ${term('cov', 'COV')} ${term('cpf-housing', 'CPF OA')}`}${p.absd.note ? ' ' + esc(t(p.absd.note)) : ''}</p>
     </div>
     <div class="section pro-only"><h3>${term('hdb-loan', t('HDB loan'))} ${t('vs')} ${term('bank-loan', t('bank loan'))}</h3>

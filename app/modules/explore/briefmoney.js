@@ -67,7 +67,7 @@ export function moneyBoxHtml(md) {
   const m = md.monthly, cs = md.cash, g = md.grants;
   const cashNote = cs.short == null ? t('add your savings to check the cash part')
     : cs.short > 0 ? t('your cash {0} · short {1}', [money(cs.have), money(cs.short)]) : t('your cash {0} · covered', [money(cs.have)]);
-  const grants = g.own ? t('the amount you entered in Household')
+  const grants = g.own ? t('the amount you entered in About you')
     : g.items.length ? g.items.map((i) => `${t(GRANT_LABEL[i.id] || i.id.toUpperCase())} ${i.upTo ? t('up to {0}', [money(i.amount)]) : money(i.amount)}`).join(' + ') : t('none');
   const most = md.most.amount == null ? t('set income') : money(md.most.amount);
   const why = md.most.binding === 'income' ? t('limited by income') : md.most.binding === 'funds' ? t('limited by your cash + CPF') : '';

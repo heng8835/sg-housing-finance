@@ -143,7 +143,7 @@ export function verdictFor({ chosen, s, fundsKnown, cashKnown = true, coversTo95
   // eligibility first: can this household buy an HDB resale flat at all?
   if (resale && resale.ok === false) { worse('no'); say('eligibility', `Your household can't buy an HDB resale flat: ${resale.why.join(' ')}`); }
   else if (resale && resale.ok === 'conditional') { worse('tight'); say('eligibility-check', `Check eligibility: ${resale.why.join(' ')}`); }
-  if (s.income == null) { worse('unknown'); say('income-unknown', 'Add your income in Household to check the loan limits.'); }
+  if (s.income == null) { worse('unknown'); say('income-unknown', 'Add your income in About you to check the loan limits.'); }
   else if (smallerLoan && smallerLoan.fits === true) {
     worse('tight');
     say('smaller-loan', `Possible with a smaller loan: borrow ${money(smallerLoan.loan)} (not ${money(smallerLoan.fullLoan)}) and pay ${money(smallerLoan.extra)} more from cash or CPF — your income limits the loan at the test rate.`);

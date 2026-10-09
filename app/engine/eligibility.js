@@ -49,7 +49,7 @@ export function pathways(h, policy) {
   const minSingle = policy.get('eligibility.single.min_age');
   const youngest = c.scAges.length ? Math.min(...c.scAges) : null;
   const oldestSc = c.scAges.length ? Math.max(...c.scAges) : null;
-  const noBuyers = out('conditional', 'Add the buyers in Household to check eligibility.', ['UNVERIFIED']);
+  const noBuyers = out('conditional', 'Add the buyers in About you to check eligibility.', ['UNVERIFIED']);
   const spr = policy.get('elig.sc_spr');
   const sprNote = c.cits.includes('PR') && c.kind === 'sc_family'
     ? `SC + PR households pay a ${money(spr.bto_premium)} premium on a new flat, refunded as a ${money(spr.citizen_top_up)} Citizen Top-Up when the PR becomes a citizen.` : null;

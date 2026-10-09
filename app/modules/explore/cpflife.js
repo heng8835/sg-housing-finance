@@ -6,6 +6,7 @@ import { CPF_DEFAULTS } from '../../core/cpf-defaults.js';
 import { money } from '../../core/dom.js';
 import { t } from '../../core/i18n.js';
 import { isSimple } from '../../core/plain.js';
+import { fillLink } from '../../core/filllink.js';
 
 /** Lookup key (English, stable); the label shows the payout age from policy. */
 export const ROW_KEY = 'CPF LIFE at payout age (est.)';
@@ -20,8 +21,9 @@ export const signedMoney = (v) => `${v < 0 ? '−' : '+'}${money(Math.abs(v))}`;
  *  mode 'simple' (B10): the same amounts as "S$310 less a month than if you don't buy". */
 export function cellHtml(r, mode = 'pro') {
   if (!r) return '—';
-  const open = (field, text) => `<small><button type="button" class="link" data-cpf-open="${field}">${text}</button></small>`;
-  const addPayout = (i) => open(`buyers.${i ?? 0}.cpfLifeMonthly`, t('already receiving CPF LIFE? add the payout in Household'));
+  // fill links (core/filllink.js): the drawer opens on that buyer's field
+  const open = (field, text) => fillLink({ target: 'household', field, text, small: true });
+  const addPayout = (i) => open(`buyers.${i ?? 0}.cpfLifeMonthly`, 'cpfLifeMonthly');
   if (r.ok) {
     const missing = (r.payoutMissing || []).length ? addPayout(r.payoutMissing[0]) : '';
     if (r.allAtPayout) return `${t('no change: payouts have started')}<small>${t('{0}/mo you entered', [money(r.without.monthly)])}</small>${missing}`;
@@ -33,21 +35,20 @@ export function cellHtml(r, mode = 'pro') {
     return `${head}<small>${t('{0} → {1}/mo (estimate)', [money(r.without.monthly), money(r.withBuy.monthly)])}</small>${missing}`;
   }
   if (r.reason === 'atpayout') return `—${addPayout(r.buyer)}`;
-  if (r.reason === 'nobalances') return `—${open(`buyers.${r.buyer ?? 0}.cpfOa`, t('add CPF balances in Household'))}`;
-  if (r.reason === 'noage') return `—${open(`buyers.${r.buyer ?? 0}.age`, t('add ages in Household'))}`;
+  if (r.reason === 'nobalances') return `—${open(`buyers.${r.buyer ?? 0}.cpfOa`, 'cpfOa')}`;
+  if (r.reason === 'noage') return `—${open(`buyers.${r.buyer ?? 0}.age`, 'age')}`;
   if (r.reason === 'foreigner') return `—<small>${t('no CPF LIFE for foreigners')}</small>`;
   return '—';
 }
 
 /**
  * @param {{ policy:object, store:object, bus:object, D:object, body?:HTMLElement|null, rerender?:()=>void, year?:()=>number }} x
- *   D = window.HDB_DATA (flat types); body = #cmpBody (the "add … in Household" links open the drawer)
+ *   D = window.HDB_DATA (flat types); the "Add … →" links are fill links (core/filllink.js, bound in main.js)
  * → { row(), insert(rows), terms }
  */
 export function createCpfLife({ policy, store, bus, D, body = null, rerender = null, year = () => new Date().getFullYear() }) {
   const A65 = policy.get('cpf.age.life_payout'), A55 = policy.get('cpf.age.ra_formation');
   const settings = () => ((store.get('plan') || {}).cpf) || {};
-  if (body) body.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-cpf-open]'); if (b) bus.emit('household:open', { field: b.dataset.cpfOpen }); });
   // the compare table re-renders on household changes already; Plan-tab CPF settings (pay rise, bonus, PR year) too
   let last = JSON.stringify(settings());
   if (rerender) store.subscribe('plan', () => { const s = JSON.stringify(settings()); if (s !== last) { last = s; rerender(); } });

@@ -106,9 +106,11 @@ test('keyboard height = layout viewport minus the visual viewport (never negativ
   assert.equal(keyboardHeight({ innerHeight: 500, vvHeight: 520 }), 0);
 });
 
-test('Menu: language, text size, Simple / Pro, then the rows; sample rows follow the sample state; About uses [data-about]', () => {
+test('Menu: text size first (language and Simple / Pro are on the top bar), then the rows; sample rows follow the sample state; About uses [data-about]', () => {
   const off = menuHtml({ inSample: false }), on = menuHtml({ inSample: true });
-  for (const slot of ['lang', 'ts', 'mode', 'menu-extra']) assert.match(off, new RegExp(`data-slot="${slot}"`));
+  for (const slot of ['ts', 'menu-extra']) assert.match(off, new RegExp(`data-slot="${slot}"`));
+  for (const slot of ['lang', 'mode']) assert.doesNotMatch(off, new RegExp(`data-slot="${slot}"`));
+  assert.ok(off.indexOf('data-slot="ts"') < off.indexOf('class="pm-go"'), 'text size is the first row');
   const acts = (h) => [...h.matchAll(/class="pm-go" data-act="(\w+)"/g)].map((m) => m[1]);
   assert.deepEqual(acts(off), ['guides', 'learn', 'sample', 'start', 'about']);
   assert.deepEqual(acts(on), ['guides', 'learn', 'samples', 'exit', 'start', 'about']);
@@ -122,7 +124,8 @@ test('phone shell markup: viewport, tab bar ids, sheet host, page slots, phone.c
   assert.match(html, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"/);
   assert.ok(html.lastIndexOf('styles/phone.css') > html.lastIndexOf('styles/textsize.css'), 'phone.css is loaded last');
   for (const tab of ['explore', 'afford', 'rent', 'plan', 'choices']) assert.equal((html.match(new RegExp(`id="tabbtn-${tab}"`, 'g')) || []).length, 1, `one #tabbtn-${tab}`);
-  for (const id of ['mapSheet', 'tabbar', 'phoneAa', 'phoneMenu', 'choicesView']) assert.match(html, new RegExp(`id="${id}"[^>]* hidden|id="${id}"[^>]*hidden`), `#${id} hidden until phone.css shows it`);
+  assert.doesNotMatch(html, /id="phoneAa"|tsPop/, 'no Aa button: text size lives in the Menu');
+  for (const id of ['mapSheet', 'tabbar', 'phoneMenu', 'choicesView']) assert.match(html, new RegExp(`id="${id}"[^>]* hidden|id="${id}"[^>]*hidden`), `#${id} hidden until phone.css shows it`);
   assert.equal((html.match(/class="page-head" hidden/g) || []).length, 4, 'a title slot on each page tab');
   assert.equal((html.match(/class="page-ctx" hidden/g) || []).length, 4, 'an empty context-line slot under each title');
   assert.equal((html.match(/class="tl-short" hidden data-i18n="[^"]+ \(phone tab\)"/g) || []).length, 5, 'short phone labels');

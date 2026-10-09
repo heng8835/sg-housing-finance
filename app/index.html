@@ -31,6 +31,8 @@
 <link rel="stylesheet" href="styles/phone.css">
 <link rel="stylesheet" href="styles/phone-compare.css">
 <link rel="stylesheet" href="styles/phone-pages.css">
+<!-- household page "About you" (spec phone-topbar-area-household.md §4; phone rules inside the 767 px query) -->
+<link rel="stylesheet" href="styles/household.css">
 </head>
 <body>
 <div id="app">
@@ -39,9 +41,10 @@
     <span class="sub" id="dataInfo" data-i18n>loading data…</span>
     <span class="spacer"></span>
     <span class="stat" id="visStat"></span>
-    <!-- phone top bar (≤ 767 px, styles/phone.css; modules/shell/menu.js): household chip · Aa · Menu -->
-    <button type="button" class="tb-btn" id="phoneAa" hidden aria-haspopup="dialog" aria-expanded="false" aria-controls="tsPop" aria-label="Text size" data-i18n-attr="aria-label">Aa</button>
-    <button type="button" class="tb-btn" id="phoneMenu" hidden aria-haspopup="dialog" data-i18n>Menu</button>
+    <!-- phone top bar (≤ 767 px, styles/phone.css reorders the header; spec phone-topbar-area-household.md §3):
+         EN | 中文 (.lang-switch) · Simple | Pro (.mode-switch) · You (#hhChip, modules/household/chip.js) · Menu
+         (modules/shell/menu.js; text size lives in the Menu). The other header items are hidden on phones. -->
+    <button type="button" class="tb-item" id="phoneMenu" hidden aria-haspopup="dialog" aria-label="Menu" data-i18n-attr="aria-label"><svg class="tb-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16M4 12h16M4 17.5h16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="tb-w" data-i18n>Menu</span></button>
   </header>
 
   <aside id="panel">
