@@ -3,7 +3,7 @@
 //   first view  — header (number, street, "town · flat types", ✕; built by the dock), ONE row of four key tiles
 //                 (median price · $psf · lease left · nearest MRT); two 48 px buttons (Add to my choices · Afford this)
 //                 after the rows, in a sticky footer pinned to the bottom of the sheet view (review R-06);
-//   below       — one-line collapsed rows with a chevron and a short summary ("Recent sales · 12 in 2017–2026"), each a
+//   below       — one-line rows with a chevron (open by default since 2026-10-10) and a short summary ("Recent sales · 12 in 2017–2026"), each a
 //                 details[data-fold] remembered with core/fold keepFolds (F6): Good to know, Prices (scope, hand-off note,
 //                 trend), Recent sales (3 columns: month · storey · price), Rent (Rent check first), Primary schools
 //                 (rows → school card), Nearby, Commute, Town vs market, Lease and value, Future-value outlook.
@@ -31,7 +31,7 @@ const row = (key, open, label, sum, body) => `<details class="pc-row" data-fold=
  * pfold(key, defaultOpen) → open?, schoolPick?(item) → index }. No element ids.
  */
 export function phoneCardHtml(m) {
-  const { head: h, st, tiles: a } = m, none = st.state === 'none', open = (k, d = false) => (m.pfold ? m.pfold(k, d) : d);
+  const { head: h, st, tiles: a } = m, none = st.state === 'none', open = (k, d = true) => (m.pfold ? m.pfold(k, d) : d); // owner 2026-10-10: rows start open (a row the user closed stays closed)
   const fresh = !!h.newYear && !(m.sales && m.sales.total);
   const tile = (label, v) => `<div class="pc-tile"><small>${t(label)}</small><b${strip(v).length > 6 ? ' class="pc-long"' : ''}>${v}</b></div>`;
   const tiles = `<div class="pc-tiles">${tile('Median price', none ? '—' : kTile(a.price))}${tile('Per sq ft', !none && a.psf ? 'S$' + Math.round(a.psf) : '—')}`
@@ -62,7 +62,7 @@ export function phoneCardHtml(m) {
 
   const rentBtn = `<button type="button" class="btn" data-act="rent">${t('Rent check →')}</button>`;
   const rl = (r) => { const x = `${esc(ftShort(r.ft))} ${money(r.med)}`; return r.n ? t('{0} ({1} rentals)', [x, r.n]) : x; };
-  const rent = m.rent && m.rent.length ? row('pc-rent', open('pc-rent', !!m.rentFirst), t('Rent'), `${esc(ftShort(m.rent[0].ft))} ${money(m.rent[0].med)}`, `<p class="pc-line">${rentBtn}</p><ul class="pc-list">${m.rent.map((r) => `<li>${rl(r)}</li>`).join('')}</ul>`)
+  const rent = m.rent && m.rent.length ? row('pc-rent', open('pc-rent'), t('Rent'), `${esc(ftShort(m.rent[0].ft))} ${money(m.rent[0].med)}`, `<p class="pc-line">${rentBtn}</p><ul class="pc-list">${m.rent.map((r) => `<li>${rl(r)}</li>`).join('')}</ul>`)
     : `<div class="pc-row pc-plain"><span class="pc-l">${t('Rent')}</span>${rentBtn}</div>`;
 
   const sc = m.schools, b0 = sc && sc.bandsKm[0], n = sc ? sc.bands.near.length : 0;

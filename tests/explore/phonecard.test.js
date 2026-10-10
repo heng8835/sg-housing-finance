@@ -50,7 +50,7 @@ test('first view: four key tiles (same figures as desktop), then rows, then the 
   assert.doesNotMatch(h, /pc-long/);
 });
 
-test('rows: one line each — label and a short summary — in a calm fixed order; all closed by default (F6 data-fold)', () => {
+test('rows: one line each — label and a short summary — in a calm fixed order; all OPEN by default (owner 2026-10-10), remembered when closed (F6 data-fold)', () => {
   const h = cardHtml(model());
   assert.deepEqual(rows(h), [
     'Good to know | ⚠ Flood-prone point 120 m away',
@@ -61,21 +61,21 @@ test('rows: one line each — label and a short summary — in a calm fixed orde
     'Nearby | 350 m to Seletar Mall, 420 m to Clinic',
   ]);
   assert.match(h, /<div class="pc-row pc-plain pc-wrap"><span class="pc-l">Commute<\/span><span class="pc-s">≈ 35 min to one-north<\/span><\/div>/);
-  assert.doesNotMatch(h, /<details[^>]* open/);
+  assert.equal((h.match(/<details[^>]* open/g) || []).length, 6, 'every row starts open');
   assert.deepEqual([...h.matchAll(/data-fold="([^"]+)"/g)].map((m) => m[1]), ['pc-warn', 'pc-prices', 'pc-sales', 'pc-rent', 'pc-schools', 'pc-near']);
-  // remembered state (keepFolds) and rent colour mode open their rows
-  const open = cardHtml(model({ pfold: (k, d) => k === 'pc-sales' || d, rentFirst: true }));
-  assert.match(open, /data-fold="pc-sales" open/); assert.match(open, /data-fold="pc-rent" open/);
+  // a row the user closed stays closed (keepFolds remembers it); the others keep the open default
+  const closed = cardHtml(model({ pfold: (k, d) => (k === 'pc-sales' ? false : d) }));
+  assert.doesNotMatch(closed, /data-fold="pc-sales" open/); assert.match(closed, /data-fold="pc-rent" open/);
 });
 
 test('rows hold what the desktop card holds: hand-off note + trend in Prices, Rent check first in Rent, schools as rows', () => {
   const h = cardHtml(model());
   assert.match(h, /<p class="pc-note">Afford this and Rent check use the 4-room median: S\$690k\.<\/p><h4 class="pc-h">Median price by year<\/h4><div class="bc-chart"><\/div>/);
-  assert.match(h, /data-fold="pc-rent">.*?<div class="pc-body"><p class="pc-line"><button type="button" class="btn" data-act="rent">Rent check →<\/button><\/p><ul class="pc-list"><li>4-room S\$3,300 \(12 rentals\)<\/li>/s);
+  assert.match(h, /data-fold="pc-rent"[^>]*>.*?<div class="pc-body"><p class="pc-line"><button type="button" class="btn" data-act="rent">Rent check →<\/button><\/p><ul class="pc-list"><li>4-room S\$3,300 \(12 rentals\)<\/li>/s);
   assert.equal((h.match(/data-act="rent"/g) || []).length, 1);
   assert.match(cardHtml(model({ rent: null })), /<div class="pc-row pc-plain"><span class="pc-l">Rent<\/span><button type="button" class="btn" data-act="rent">Rent check →<\/button><\/div>/);
   assert.match(h, /<button type="button" class="bc-row" data-school="0">Mee Toh · 70 m<\/button>/);
-  assert.match(h, /data-fold="pc-warn">.*<li class="pc-warn">Flood-prone point 120 m away \(PUB\)<\/li>/s);
+  assert.match(h, /data-fold="pc-warn"[^>]*>.*<li class="pc-warn">Flood-prone point 120 m away \(PUB\)<\/li>/s);
   assert.match(cardHtml(model({ schools: { bands: schoolBands([], AT, BANDS), bandsKm: BANDS } })), /Primary schools<\/span><span class="pc-s">none within 1 km/);
 });
 

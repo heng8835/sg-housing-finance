@@ -320,9 +320,13 @@ export function createCard(ctx) {
       // opening a section scrolls its own summary to the top of the card (just under the sticky header, R-05b), so you
       // see which row you opened; the sheet itself only grows when the user drags it (owner: the card never covers the
       // whole map by itself)
+      // only the user's own tap on a summary scrolls: rows that START open (owner 2026-10-10) also fire 'toggle'
+      // when the card is built, and must not scroll the card down to the last row
+      let tappedAt = 0;
+      el.querySelector('.bc').addEventListener('click', (e) => { if (e.target.closest('.pc-row > summary')) tappedAt = Date.now(); }, true);
       el.querySelector('.bc').addEventListener('toggle', (e) => {
         const d = e.target;
-        if (d.open && d.matches?.('.pc-row')) requestAnimationFrame(() => rowToTop(d));
+        if (d.open && d.matches?.('.pc-row') && Date.now() - tappedAt < 600) requestAnimationFrame(() => rowToTop(d));
       }, true);
     }
     el.querySelector('[data-act="schools"]')?.addEventListener('click', () => { // B3: the fact opens the fold
