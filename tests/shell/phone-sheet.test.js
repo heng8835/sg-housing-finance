@@ -117,6 +117,10 @@ test('Menu: text size first (language and Simple / Pro are on the top bar), then
   assert.match(off, /data-act="about" data-about>/);
   assert.match(off, /<h2 id="menuTitle">SG Housing &amp; Finance<\/h2>/);
   assert.equal(MENU_ROWS.length, 7);
+  assert.doesNotMatch(off, /pm-ext/, 'no Support row without a donate URL');
+  const kofi = menuHtml({ donate: 'https://ko-fi.com/someone' });
+  assert.match(kofi, /<a class="pm-go pm-ext" href="https:\/\/ko-fi\.com\/someone" target="_blank" rel="noopener">Support this project ☕<\/a><\/li>\s*<\/ul>/, 'Support is the last row, opens Ko-fi in a new tab');
+  assert.deepEqual(acts(kofi), ['guides', 'learn', 'sample', 'start', 'about'], 'not a [data-act] row');
 });
 
 test('phone shell markup: viewport, tab bar ids, sheet host, page slots, phone.css last; mobile.js is gone', () => {

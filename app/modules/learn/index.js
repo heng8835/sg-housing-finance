@@ -19,7 +19,7 @@ export async function mountLearn({ policy, bus }) {
   // ---- rules date on every disclaimer line (go-live D1 = c); a warning once review_due has passed
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date()); // YYYY-MM-DD
   const rules = rulesStatus({ reviewed: policy.reviewed, reviewDue: policy.reviewDue }, today);
-  stampRules(document, rules);
+  stampRules(document, rules, donateUrl());
 
   // ---- {policy:id} placeholders → formatted rule values
   function value(id) {
@@ -82,7 +82,7 @@ export async function mountLearn({ policy, bus }) {
       <p class="hint simple-only">${t('Educational content — not financial advice. Numbers in bold come from dated rules on official pages.')}</p></div>`;
     if (!sheet.open) sheet.showModal();
     sheet.querySelector('.drawer-body').scrollTop = 0;
-    if (!term) sheet.querySelector('.drawer-head').insertAdjacentHTML('afterend', discLineHtml('inline learn-disc', rules)); // phone only (CSS)
+    if (!term) sheet.querySelector('.drawer-head').insertAdjacentHTML('afterend', discLineHtml('inline learn-disc', rules, donateUrl())); // phone only (CSS)
     bus.emit('learn:painted', { root: sheet, id: term ? id : null }); // modules/guides fills [data-slot="guides"]
   }
   // ---- About / Sources view (7b, O15): version, data month, rules meta, licences, privacy, feedback

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/icons/icon.svg" alt="SG Housing & Finance" width="88" height="88">
+<img src="app/icons/logo.png" alt="SG Housing & Finance logo" width="96" height="95">
 
 # SG Housing & Finance
 
@@ -8,7 +8,7 @@
 
 ### 👉 [Open the app — heng8835.github.io/sg-housing-finance](https://heng8835.github.io/sg-housing-finance/)
 
-Free · no sign-up · works on desktop (phone layout being improved) · English and 中文
+Free · no sign-up · works on desktop (phone layout being improved) · English and 中文 · [Support on Ko-fi ☕](https://ko-fi.com/zhlim)
 
 [![Open the app](https://img.shields.io/badge/Open_the_app-heng8835.github.io-2b6cb0?style=flat-square)](https://heng8835.github.io/sg-housing-finance/)
 [![tests](https://github.com/heng8835/sg-housing-finance/actions/workflows/ci.yml/badge.svg)](https://github.com/heng8835/sg-housing-finance/actions/workflows/ci.yml)

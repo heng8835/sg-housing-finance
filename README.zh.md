@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/icons/icon.svg" alt="新加坡住房与理财" width="88" height="88">
+<img src="app/icons/logo.png" alt="新加坡住房与理财标志" width="96" height="95">
 
 # 新加坡住房与理财（SG Housing & Finance）
 
@@ -8,7 +8,7 @@
 
 ### 👉 [打开应用 — heng8835.github.io/sg-housing-finance](https://heng8835.github.io/sg-housing-finance/)
 
-免费 · 不用注册 · 适合电脑使用（手机版正在改进）· 英文和中文
+免费 · 不用注册 · 适合电脑使用（手机版正在改进）· 英文和中文 · [在 Ko-fi 支持我们 ☕](https://ko-fi.com/zhlim)
 
 [![打开应用](https://img.shields.io/badge/打开应用-heng8835.github.io-2b6cb0?style=flat-square)](https://heng8835.github.io/sg-housing-finance/)
 [![tests](https://github.com/heng8835/sg-housing-finance/actions/workflows/ci.yml/badge.svg)](https://github.com/heng8835/sg-housing-finance/actions/workflows/ci.yml)

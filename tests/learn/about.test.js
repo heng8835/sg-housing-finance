@@ -3,7 +3,7 @@
 // the disclaimer line is on every tab (panel footer on desktop, end of each tab on phones) and opens About.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { aboutHtml, sourcesTable, discLineHtml, dataMonths, monthText, SOURCES, LICENCES, ABOUT_ID, ISSUES_URL } from '../../app/modules/learn/about.js';
 import { appVersion } from '../../app/core/version.js';
 import { fillPolicy, fillPolicyTables, ruleTable } from '../../app/core/policyfmt.js';
@@ -152,4 +152,14 @@ test('donation link (DEC-019): hidden while DONATE_URL is empty, https only, sho
   assert.equal(donateUrl('https://ko-fi.com/someone'), 'https://ko-fi.com/someone');
   assert.doesNotMatch(aboutHtml({ hdb: HDB, rents: RENTS }), /Support this project/);
   assert.match(aboutHtml({ hdb: HDB, rents: RENTS, donate: 'https://ko-fi.com/someone' }), /<h3>Support this project<\/h3>.*href="https:\/\/ko-fi\.com\/someone"/s);
+  assert.match(aboutHtml({ hdb: HDB, rents: RENTS, donate: 'https://ko-fi.com/someone' }), /<img class="about-logo" src="icons\/logo\.png" alt=""/, 'owner logo beside the Support text');
+  assert.ok(existsSync(new URL('../../app/icons/logo.png', import.meta.url)), 'logo file shipped with the app');
+});
+
+test('Support link on the disclaimer line: after About, new tab, only with a donate URL', () => {
+  assert.doesNotMatch(discLineHtml('inline'), /disc-support/);
+  assert.match(discLineHtml('inline', null, 'https://ko-fi.com/someone'),
+    /data-about>About<\/button> · <a class="disc-support" href="https:\/\/ko-fi\.com\/someone" target="_blank" rel="noopener">Support us ☕<\/a><\/p>$/);
+  const zh = JSON.parse(readFileSync(new URL('../../app/i18n/zh.json', import.meta.url), 'utf8'));
+  assert.ok(zh['Support us'], 'Support us has a 中文 entry');
 });

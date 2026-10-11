@@ -194,6 +194,8 @@
   .phone-menu .pm-go { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 56px; padding: 0;
     border: 0; background: none; color: var(--text); font-size: 1rem; text-align: left; }
   .phone-menu .pm-go::after { content: '›'; color: var(--text-3); font-size: 1.25rem; }
+  .phone-menu a.pm-go { text-decoration: none; }
+  .phone-menu .pm-ext::after { content: '↗'; font-size: 1rem; }
   .phone-menu .pm-disc { margin: 16px 0; font-size: .875rem; color: var(--text-3); }
 
   @media (prefers-reduced-motion: reduce) { #mapSheet { transition: none; } }

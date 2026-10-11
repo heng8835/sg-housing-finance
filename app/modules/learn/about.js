@@ -96,7 +96,7 @@ export function aboutHtml({ policy = {}, hdb = null, rents = null, version = 'de
     ${btoOn && floodOn ? '' : `<h3>${t('Not in this version')}</h3>${btoOn ? '' : `<p>${t('BTO project details are not included in this version.')}</p>`}${floodOn ? '' : `<p>${t("PUB's flood-prone areas are not included in this version.")}</p>`}`}
     <h3>${t('Feedback')}</h3>
     <p>${t('Found a wrong number? Tell us on {0}.', [link(ISSUES_URL, t('GitHub Issues'))])} <b>${t('Never paste your income, CPF or savings.')}</b></p>
-    ${donate ? `<h3>${t('Support this project')}</h3><p>${t('It is free and private. If it helped you, you can support it here: {0}.', [link(donate, 'Ko-fi ☕')])}</p>` : ''}
+    ${donate ? `<h3>${t('Support this project')}</h3><div class="about-support"><img class="about-logo" src="icons/logo.png" alt="" width="64" height="63"><p>${t('It is free and private. If it helped you, you can support it here: {0}.', [link(donate, 'Ko-fi ☕')])}</p></div>` : ''}
     <p class="hint about-version">${esc(t('App {0} · data up to {1}', [version, months.resale ? monthText(months.resale) : '—']))}</p>
     <p><button type="button" class="link" data-learn="">${t('← Learn')}</button></p>
   </div>`;
@@ -111,17 +111,20 @@ export function rulesStatus({ reviewed, reviewDue } = {}, today = '') {
   if (!reviewed) return { overdue, text: '' };
   return { overdue, text: overdue ? t('Rules last checked {0} — due for review, some figures may be out of date', [reviewed]) : t('Rules as of {0}', [reviewed]) };
 }
+/** " · Support us ☕" after the About button (opens the Ko-fi page in a new tab); nothing without a donate URL. */
+const supportLink = (donate) => (donate ? ` · <a class="disc-support" href="${esc(donate)}" target="_blank" rel="noopener">${esc(t('Support us'))} ☕</a>` : '');
 const rulesSpan = (st) => (st && st.text ? `<span data-rules${st.overdue ? ' class="tag warn"' : ''}>${esc(st.text)}</span> · ` : '');
 
-/** Adds the rules date to every disclaimer line under root (static ones in index.html), once each. */
-export function stampRules(root, st) {
+/** Adds the rules date (and the Support link, when donate is set) to every disclaimer line under root (static ones in index.html), once each. */
+export function stampRules(root, st, donate = '') {
   for (const p of root.querySelectorAll('.disc-line')) {
     const about = p.querySelector('[data-about]');
     if (about && !p.querySelector('[data-rules]')) about.insertAdjacentHTML('beforebegin', rulesSpan(st));
+    if (about && donate && !p.querySelector('.disc-support')) about.insertAdjacentHTML('afterend', supportLink(donate));
   }
 }
 
-/** "Educational estimates, not financial advice · Rules as of … · About" (About opens this view; learn/index.js listens to [data-about]). */
-export function discLineHtml(extraClass = '', st = null) {
-  return `<p class="disc-line${extraClass ? ` ${esc(extraClass)}` : ''}">${t('Educational estimates, not financial advice')} · ${rulesSpan(st)}<button type="button" class="link" data-about>${t('About')}</button></p>`;
+/** "Educational estimates, not financial advice · Rules as of … · About · Support us ☕" (About opens this view; learn/index.js listens to [data-about]). */
+export function discLineHtml(extraClass = '', st = null, donate = '') {
+  return `<p class="disc-line${extraClass ? ` ${esc(extraClass)}` : ''}">${t('Educational estimates, not financial advice')} · ${rulesSpan(st)}<button type="button" class="link" data-about>${t('About')}</button>${supportLink(donate)}</p>`;
 }

@@ -9,6 +9,7 @@ import { t } from '../../core/i18n.js';
 import { esc } from '../../core/dom.js';
 import { textSizeEl } from './textsize.js';
 import { PHONE_QUERY } from './phone.js';
+import { donateUrl } from '../../core/version.js';
 
 /** Rows that open something else (act → what the click does in mountMenu). */
 export const MENU_ROWS = [
@@ -21,14 +22,16 @@ export const MENU_ROWS = [
   { act: 'about', label: 'About and sources' },
 ];
 
-/** The Menu sheet's inner markup (pure). inSample → "Other samples" + "Exit sample" instead of "Try a sample". */
-export function menuHtml({ inSample = false } = {}) {
+/** The Menu sheet's inner markup (pure). inSample → "Other samples" + "Exit sample" instead of "Try a sample".
+ *  donate → a last row linking to the Ko-fi page (new tab; not a [data-act] row, so the sheet stays open). */
+export function menuHtml({ inSample = false, donate = '' } = {}) {
   const row = (r) => `<li><button type="button" class="pm-go" data-act="${r.act}"${r.act === 'about' ? ' data-about' : ''}>${esc(t(r.label))}</button></li>`;
   return `<div class="drawer-body pm-body">
   <div class="drawer-head pm-head"><h2 id="menuTitle">${esc(t('SG Housing & Finance'))}</h2><button type="button" class="btn" data-act="close">${esc(t('Close'))}</button></div>
   <ul class="pm-list">
     <li class="pm-row"><span class="pm-l" id="pmTs">${esc(t('Text size'))}</span><span class="pm-c" data-slot="ts"></span></li>
     ${MENU_ROWS.filter((r) => r.sample === undefined || r.sample === inSample).map(row).join('\n    ')}
+    ${donate ? `<li><a class="pm-go pm-ext" href="${esc(donate)}" target="_blank" rel="noopener">${esc(t('Support this project'))} ☕</a></li>` : ''}
   </ul>
   <div data-slot="menu-extra"></div>
   <p class="pm-disc">${esc(t('Educational estimates, not financial advice'))}</p>
@@ -63,7 +66,7 @@ export function mountMenu({ store, bus } = {}) {
   }
   function open() {
     if (!dlg) build();
-    dlg.innerHTML = menuHtml({ inSample: !!store.inSample?.() });
+    dlg.innerHTML = menuHtml({ inSample: !!store.inSample?.(), donate: donateUrl() });
     dlg.querySelector('[data-slot="ts"]')?.append(ts);
     if (!dlg.open) dlg.showModal();
     bus?.emit('menu:painted', { root: dlg });
@@ -74,5 +77,5 @@ export function mountMenu({ store, bus } = {}) {
 }
 
 /** Every English string this module shows (zh coverage test). */
-export const uiStrings = () => [...MENU_ROWS.map((r) => r.label), 'SG Housing & Finance', 'Close', 'Text size',
+export const uiStrings = () => [...MENU_ROWS.map((r) => r.label), 'SG Housing & Finance', 'Close', 'Text size', 'Support this project',
   'Educational estimates, not financial advice'];

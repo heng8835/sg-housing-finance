@@ -363,8 +363,11 @@ ul.dates li.past .fade { opacity: .55; }
 .learn-about { margin: var(--sp-3) 0 0; }
 .about table.about-src th, .about table.about-src td { text-align: left; vertical-align: top; }
 .about .about-version { margin-top: var(--sp-4); }
+.about .about-support { display: flex; align-items: center; gap: var(--sp-3); }
+.about .about-support p { margin: 0; }
+.about .about-logo { flex: none; width: 64px; height: auto; }
 .sheet table.rule-table { max-width: 320px; }
-@media print { .disc-line.tab-end, .disc-line.learn-disc { display: none !important; } }
+@media print { .disc-line.tab-end, .disc-line.learn-disc { display: none !important; } .disc-support { display: none; } }
 
 /* 7b B1 — "What matters most to you?" above the compare table (modules/explore/priorities.js) */
 .prio { max-width: 760px; padding: var(--sp-3) 0 var(--sp-4); margin-bottom: var(--sp-3); border-bottom: 1px solid var(--border-subtle); }
