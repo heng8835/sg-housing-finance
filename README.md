@@ -17,17 +17,26 @@
 
 </div>
 
-| Before | With the app |
-|---|---|
-| Six tabs and a spreadsheet | One page, one household |
-| "Within budget", says the listing | The most *you* can pay, CPF and grants counted |
-| "Good price lah", but is it? | Every resale since 2017, on a map |
-| Three listings and a gut feeling | Tick what matters, compare side by side |
-| MSR, TDSR, LTV… | Plain words |
-| Salary on a website? | Stays in your browser |
+## Sound familiar?
 
-*You found a 4-room in Punggol. The agent says it's a good price, your parents want you near them in Bishan,
-and nobody can tell you how much cash you need on the day. This app answers all of that on one page.*
+> You found a 4-room in **Punggol**. The agent says it's a good price. Your parents want you near them in
+> **Bishan**. And nobody can tell you how much cash you actually need on the day.
+>
+> **SG Housing & Finance puts every answer on one page — worked out for *your* household.**
+
+## Your decision, made clear
+
+| | You're asking | What the numbers say |
+|:---:|---|---|
+| 💰 | **"Can we really afford it?"** | The most you can pay, from your income, CPF and grants — plus the cash you must put down upfront. No guesswork. |
+| 🏷️ | **"Is this a fair price?"** | Checked against recent resale prices in the same block and nearby. You'll see if it's above or below the market. |
+| ⚖️ | **"Which flat should we pick?"** | Tick what matters — cash, MRT, schools, lease — and get your shortlist side by side, one plain verdict per flat. |
+| 📍 | **"What's around it?"** | Primary schools within 1 km, childcare, clinics, MRT and travel time, block by block. |
+| 🏠 | **"Rent first, or buy now?"** | Whether your rent is fair, and what renting really costs against buying. |
+| 👵 | **"What happens to our CPF?"** | Your CPF and retirement payout, with and without this flat. |
+| 🔒 | **"Is my salary safe?"** | It never leaves your browser. No sign-up, no tracking. |
+
+## See it in action
 
 <div align="center">
 
@@ -35,18 +44,27 @@ and nobody can tell you how much cash you need on the day. This app answers all 
 
 </div>
 
-> [!NOTE]
-> **Educational estimates, not financial advice. Not affiliated with any Singapore government agency.**
-> Check prices, eligibility, loans and grants with HDB, CPF Board, IRAS and your bank before you commit.
-
 | Afford | Compare | Explore |
 |:---:|:---:|:---:|
 | <img src="docs/readme/afford.jpg" width="260" alt="Afford tab: most you can pay and cash needed"> | <img src="docs/readme/compare.jpg" width="260" alt="Compare table of three flats"> | <img src="docs/readme/schools.jpg" width="260" alt="Block card with primary schools within 1 km"> |
 | **Rent & Buy** | **Plan** | **中文** |
 | <img src="docs/readme/rent.jpg" width="260" alt="Rent and Buy tab"> | <img src="docs/readme/plan.jpg" width="260" alt="Plan tab with CPF and retirement"> | <img src="docs/readme/zh.jpg" width="260" alt="The app in Chinese"> |
 
-**240k+** resale sales since 2017 · **10,740** HDB blocks · **191** Singapore rules, each with its official source and
-date in [`sg-policy.json`](app/policy/sg-policy.json) · **1,000+** automated tests · **0** trackers
+> [!NOTE]
+> **Educational estimates, not financial advice. Not affiliated with any Singapore government agency.**
+> Check prices, eligibility, loans and grants with HDB, CPF Board, IRAS and your bank before you commit.
+
+## Built on real data
+
+<div align="center">
+
+| **240k+** | **10,740** | **191** | **1,000+** | **0** |
+|:---:|:---:|:---:|:---:|:---:|
+| resale sales since 2017 | HDB blocks mapped | Singapore rules, each with an official source and date | automated tests | trackers |
+
+</div>
+
+Every rule lives in one file, [`sg-policy.json`](app/policy/sg-policy.json), with its source and the date it applies from.
 
 ## Privacy
 
@@ -73,7 +91,9 @@ sources don't allow republishing.
 
 Code: MIT, see [LICENSE](LICENSE). Data keeps the terms of its sources.
 
-<details><summary><b>For developers</b></summary>
+## For developers
+
+<details><summary><b>Architecture, local setup and data refresh</b></summary>
 
 A static web app (ES modules, no build step) fed by a Dagster pipeline:
 
