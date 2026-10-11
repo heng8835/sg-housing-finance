@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/icons/logo.png" alt="SG Housing & Finance logo" width="96" height="95">
+<img src="app/icons/icon.svg" alt="SG Housing & Finance" width="88" height="88">
 
 # SG Housing & Finance
 
@@ -206,7 +206,10 @@ hand and approximate; commute times are a model, not a journey planner.
 
 ## Support
 
+<img src="app/icons/logo.png" alt="" width="72" height="71" align="left">
+
 SG Housing & Finance is free. If it helped you, you can support it on [Ko-fi](https://ko-fi.com/zhlim) ☕ — thank you!
+<br clear="left">
 
 ## Feedback
 

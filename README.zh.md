@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/icons/logo.png" alt="新加坡住房与理财标志" width="96" height="95">
+<img src="app/icons/icon.svg" alt="新加坡住房与理财" width="88" height="88">
 
 # 新加坡住房与理财（SG Housing & Finance）
 
@@ -142,7 +142,10 @@ data.gov.sg（建屋局、市建局、陆交局、教育部、幼儿培育署、
 
 ## 支持我们
 
+<img src="app/icons/logo.png" alt="" width="72" height="71" align="left">
+
 新加坡住房与理财是免费的。如果它对您有帮助，可以在 [Ko-fi](https://ko-fi.com/zhlim) 支持我们 ☕ —— 谢谢！
+<br clear="left">
 
 ## 意见反馈
 
