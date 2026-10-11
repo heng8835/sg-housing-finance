@@ -26,6 +26,9 @@
 | MSR, TDSR, LTV… | Plain words |
 | Salary on a website? | Stays in your browser |
 
+*You found a 4-room in Punggol. The agent says it's a good price, your parents want you near them in Bishan,
+and nobody can tell you how much cash you need on the day. This app answers all of that on one page.*
+
 <div align="center">
 
 <img src="docs/readme/demo.gif" alt="Picking a goal, loading a sample household, seeing what it can pay, opening a block card with nearby schools, and ranking three flats in Compare" width="800">
